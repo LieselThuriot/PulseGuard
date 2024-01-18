@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<MagicConstantsVisibility>public</MagicConstantsVisibility>
+		<MagicConstantsRoutes>true</MagicConstantsRoutes>
+		<MagicConstantsRoutesCacheControl>public, max-age=604800</MagicConstantsRoutesCacheControl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<CompilerVisibleProperty Include="MagicConstantsVisibility" />
+		<CompilerVisibleProperty Include="MagicConstantsRoutes" />
+		<CompilerVisibleProperty Include="MagicConstantsRoutesCacheControl" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicClass" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicRemoveRouteExtension" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicCacheControl" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="**\*.html" MagicClass="Pages" MagicRemoveRouteExtension="true" MagicCacheControl="public, max-age=86400" />
+		<AdditionalFiles Include="**\*.svg" MagicClass="Images" />
+		<AdditionalFiles Include="**\*.png" MagicClass="Images" />
+		<AdditionalFiles Include="**\*.ico" MagicClass="Images" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="details\{id}\chart.html" />
+	  <None Remove="details\{id}\group-chart.html" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<ProjectReference Include="..\MagicConstants\MagicConstants.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <AdditionalFiles Update="details\{id}\group-chart.html">
+	    <MagicRemoveRouteExtension>true</MagicRemoveRouteExtension>
+	    <MagicClass>Pages</MagicClass>
+	    <MagicCacheControl>public, max-age=86400</MagicCacheControl>
+	  </AdditionalFiles>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "storage1": {
+      "serviceConnectorResourceId": "/subscriptions/[parameters('subscriptionId')]/resourcegroups/[parameters('resourceGroupName')]/providers/Microsoft.Web/sites/PulseGuard/providers/Microsoft.ServiceLinker/linkers/ConnectionStringsPulseStore_5DDFF6D22A, /subscriptions/3e505d89-e278-40cd-aa1a-8a0c3b766a75/resourcegroups/playground/providers/Microsoft.Web/sites/PulseGuard/providers/Microsoft.ServiceLinker/linkers/ConnectionStringsPulseStore_E075909377",
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Storage/storageAccounts/pulseguard",
+      "type": "storage.azure",
+      "connectionId": "ConnectionStrings:PulseStore",
+      "dynamicId": null
+    },
+    "appInsights1": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/PulseGuard",
+      "type": "appInsights.azure",
+      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING"
+    }
+  }
+}

@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>PulseGuard</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito&family=Noto%20Color%20Emoji&display=swap"
+          rel="stylesheet">
+    <style>
+        html,
+        body {
+            font-family: 'Nunito', "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+            body:before {
+                content: "";
+                width: 100%;
+                height: 20%;
+                background-image: url(img/background.png);
+                background-size: contain;
+                background-position: bottom right;
+                background-repeat: no-repeat;
+                opacity: 0.33;
+                bottom: 5px;
+                right: 5px;
+                position: fixed;
+                display: inline-block;
+                z-index: -1;
+            }
+
+        .animated {
+            max-height: max-content;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .hidden {
+            overflow: hidden;
+            max-height: 0;
+            transition: all 0.2s cubic-bezier(0, 1, 0, 1);
+        }
+
+        .group-container:not(.hidden) {
+            padding-left: 2em;
+        }
+
+            .group-container:not(.hidden)::before {
+                content: '';
+                height: calc(100% - 12em + 1px);
+                border-left: 2px solid #c4c3c3;
+                position: absolute;
+                margin-left: calc(-2em + 10px);
+                margin-top: 5em;
+                bottom: 0;
+                top: 0;
+            }
+
+            .group-container:not(.hidden) .card::before {
+                content: '';
+                width: calc(2em - 10px);
+                border-top: 2px solid #c4c3c3;
+                position: absolute;
+                margin-left: calc(-2em + 10px);
+                margin-top: 4.4em;
+            }
+
+            .group-container:not(.hidden) .card:last-child::after {
+                content: '';
+                background-color: #fff;
+                bottom: 5px;
+                left: calc(-2em + 8px);
+                position: absolute;
+                top: calc(50% + .4em + 1px);
+                width: 4px;
+                margin-bottom: -2em;
+            }
+
+        #cards {
+            margin: 8px;
+            padding: 0 3%;
+        }
+
+        .header-wrap {
+            border-bottom: 1px solid rgb(226, 226, 226);
+            margin-bottom: 1.2em;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 999;
+        }
+
+            .header-wrap header {
+                display: flex;
+                -webkit-box-pack: justify;
+                justify-content: space-between;
+                -webkit-box-align: center;
+                align-items: center;
+                vertical-align: middle;
+                height: 74px;
+                padding: 0 8px;
+            }
+
+                .header-wrap header a {
+                    text-decoration: none;
+                }
+
+                    .header-wrap header a h2 {
+                        font-variant: small-caps;
+                        color: #345877;
+                    }
+
+                        .header-wrap header a h2::before {
+                            background-image: url('img/icon.png');
+                            background-size: 50px;
+                            background-repeat: no-repeat;
+                            vertical-align: -50%;
+                            display: inline-block;
+                            width: 66px;
+                            height: 50px;
+                            content: "";
+                        }
+
+        .card {
+            border: 1px solid rgb(236, 236, 236);
+            border-radius: 4px;
+            margin-bottom: 2em;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.1s ease 0s;
+            position: relative;
+            background-color: #fffc;
+        }
+
+            .card:last-child {
+                margin-bottom: 0;
+            }
+
+        .card-label-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+            .card-label-container > .card-label-popup {
+                margin: auto 5px;
+            }
+
+        #cards > .card:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: calc(100% + 1em);
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .card:hover {
+            border: 1px solid rgb(220, 214, 214);
+            box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            padding: 20px 20px 30px 20px;
+        }
+
+        .card-header {
+            cursor: pointer;
+        }
+
+        .card-label {
+            margin: 0 0 2px 2px;
+            flex-grow: 1;
+        }
+
+        .card-label-status {
+            margin: 0 1.5em 2px 2px;
+            font-size: 0.8em;
+        }
+
+        .health-bar {
+            border: 1px solid rgb(236, 236, 236);
+            border-radius: 4px;
+            background-color: rgb(245, 245, 245);
+            padding: 2px;
+            transition: all 0.1s ease 0s;
+        }
+
+        .container-bar {
+            margin: 0 8px;
+        }
+
+            .container-bar > .health-bar.tiny {
+                transform: scaleY(0.35);
+                transition: all 0.1s ease 0s;
+            }
+
+        .health-bar rect {
+            height: 42px;
+            border: 1px solid rgb(236, 236, 236);
+            transition: all 0.1s ease 0s;
+            transform-box: fill-box;
+            transform-origin: center center;
+            transform: scaleY(0.875) scaleX(0.875);
+            fill: rgb(41, 177, 92);
+        }
+
+            .health-bar rect:hover {
+                transform: scaleY(1) scaleX(1.15);
+            }
+
+        .Healthy {
+            fill: rgb(41, 177, 92) !important;
+            color: rgb(41, 177, 92) !important;
+        }
+
+        .Unknown {
+            fill: rgb(50, 41, 177) !important;
+            color: rgb(50, 41, 177) !important;
+            font-style: italic;
+        }
+
+        .Degraded {
+            fill: rgb(177, 123, 41) !important;
+            color: rgb(177, 123, 41) !important;
+            font-weight: bold;
+        }
+
+        .Unhealthy {
+            fill: rgb(177, 41, 41) !important;
+            color: rgb(177, 41, 41) !important;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        #title-header {
+            display: flex;
+            align-items: center;
+        }
+
+            #title-header > * {
+                margin: auto 5px;
+            }
+
+            #title-header > .title-details {
+                display: flex;
+            }
+
+        .legend {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 2px;
+        }
+
+            .legend .spacer {
+                flex: 1;
+                margin: 0.75rem 1rem 0 1rem;
+                height: 1px;
+                background: #a6a6a6;
+            }
+
+            .legend .legend-item {
+                font-size: .875rem;
+                color: #a6a6a6;
+            }
+
+        .legend-group {
+            padding: 0 10px 20px 1em;
+        }
+
+            .legend-group.tiny {
+                padding-bottom: 5px;
+                margin-top: -17px;
+            }
+
+        img[src$=".svg"] {
+            height: .7em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-wrap">
+        <header id="page-header">
+            <a href="">
+                <h2>PulseGuard</h2>
+            </a>
+        </header>
+    </div>
+
+    <div id="cards">Loading...</div>
+
+    <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
+    <script>
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            const groupFilter = urlParams.get('f');
+
+            if (!!groupFilter) {
+                document.title = `PulseGuard - ${groupFilter}`;
+            }
+
+            const totalMinutes = urlParams.get('minutes') || 720;
+            const measuringEnd = new Date();
+            measuringEnd.setMilliseconds(0);
+            measuringEnd.setSeconds(0);
+            const measuringStart = new Date(measuringEnd.getTime() - totalMinutes * 60000);
+
+            const formattedTimeAgo = (function () {
+                const diffInMilliseconds = Math.abs(totalMinutes * 60000);
+                const seconds = Math.floor(diffInMilliseconds / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const weeks = Math.floor(days / 7);
+                const years = Math.floor(weeks / 52);
+
+                const timeParts = [
+                    { label: 'year', value: years },
+                    { label: 'week', value: weeks % 52 },
+                    { label: 'day', value: days % 7 },
+                    { label: 'hour', value: hours % 24 },
+                    { label: 'minute', value: minutes % 60 },
+                    { label: 'second', value: seconds % 60 }
+                ];
+
+                const nonZeroTimeParts = timeParts.filter(part => part.value > 0);
+                return nonZeroTimeParts.map(part => `${part.value} ${part.label}${part.value > 1 ? 's' : ''}`).join(', ') + ' ago';
+            })();
+
+            const interval = 1;
+
+            let healthbarCount = 70;
+            if (document.body.clientWidth > 900) {
+                healthbarCount = ~~(healthbarCount * 1.5);
+            }
+
+            if (document.body.clientWidth > 1300) {
+                healthbarCount = ~~(healthbarCount * 1.5);
+            }
+
+            const bucketDuration = ((totalMinutes / interval) / healthbarCount) * 60 * 1000;
+
+            const now = new Date();
+            const bucketRanges = [];
+
+            for (let i = 0; i < healthbarCount; i++) {
+                const bucketStart = new Date(now.getTime() - ((healthbarCount - i) * bucketDuration));
+                const bucketEnd = new Date(bucketStart.getTime() + bucketDuration);
+
+                bucketRanges.push({ start: bucketStart, end: bucketEnd });
+            }
+
+            function healthToStatus(value) {
+                switch (value) {
+                    case 'Healthy':
+                        return 'Operational';
+                    case 'Unhealthy':
+                        return 'Critical';
+                    default: return value;
+                }
+            }
+
+            function getBucketIndexes(from, to) {
+                const indexes = [];
+                for (let i = 0; i < bucketRanges.length; i++) {
+                    const bucketRange = bucketRanges[i];
+                    if (to < bucketRange.start) {
+                        continue;
+                    }
+
+                    if (from > bucketRange.end) {
+                        continue;
+                    }
+
+                    indexes.push(i);
+                }
+
+                return indexes;
+            }
+
+            function renderGroupCard(groupName) {
+                const containerId = 'group-' + groupName.replace(/[^a-zA-Z0-9]/g, '');
+                const existing = document.getElementById(containerId + '-container');
+                if (!!existing) {
+                    return existing;
+                }
+
+                const card = document.createElement('div');
+                card.classList.add('card');
+
+                const container = document.createElement('div');
+                container.classList.add('container');
+                container.id = containerId;
+                card.appendChild(container);
+
+                const cardHeader = document.createElement('div');
+                cardHeader.classList.add('card-header');
+                container.appendChild(cardHeader);
+
+                const cardContainer = document.createElement('div');
+                cardContainer.id = containerId + '-container';
+                cardContainer.classList.add('hidden');
+                cardContainer.classList.add('animated');
+                cardContainer.classList.add('group-container');
+                container.appendChild(cardContainer);
+
+                const labelContainer = document.createElement('div');
+                labelContainer.classList.add('container-bar');
+                labelContainer.classList.add('card-label-container');
+                labelContainer.id = containerId + '-label';
+                cardHeader.appendChild(labelContainer);
+
+                const label = document.createElement('h4');
+                label.classList.add('card-label');
+                label.innerText = groupName;
+                labelContainer.appendChild(label);
+
+                const filterLink = document.createElement('a');
+                filterLink.classList.add('card-label-popup');
+                filterLink.href = '?f=' + groupName;
+                labelContainer.appendChild(filterLink);
+
+                const filterLinkImg = document.createElement('img');
+                filterLinkImg.src = 'img/filter-outline-icon.svg';
+                filterLinkImg.alt = 'Filter ' + groupName;
+
+                tippy(filterLinkImg, {
+                    content: filterLinkImg.alt
+                });
+
+                filterLink.appendChild(filterLinkImg);
+                filterLink.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+
+                const chartLink = document.createElement('a');
+                chartLink.classList.add('card-label-popup');
+                chartLink.href = './details/' + groupName + '/group-chart';
+                labelContainer.appendChild(chartLink);
+
+                const chartLinkImg = document.createElement('img');
+                chartLinkImg.src = 'img/chart-line-up-fill.svg';
+                chartLinkImg.alt = 'View details chart';
+
+                tippy(chartLinkImg, {
+                    content: chartLinkImg.alt
+                });
+
+                chartLink.appendChild(chartLinkImg);
+                chartLink.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+
+                cardHeader.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    cardContainer.classList.toggle('hidden');
+                    const cleanGroupName = groupName.replace(/[^a-zA-Z0-9]/g, '');
+                    document.getElementById('group-' + cleanGroupName + '-bar').classList.toggle('tiny');
+                    document.getElementById('legend-group-' + cleanGroupName).classList.toggle('tiny');
+                });
+
+                document.getElementById('cards').appendChild(card);
+                return cardContainer;
+            }
+
+            function createHealthBar(items) {
+                const bar = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                bar.setAttribute('height', '42');
+                bar.setAttribute('width', '100%');
+                bar.setAttribute('viewBox', '0 0 1000 42');
+                bar.setAttribute('preserveAspectRatio', 'none');
+                bar.classList.add('health-bar');
+
+                const rectWidth = (100 / healthbarCount);
+
+                const buckets = [];
+
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const item = items[i];
+
+                    const from = new Date(item.from);
+                    const to = new Date(item.to);
+
+                    getBucketIndexes(from, to).forEach(index => {
+                        if (!buckets[index]) {
+                            buckets[index] = [];
+                        }
+                        buckets[index].push(item);
+                    });
+                }
+
+                for (let i = 0; i < healthbarCount; i++) {
+                    const rectangle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+
+                    let titletextContent;
+                    {
+                        const range = bucketRanges[i];
+
+                        rectangle.dataset.start = range.start.toISOString();
+                        rectangle.dataset.end = range.end.toISOString();
+
+                        const startDate = range.start.toLocaleDateString();
+                        const endDate = range.end.toLocaleDateString();
+
+                        const startTime = range.start.toLocaleTimeString();
+                        const endTime = range.end.toLocaleTimeString();
+
+                        if (startDate === endDate) {
+                            titletextContent = `${startDate}, ${startTime} - ${endTime}`;
+                        } else {
+                            titletextContent = `${startDate}, ${startTime} - ${endDate}, ${endTime}`;
+                        }
+                    }
+
+                    rectangle.setAttribute('ry', 2);
+                    rectangle.setAttribute('width', (rectWidth * 8).toFixed(2));
+                    rectangle.setAttribute('x', (rectWidth * i * 10).toFixed(2));
+
+                    const bucketItems = buckets[i];
+                    if (bucketItems && bucketItems.length > 1) {
+                        bucketItems.sort((a, b) => {
+                            if (a.message < b.message) {
+                                return -1;
+                            }
+
+                            if (a.message > b.message) {
+                                return 1;
+                            }
+
+                            return 0;
+                        });
+                    }
+
+                    if (!bucketItems || bucketItems.length === 0) {
+                        rectangle.classList.add('Unknown');
+                        titletextContent += '<br>No data available';
+                    } else {
+                        let status = 'Healthy';
+
+                        const titletextContentSet = new Set();
+                        for (let j = 0; j < bucketItems.length; j++) {
+                            const currentStatus = bucketItems[j].state;
+                            if (currentStatus !== 'Healthy') {
+                                titletextContentSet.add('<span class="' + bucketItems[j].state + '">' + bucketItems[j].state + '</span> - ' + bucketItems[j].message);
+                                if (currentStatus === 'Unhealthy') {
+                                    status = 'Unhealthy';
+                                    break;
+                                } else if (currentStatus === 'Degraded' && status !== 'Unhealthy') {
+                                    status = 'Degraded';
+                                }
+                            }
+                        }
+
+                        if (status === 'Healthy') {
+                            titletextContent += '<br>All systems are <span class="Healthy">healthy</span>';
+                        } else {
+                            titletextContent += '<br>' + Array.from(titletextContentSet).join('<br>');
+                        }
+
+                        rectangle.classList.add(status);
+                    }
+
+                    tippy(rectangle, {
+                        content: titletextContent,
+                        allowHTML: true
+                    });
+
+                    bar.appendChild(rectangle);
+                }
+
+                return bar;
+            }
+
+            function createInfoBar(items, legendClass, legendId, groupCount) {
+                const legend = document.createElement('div');
+                legend.classList.add('legend');
+                legend.classList.add(legendClass);
+
+                if (!!legendId) {
+                    legend.id = legendId;
+                }
+
+                const legendItem = document.createElement('div');
+                legendItem.classList.add('legend-item');
+                legendItem.innerText = formattedTimeAgo;
+                legend.appendChild(legendItem);
+
+                const spacer2 = document.createElement('div');
+                spacer2.classList.add('spacer');
+                legend.appendChild(spacer2);
+
+                const legendItem2 = document.createElement('div');
+                legendItem2.classList.add('legend-item');
+                legendItem2.innerText = (function () {
+                    let healthyTime = items.filter(x => x.state === 'Healthy')
+                        .map(x => {
+                            let from = new Date(x.from);
+                            from.setSeconds(0, 0);
+                            if (from < measuringStart) {
+                                from = measuringStart;
+                            }
+
+                            let to = new Date(x.to);
+                            to.setSeconds(0, 0);
+                            if (to > measuringEnd) {
+                                to = measuringEnd;
+                            }
+
+                            return to - from;
+                        }).reduce((a, b) => a + b, 0);
+
+                    healthyTime = healthyTime / 60000;
+
+                    const percentage = ((healthyTime / totalMinutes) * 100) / (groupCount || 1);
+
+                    if (percentage > 100) {
+                        return '100.00';
+                    }
+
+                    return percentage.toFixed(2);
+
+                })() + ' % uptime';
+                legend.appendChild(legendItem2);
+
+                const spacer3 = document.createElement('div');
+                spacer3.classList.add('spacer');
+                legend.appendChild(spacer3);
+
+                const legendItem3 = document.createElement('div');
+                legendItem3.classList.add('legend-item');
+                legendItem3.innerText = 'Now';
+                legend.appendChild(legendItem3);
+
+                return legend;
+            }
+
+            function renderHealthCard(id, name, items, groupName) {
+                const card = document.createElement('div');
+                card.classList.add('card');
+
+                const container = document.createElement('div');
+                container.classList.add('container');
+                card.appendChild(container);
+
+                const labelContainer = document.createElement('div');
+                labelContainer.classList.add('card-label-container');
+                container.appendChild(labelContainer);
+
+                const label = document.createElement('h4');
+                label.classList.add('card-label');
+                label.innerText = name;
+                labelContainer.appendChild(label);
+
+                const labelStatus = document.createElement('h4');
+                labelStatus.classList.add('card-label-status');
+                const labelStatusState = items.reduce((a, b) => new Date(a.to) > new Date(b.to) ? a : b).state;
+                labelStatus.classList.add(labelStatusState);
+                labelStatus.innerText = healthToStatus(labelStatusState);
+                labelContainer.appendChild(labelStatus);
+
+                const popupLink = document.createElement('a');
+                popupLink.classList.add('card-label-popup');
+                popupLink.href = './details/' + id;
+                labelContainer.appendChild(popupLink);
+
+                const popupLinkImg = document.createElement('img');
+                popupLinkImg.src = 'img/popup-link-icon.svg';
+                popupLinkImg.alt = 'View details';
+
+                tippy(popupLinkImg, {
+                    content: popupLinkImg.alt
+                });
+
+                popupLink.appendChild(popupLinkImg);
+
+                const chartLink = document.createElement('a');
+                chartLink.classList.add('card-label-popup');
+                chartLink.href = './details/' + id + '/chart';
+                labelContainer.appendChild(chartLink);
+
+                const chartLinkImg = document.createElement('img');
+                chartLinkImg.src = 'img/chart-line-up-fill.svg';
+                chartLinkImg.alt = 'View details chart';
+
+                tippy(chartLinkImg, {
+                    content: chartLinkImg.alt
+                });
+
+                chartLink.appendChild(chartLinkImg);
+
+                function render() {
+                    const bar = createHealthBar(items);
+                    container.appendChild(bar);
+
+                    const infobar = createInfoBar(items, 'legend-child');
+                    container.appendChild(infobar);
+                }
+
+                let parent;
+                if (!!groupFilter || !groupName || groupName.length === 0) {
+                    render();
+                    parent = document.getElementById('cards');
+                } else {
+                    parent = renderGroupCard(groupName);
+
+                    const loading = document.createElement('div');
+                    loading.innerText = 'Loading...';
+                    container.appendChild(loading);
+
+                    const observer = new MutationObserver(function (mutations) {
+                        mutations.forEach(function (mutation) {
+                            if (mutation.attributeName === 'class') {
+                                if (mutation.target.classList.contains('hidden')) {
+                                    return;
+                                }
+
+                                render();
+                                container.removeChild(loading);
+
+                                observer.disconnect();
+                            }
+                        });
+                    });
+
+                    observer.observe(parent, { attributes: true, attributeFilter: ['class'] });
+                }
+
+                parent.appendChild(card);
+            }
+
+            fetch(`api/1.0/pulses?minutes=${totalMinutes}${(!!groupFilter ? '&f=' + groupFilter : '')}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        document.getElementById('cards').innerText = 'No data available';
+                        return;
+                    }
+
+                    document.getElementById('cards').innerHTML = '';
+
+                    if (!!groupFilter) {
+                        data = data.filter(x => x.group === groupFilter);
+                    } else {
+                        data.sort((a, b) => {
+                            const aGroup = a.group || '';
+                            const bGroup = b.group || '';
+
+                            if (!aGroup && !bGroup) {
+                                return 0;
+                            }
+
+                            if (!aGroup) {
+                                return 1;
+                            }
+
+                            if (!bGroup) {
+                                return -1;
+                            }
+
+                            return aGroup.toLowerCase().localeCompare(bGroup.toLowerCase());
+                        });
+                    }
+
+                    data.forEach(group => {
+                        const groupName = group.group;
+
+                        group.items.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+                        group.items.forEach(item => renderHealthCard(item.id, item.name, item.items, groupName));
+
+                        if (!!groupFilter) {
+                            const header = document.createElement('div');
+                            header.id = 'title-header';
+                            document.getElementById('page-header').appendChild(header);
+
+                            const title = document.createElement('h4');
+                            title.textContent = groupName;
+                            header.appendChild(title);
+
+                            const filterLink = document.createElement('a');
+                            filterLink.classList.add('card-label-popup');
+                            filterLink.href = '';
+                            header.appendChild(filterLink);
+
+                            filterLink.addEventListener('click', function (e) {
+                                e.stopPropagation();
+                                e.preventDefault();
+
+                                urlParams.delete('f');
+                                window.location.search = urlParams.toString();
+                            });
+
+                            const filterLinkImg = document.createElement('img');
+                            filterLinkImg.src = 'img/remove-filter-icon.svg';
+                            filterLinkImg.alt = 'Remove Filter';
+
+                            tippy(filterLinkImg, {
+                                content: filterLinkImg.alt
+                            });
+
+                            filterLink.appendChild(filterLinkImg);
+
+                            const chartLink = document.createElement('a');
+                            chartLink.classList.add('card-label-popup');
+                            chartLink.href = './details/' + groupName + '/group-chart';
+                            header.appendChild(chartLink);
+
+                            const chartLinkImg = document.createElement('img');
+                            chartLinkImg.src = 'img/chart-line-up-fill.svg';
+                            chartLinkImg.alt = 'View details chart';
+
+                            tippy(chartLinkImg, {
+                                content: chartLinkImg.alt
+                            });
+
+                            chartLink.appendChild(chartLinkImg);
+                        } else {
+                            if (!!groupName && groupName.length > 0 && group.items.length > 0) {
+                                const container = document.getElementById('group-' + groupName.replace(/[^a-zA-Z0-9]/g, '')).childNodes[0];
+
+                                const items = group.items.map(item => item.items.map(x => {
+                                    x.id = item.id;
+                                    x.message = '<strong>' + item.name + '</strong> - ' + x.message;
+                                    return x;
+                                }));
+
+                                const flattenedItems = [].concat.apply([], items);
+
+                                const bar = createHealthBar(flattenedItems);
+                                bar.id = 'group-' + groupName.replace(/[^a-zA-Z0-9]/g, '') + '-bar';
+
+                                const containedBar = document.createElement('div');
+                                containedBar.classList.add('container-bar');
+                                containedBar.appendChild(bar);
+
+                                container.appendChild(containedBar);
+
+                                const infoBar = createInfoBar(flattenedItems, 'legend-group', 'legend-group-' + groupName.replace(/[^a-zA-Z0-9]/g, ''), group.items.length);
+                                container.appendChild(infoBar);
+
+                                const labelStatus = document.createElement('h4');
+                                labelStatus.classList.add('card-label-status');
+
+                                const lastBarStart = new Date(bar.lastChild.dataset.start);
+                                const lastBarEnd = new Date(bar.lastChild.dataset.end);
+
+                                const newestItems = flattenedItems.reduce((acc, item) => {
+                                    if (!acc[item.id] || new Date(acc[item.id].to) < new Date(item.to)) {
+                                        acc[item.id] = item;
+                                    }
+
+                                    return acc;
+                                }, {});
+
+                                const newestItemsSet = new Set(Object.values(newestItems).map(x => x.state));
+
+                                const newestItemsStateText = newestItemsSet.size === 0
+                                    ? 'Unknown'
+                                    : newestItemsSet.has('Unhealthy')
+                                        ? 'Unhealthy'
+                                        : newestItemsSet.has('Degraded')
+                                            ? 'Degraded'
+                                            : 'Healthy';
+
+                                labelStatus.classList.add(newestItemsStateText);
+                                labelStatus.innerText = healthToStatus(newestItemsStateText);
+
+                                const labelContainer = document.getElementById('group-' + groupName.replace(/[^a-zA-Z0-9]/g, '') + '-label');
+                                labelContainer.insertBefore(labelStatus, labelContainer.childNodes[1]);
+                            }
+                        }
+                    });
+                });
+        })();
+    </script>
+
+</body>
+
+</html>

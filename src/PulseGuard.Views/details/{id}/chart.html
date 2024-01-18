@@ -1,0 +1,329 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>PulseGuard</title>
+    <link rel="icon" type="image/x-icon" href="../../favicon.ico">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito&family=Noto%20Color%20Emoji&display=swap"
+          rel="stylesheet">
+    <style>
+        html,
+        body {
+            font-family: 'Nunito', "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+            body:before {
+                content: "";
+                width: 100%;
+                height: 20%;
+                background-image: url(../../img/background.png);
+                background-size: contain;
+                background-position: bottom right;
+                background-repeat: no-repeat;
+                opacity: 0.33;
+                bottom: 5px;
+                right: 5px;
+                position: fixed;
+                display: inline-block;
+                z-index: -1;
+            }
+
+        .header-wrap {
+            border-bottom: 1px solid rgb(226, 226, 226);
+            margin-bottom: 1.2em;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 999;
+        }
+
+            .header-wrap header {
+                display: flex;
+                -webkit-box-pack: justify;
+                justify-content: space-between;
+                -webkit-box-align: center;
+                align-items: center;
+                vertical-align: middle;
+                height: 74px;
+                padding: 0 8px;
+            }
+
+                .header-wrap header a {
+                    text-decoration: none;
+                }
+
+                    .header-wrap header a h2 {
+                        font-variant: small-caps;
+                        color: #345877;
+                    }
+
+                        .header-wrap header a h2::before {
+                            background-image: url('../../img/icon.png');
+                            background-size: 50px;
+                            background-repeat: no-repeat;
+                            vertical-align: -50%;
+                            display: inline-block;
+                            width: 66px;
+                            height: 50px;
+                            content: "";
+                        }
+
+        #container {
+            margin: 8px;
+            padding: 0 3%;
+            height: calc(100vh - 1.2em - 125px);
+        }
+
+        #title-header {
+            display: flex;
+            align-items: center;
+        }
+
+            #title-header > * {
+                margin: auto 5px;
+            }
+
+            #title-header > .title-details {
+                display: flex;
+            }
+
+        .tippy-content {
+            white-space: pre-line;
+            overflow-wrap: break-word;
+        }
+
+        img[src$=".svg"] {
+            height: .7em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-wrap">
+        <header id="page-header">
+            <a href="../../">
+                <h2>PulseGuard</h2>
+            </a>
+        </header>
+    </div>
+
+    <div id="container">
+        <p>Loading...</p>
+    </div>
+
+    <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const days = urlParams.get('days') || 14;
+
+        const sqid = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/chart')).split('/').pop();
+
+        const container = document.getElementById('container');
+
+        function setNoData() {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+
+            const noData = document.createElement('p');
+            noData.textContent = 'No data available';
+            container.appendChild(noData);
+        }
+
+        const labels = (function () {
+            const result = [];
+
+            for (let i = 13; i >= 0; i--) {
+                for (let h = 0; h < 24; h++) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    date.setHours(h, 0, 0, 0);
+
+                    result.push(date);
+
+                    if (days <= 7) {
+                        const halfdate = new Date(date);
+                        halfdate.setMinutes(30, 0, 0);
+
+                        result.push(halfdate);
+                    }
+                }
+            }
+
+            return result;
+        })();
+
+        let myChart;
+
+        fetch(`../../api/1.0/pulses/application/${sqid}/states?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+
+                if (!data || !data.items || data.items.length === 0) {
+                    setNoData();
+                    return;
+                }
+
+                const items = data.items;
+
+                items.forEach(x => {
+                    x.from = new Date(x.from);
+                    x.from.setMilliseconds(0);
+
+                    x.to = new Date(x.to);
+                    x.to.setMilliseconds(0);
+                });
+
+                const earliest = new Date(items[items.length - 1].from);
+                earliest.setMinutes(0, 0, 0);
+
+                while (labels[0] < earliest) {
+                    labels.shift();
+                }
+
+                const dataset = labels.map(x => {
+                    const from = x;
+                    const to = new Date(x);
+                    to.setHours(to.getHours() + 1);
+
+                    const activeItems = items.filter(y => y.from <= to && y.to >= from);
+
+                    if (activeItems.length === 0) {
+                        return undefined;
+                    }
+
+                    if (activeItems.some(y => y.state === 'Unhealthy')) {
+                        return 'Unhealthy';
+                    }
+
+                    if (activeItems.some(y => y.state === 'Degraded')) {
+                        return 'Degraded';
+                    }
+
+                    return activeItems[0].state;
+                });
+
+                const chartColor = (function () {
+                    // Calculate a hash value from the input string
+                    let hash = 0;
+                    for (let i = 0; i < sqid.length; i++) {
+                        hash = sqid.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+
+                    // Generate RGB values within the pastel range
+                    const r = (hash & 0xFF) % 106 + 150; // 150-255
+                    const g = ((hash >> 8) & 0xFF) % 106 + 150; // 150-255
+                    const b = ((hash >> 16) & 0xFF) % 106 + 150; // 150-255
+
+                    // Convert RGB to hexadecimal format
+                    const colorHex = `#${r.toString(16)}${g.toString(16)}${b.toString(16)}`;
+                    return colorHex;
+                }
+                )();
+
+                const config = {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Health',
+                                data: dataset,
+                                borderColor: chartColor,
+                                backgroundColor: chartColor + '80',
+                                yAxisID: 'y',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: data.name
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                display: true,
+                                offset: true,
+                                ticks: {
+                                    source: 'data'
+                                },
+                                time: {
+                                    unit: 'day'
+                                }
+                            },
+                            y: {
+                                type: 'category',
+                                labels: ['Healthy', 'Degraded', 'Unhealthy']
+                            }
+                        }
+                    },
+                };
+
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.id = 'chart';
+                container.appendChild(canvas);
+
+                myChart = new Chart(canvas, config);
+
+                const name = data.name;
+
+                document.title = `PulseGuard - ${name} Details Chart`;
+
+                const header = document.createElement('div');
+                header.id = 'title-header';
+                document.getElementById('page-header').appendChild(header);
+
+                const title = document.createElement('h4');
+                title.textContent = name;
+                header.appendChild(title);
+
+                const badge = document.createElement('img');
+                badge.src = `../../1.0/badges/${sqid}`;
+                badge.alt = 'Health Badge';
+                header.appendChild(badge);
+
+                const chartLink = document.createElement('a');
+                chartLink.classList.add('title-details');
+                chartLink.href = `../../details/${sqid}`;
+                header.appendChild(chartLink);
+
+                const chartLinkImg = document.createElement('img');
+                chartLinkImg.classList.add('title-details-icon');
+                chartLinkImg.src = '../../img/popup-link-icon.svg';
+                chartLinkImg.alt = 'View details';
+
+                tippy(chartLinkImg, {
+                    content: chartLinkImg.alt
+                });
+
+                chartLink.appendChild(chartLinkImg);
+            })
+            .catch((e) => {
+                console.error(e);
+                setNoData();
+            });
+    </script>
+</body>
+</html>

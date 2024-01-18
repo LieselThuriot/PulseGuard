@@ -1,0 +1,472 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>PulseGuard</title>
+    <link rel="icon" type="image/x-icon" href="../favicon.ico">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito&family=Noto%20Color%20Emoji&display=swap" rel="stylesheet">
+    <style>
+        html,
+        body {
+            font-family: 'Nunito', "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+            body:before {
+                content: "";
+                width: 100%;
+                height: 20%;
+                background-image: url(../img/background.png);
+                background-size: contain;
+                background-position: bottom right;
+                background-repeat: no-repeat;
+                opacity: 0.33;
+                bottom: 5px;
+                right: 5px;
+                position: fixed;
+                display: inline-block;
+                z-index: -1;
+            }
+
+        .header-wrap {
+            border-bottom: 1px solid rgb(226, 226, 226);
+            margin-bottom: 1.2em;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 999;
+        }
+
+            .header-wrap header {
+                display: flex;
+                -webkit-box-pack: justify;
+                justify-content: space-between;
+                -webkit-box-align: center;
+                align-items: center;
+                vertical-align: middle;
+                height: 74px;
+                padding: 0 8px;
+            }
+
+                .header-wrap header a {
+                    text-decoration: none;
+                }
+
+                    .header-wrap header a h2 {
+                        font-variant: small-caps;
+                        color: #345877;
+                    }
+
+                        .header-wrap header a h2::before {
+                            background-image: url('../img/icon.png');
+                            background-size: 50px;
+                            background-repeat: no-repeat;
+                            vertical-align: -50%;
+                            display: inline-block;
+                            width: 66px;
+                            height: 50px;
+                            content: "";
+                        }
+
+        #container {
+            margin: 8px;
+            padding: 0 3%;
+        }
+
+        .Healthy {
+            color: rgb(41, 177, 92);
+        }
+
+        .Unknown {
+            color: rgb(50, 41, 177);
+            font-style: italic;
+        }
+
+        .Degraded {
+            color: rgb(177, 123, 41);
+            font-weight: bold;
+        }
+
+        .Unhealthy {
+            color: rgb(177, 41, 41);
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        #title-header {
+            display: flex;
+            align-items: center;
+        }
+
+            #title-header > * {
+                margin: auto 5px;
+            }
+
+            #title-header > .title-chart {
+                display: flex;
+            }
+
+        .pulses {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2em;
+            background-color: #fffc;
+        }
+
+            .pulses th {
+                text-align: left;
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .pulses td {
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+
+                .pulses td.error-message {
+                    width: 1%;
+                    white-space: nowrap;
+                }
+
+            .pulses tr:nth-child(even) {
+                background-color: #f2f2f280;
+            }
+
+        #pulse-end {
+            text-align: center;
+        }
+
+        #navigation {
+            display: flex;
+            justify-content: end;
+            margin: 8px;
+            padding: 0 3%;
+        }
+
+            #navigation button {
+                background-color: #ddd;
+                border: #333 1px solid;
+                padding: .5em 1.5em;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+            }
+
+        .emoji {
+            font-family: 'Noto Color Emoji';
+            margin: 0 3px;
+        }
+
+        .clickable {
+            cursor: pointer;
+        }
+
+        .tippy-content {
+            white-space: pre-line;
+            overflow-wrap: break-word;
+        }
+
+        img[src$=".svg"] {
+            height: .7em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-wrap">
+        <header id="page-header">
+            <a href="../">
+                <h2>PulseGuard</h2>
+            </a>
+        </header>
+    </div>
+
+    <div id="container">
+        <p>Loading...</p>
+    </div>
+
+    <div id="navigation"></div>
+
+    <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
+    <script>
+        let continuationToken = '';
+        (function () {
+            const sqid = window.location.pathname.split('/').pop();
+
+            const container = document.getElementById('container');
+
+            function getReadableTimeDifference(from, to) {
+                const diffInMilliseconds = Math.abs(to - from);
+                const seconds = Math.floor(diffInMilliseconds / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const weeks = Math.floor(days / 7);
+                const years = Math.floor(weeks / 52);
+
+                const timeParts = [
+                    { label: 'year', value: years },
+                    { label: 'week', value: weeks % 52 },
+                    { label: 'day', value: days % 7 },
+                    { label: 'hour', value: hours % 24 },
+                    { label: 'minute', value: minutes % 60 },
+                    { label: 'second', value: seconds % 60 }
+                ];
+
+                const nonZeroTimeParts = timeParts.filter(part => part.value > 0);
+                const formattedTime = nonZeroTimeParts.map(part => `${part.value} ${part.label}${part.value > 1 ? 's' : ''}`).join(', ');
+
+                return formattedTime;
+            }
+
+            function appendNoData() {
+                const noData = document.createElement('p');
+                noData.textContent = 'No data available';
+                container.appendChild(noData);
+            }
+
+            function renderData(data, firstLoad) {
+                if (data) {
+                    if (data.items && data.items.length) {
+                        data.items.forEach(x => {
+                            x.from = new Date(x.from);
+                            x.from.setMilliseconds(0);
+
+                            x.to = new Date(x.to);
+                            x.to.setMilliseconds(0);
+                        });
+
+                        data.items.sort((a, b) => {
+                            const fromComparison = b.from - a.from;
+                            if (fromComparison !== 0) {
+                                return fromComparison;
+                            } else {
+                                return b.to - a.to;
+                            }
+                        });
+
+                        let pulses;
+
+                        if (firstLoad) {
+                            pulses = document.createElement('table');
+                            pulses.classList.add('pulses');
+                            pulses.id = 'pulse-table';
+                            container.appendChild(pulses);
+
+                            const headerRow = document.createElement('tr');
+                            headerRow.innerHTML = '<th>From</th><th>To</th><th>Duration</th><th>State</th><th>Message</th><th>&nbsp;</th>';
+                            pulses.appendChild(headerRow);
+                        } else {
+                            pulses = document.getElementById('pulse-table');
+                        }
+
+                        function appendRow(item, filler) {
+                            const durationInMinutes = Math.floor((item.to - item.from) / 1000 / 60);
+
+                            if (filler && durationInMinutes <= 0) {
+                                return;
+                            }
+
+                            const pulse = document.createElement('tr');
+
+                            if (filler === false) {
+                                const pulseId = 'pulse-' + Math.floor(item.from.getTime() / 1000);
+
+                                if (!!document.getElementById(pulseId)) {
+                                    return;
+                                }
+
+                                pulse.id = pulseId;
+                            } else {
+                                pulse.classList.add('pulse-filler');
+                            }
+
+                            pulses.appendChild(pulse);
+
+                            const from = document.createElement('td');
+                            from.textContent = item.from.toLocaleString();
+                            pulse.appendChild(from);
+
+                            const to = document.createElement('td');
+                            to.textContent = item.to.toLocaleString();
+                            pulse.appendChild(to);
+
+                            const duration = document.createElement('td');
+                            duration.textContent = getReadableTimeDifference(item.from, item.to);
+                            pulse.appendChild(duration);
+
+                            const state = document.createElement('td');
+                            state.textContent = item.state;
+                            state.classList.add('healthstate');
+                            state.classList.add(item.state);
+                            pulse.appendChild(state);
+
+                            const message = document.createElement('td');
+                            message.textContent = item.message;
+                            pulse.appendChild(message);
+
+                            const error = document.createElement('td');
+                            error.classList.add('error-message');
+
+                            if (item.error) {
+                                const errorIcon = document.createElement('span');
+                                errorIcon.classList.add('emoji');
+                                errorIcon.classList.add('clickable');
+                                errorIcon.textContent = '⚠️';
+
+                                errorIcon.addEventListener('click', () => navigator.clipboard.writeText(item.error));
+                                tippy(errorIcon, {
+                                    trigger: 'click',
+                                    content: ' Copied to your clipboard! '
+                                });
+
+                                tippy(errorIcon, {
+                                    content: item.error,
+                                    interactive: true,
+                                    placement: 'left'
+                                });
+
+                                error.appendChild(errorIcon);
+                            }
+                            else {
+                                error.textContent = ' ';
+                            }
+
+                            pulse.appendChild(error);
+                        }
+
+                        let lastFrom = data.items[0].to;
+                        data.items.forEach(item => {
+                            if (item.to != lastFrom) {
+                                appendRow({
+                                    from: item.to,
+                                    to: lastFrom,
+                                    state: 'Unknown',
+                                    message: 'Gap without measurements'
+                                }, true);
+                            }
+
+                            lastFrom = item.from;
+                            appendRow(item, false);
+                        });
+
+                        const navigation = document.getElementById('navigation');
+                        navigation.innerHTML = '';
+
+                        const appendEndRow = function () {
+                            if (pulses) {
+                                const pulse = document.createElement('tr');
+                                pulse.innerHTML = '<td colspan="6" id="pulse-end">← End of available pulses →</td>';
+                                pulses.appendChild(pulse);
+                            }
+                        }
+
+                        if (!!data.continuationToken) {
+                            const loadMoreButton = document.createElement('button');
+                            loadMoreButton.id = 'load-more-button';
+                            loadMoreButton.textContent = 'Load next page';
+
+                            const fetchNext = function () {
+                                navigation.innerHTML = '';
+
+                                fetch(`../api/1.0/pulses/application/${sqid}?continuationToken=${continuationToken}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        continuationToken = data.continuationToken;
+                                        renderData(data, false);
+
+                                        if (!!continuationToken) {
+                                            navigation.appendChild(loadMoreButton);
+                                        } else {
+                                            appendEndRow();
+                                        }
+                                    })
+                                    .catch(() => {
+                                        appendEndRow();
+
+                                        if (loadMoreButton.parentNode) {
+                                            loadMoreButton.parentNode.removeChild(loadMoreButton);
+                                        }
+                                    });
+                            }
+
+                            loadMoreButton.addEventListener('click', () => fetchNext());
+
+                            if (firstLoad) {
+                                navigation.appendChild(loadMoreButton);
+                            }
+                        } else {
+                            if (firstLoad) {
+                                appendEndRow();
+                            }
+                        }
+                    } else {
+                        if (firstLoad) {
+                            appendNoData();
+                        }
+                    }
+                } else {
+                    if (firstLoad) {
+                        appendNoData();
+                    }
+                }
+            }
+
+            fetch(`../api/1.0/pulses/application/${sqid}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        container.innerHTML = '';
+
+                        const name = data.name;
+
+                        document.title = `PulseGuard - ${name} Details`;
+
+                        const header = document.createElement('div');
+                        header.id = 'title-header';
+                        document.getElementById('page-header').appendChild(header);
+
+                        const title = document.createElement('h4');
+                        title.textContent = name;
+                        header.appendChild(title);
+
+                        const badge = document.createElement('img');
+                        badge.src = `../1.0/badges/${sqid}`;
+                        badge.alt = 'Health Badge';
+                        header.appendChild(badge);
+
+                        const chartLink = document.createElement('a');
+                        chartLink.classList.add('title-chart');
+                        chartLink.href = `../details/${sqid}/chart`;
+                        header.appendChild(chartLink);
+
+                        const chartLinkImg = document.createElement('img');
+                        chartLinkImg.classList.add('title-chart-icon');
+                        chartLinkImg.src = '../img/chart-line-up-fill.svg';
+                        chartLinkImg.alt = 'View details chart';
+
+                        tippy(chartLinkImg, {
+                            content: chartLinkImg.alt
+                        });
+
+                        chartLink.appendChild(chartLinkImg);
+                    }
+
+                    continuationToken = data.continuationToken;
+                    renderData(data, true);
+                })
+                .catch(() => {
+                    container.innerHTML = '';
+                    appendNoData();
+                });
+        })();
+    </script>
+</body>
+
+</html>
