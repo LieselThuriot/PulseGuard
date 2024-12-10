@@ -1,7 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using FileOptions = (string? Class, bool RemoveRouteExtension, Microsoft.CodeAnalysis.AdditionalText File, string? CacheControl);
-using GlobalOptions = (string Namespace, string Visibility, bool Routes, string? CacheControl, string? ProjectDirectory);
+using NUglify;
+using FileOptions = (string? Class, bool RemoveRouteExtension, Microsoft.CodeAnalysis.AdditionalText File, string? CacheControl, bool? Minify);
+using GlobalOptions = (string Namespace, string Visibility, bool Routes, string? CacheControl, bool Minify, string? ProjectDirectory);
 
 namespace MagicConstants;
 
@@ -16,6 +17,7 @@ public class Generator : IIncrementalGenerator
             Visibility: GetGlobalOption(provider, "MagicConstantsVisibility") ?? "internal",
             Routes: bool.TryParse(GetGlobalOption(provider, "MagicConstantsRoutes"), out bool routes) && routes,
             CacheControl: GetGlobalOption(provider, "MagicConstantsRoutesCacheControl"),
+            Minify: bool.TryParse(GetGlobalOption(provider, "MagicConstantsMinify"), out bool minify) && minify,
             ProjectDirectory: GetGlobalOption(provider, "projectdir")
         ));
 
@@ -23,9 +25,15 @@ public class Generator : IIncrementalGenerator
                                      .Select(static (pair, _) =>
                                      {
                                          string? @class = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicClass");
-                                         bool removeRouteExtension = bool.TryParse(GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicRemoveRouteExtension"), out bool remove) && remove;
+
+                                         string? removeRouteString = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicRemoveRouteExtension");
+                                         bool removeRouteExtension = removeRouteString != null && bool.TryParse(removeRouteString, out bool remove) && remove;
                                          string? cacheControl = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicCacheControl");
-                                         return (Class: @class, RemoveRouteExtension: removeRouteExtension, File: pair.Left, CacheControl: cacheControl);
+
+                                         string? shouldMinifyString = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicConstantsMinify");
+                                         bool? shouldMinify = shouldMinifyString == null ? null : bool.TryParse(shouldMinifyString, out bool minify) && minify;
+                                         
+                                         return (Class: @class, RemoveRouteExtension: removeRouteExtension, File: pair.Left, CacheControl: cacheControl, Minify: shouldMinify);
                                      })
                                      .Where(static pair => pair.Class is not null);
 
@@ -49,7 +57,38 @@ public class Generator : IIncrementalGenerator
             }
             else
             {
-                content = "@\"" + (file.GetText()?.ToString()?.Replace("\"", "\"\"")) + "\"";
+                content = file.GetText()?.ToString() ?? "";
+
+                if ((pair.FileOptions.Minify.HasValue && pair.FileOptions.Minify.GetValueOrDefault()) || pair.GlobalOptions.Minify)
+                {
+                    if (extension is ".html" or ".htm")
+                    {
+                        UglifyResult result = Uglify.Html(content);
+
+                        if (!result.HasErrors)
+                        {
+                            content = result.Code;
+                        }
+                    }
+                    else if (extension is ".css")
+                    {
+                        UglifyResult result = Uglify.Css(content);
+                        if (!result.HasErrors)
+                        {
+                            content = result.Code;
+                        }
+                    }
+                    else if (extension is ".js")
+                    {
+                        UglifyResult result = Uglify.Js(content);
+                        if (!result.HasErrors)
+                        {
+                            content = result.Code;
+                        }
+                    }
+                }
+
+                content = "@\"" + (content?.Replace("\"", "\"\"")) + "\"";
                 type = "const string";
             }
 

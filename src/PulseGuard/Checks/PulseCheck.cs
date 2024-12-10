@@ -17,6 +17,11 @@ public abstract class PulseCheck(HttpClient client, PulseConfiguration options)
             request.Options.Set(new("IgnoreSslErrors"), true);
         }
 
+        foreach ((string name, string value) in Options.GetHeaders())
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
+        }
+
         HttpResponseMessage response = await _client.SendAsync(request, token);
         return await CreateReport(response, token);
     }

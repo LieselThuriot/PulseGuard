@@ -6,12 +6,14 @@
 		<MagicConstantsVisibility>public</MagicConstantsVisibility>
 		<MagicConstantsRoutes>true</MagicConstantsRoutes>
 		<MagicConstantsRoutesCacheControl>public, max-age=604800</MagicConstantsRoutesCacheControl>
+		<MagicConstantsMinify>true</MagicConstantsMinify>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<CompilerVisibleProperty Include="MagicConstantsVisibility" />
 		<CompilerVisibleProperty Include="MagicConstantsRoutes" />
 		<CompilerVisibleProperty Include="MagicConstantsRoutesCacheControl" />
+		<CompilerVisibleProperty Include="MagicConstantsMinify" />
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicClass" />
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicRemoveRouteExtension" />
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicCacheControl" />

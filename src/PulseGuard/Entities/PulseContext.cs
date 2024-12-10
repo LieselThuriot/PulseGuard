@@ -1,4 +1,6 @@
-﻿using PulseGuard.Checks;
+﻿using Azure.Core;
+using Microsoft.Extensions.Options;
+using PulseGuard.Checks;
 using PulseGuard.Models;
 using TableStorage;
 
@@ -32,7 +34,21 @@ public sealed partial class Webhook;
 [TableSetProperty(typeof(bool), "IgnoreSslErrors")]
 [TableSetProperty(typeof(string), "Sqid")]
 [TableSetProperty(typeof(string), "ComparisonValue")]
-public sealed partial class PulseConfiguration;
+[TableSetProperty(typeof(string), "Headers")]
+public sealed partial class PulseConfiguration
+{
+    public IEnumerable<(string name, string values)> GetHeaders()
+    {
+        if (!string.IsNullOrEmpty(Headers))
+        {
+            foreach (string header in Headers.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] split = header.Split(':', 2);
+                yield return (split[0], split[1]);
+            }
+        }
+    }
+}
 
 [TableSet, PartitionKey("Sqid"), RowKey("ContinuationToken")]
 [TableSetProperty(typeof(string), "Group")]

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -6,10 +6,29 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild> <!-- Generates a package at build -->
+		<IncludeBuildOutput>false</IncludeBuildOutput> <!-- Do not include the generator as a lib dependency -->
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<NoWarn>NU5128</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+		<PackageReference Include="NUglify" PrivateAssets="all" GeneratePathProperty="true"/>
+		<None Include="$(PkgNUglify)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
+	
+	<PropertyGroup>
+		<GetTargetPathDependsOn>
+			$(GetTargetPathDependsOn);GetDependencyTargetPaths
+		</GetTargetPathDependsOn>
+	</PropertyGroup>
 
+	<Target Name="GetDependencyTargetPaths">
+		<ItemGroup>
+			<TargetPathWithTargetPlatformMoniker
+			   Include="$(PkgNUglify)\lib\netstandard2.0\NUglify.dll"
+			   IncludeRuntimeDependency="false" />
+		</ItemGroup>
+	</Target>
 </Project>
