@@ -1,8 +1,7 @@
-using PulseGuard.Infrastructure;
 using PulseGuard.Entities;
+using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
-using PulseGuard.Views;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,21 +44,6 @@ app.UseHttpsRedirection();
 
 //app.UseAuthorization();
 
-app.Use((context, next) =>
-{
-    if (string.IsNullOrEmpty(context.Request.Path.Value))
-    {
-        context.Response.Redirect(context.Request.PathBase + context.Request.Path + "/");
-        return Task.CompletedTask;
-    }
-
-    context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
-    return next();
-});
-
-app.MapPulses();
-app.MapBadges();
-app.MapViews();
-app.MapHealth();
+app.MapRoutes();
 
 app.Run();

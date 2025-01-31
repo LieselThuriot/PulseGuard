@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PulseGuard", "PulseGuard\Pu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PulseGuard.Views", "PulseGuard.Views\PulseGuard.Views.csproj", "{C3C493F8-B88A-487C-AC06-4DA216CD0A81}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicConstants", "MagicConstants\MagicConstants.csproj", "{181C9A9D-058F-4ECD-9906-A05FD5DC3793}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{51C06D94-11A3-4913-836A-8BB6BEA69FB5}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -32,10 +30,6 @@ Global
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Release|Any CPU.Build.0 = Release|Any CPU
-		{181C9A9D-058F-4ECD-9906-A05FD5DC3793}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{181C9A9D-058F-4ECD-9906-A05FD5DC3793}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{181C9A9D-058F-4ECD-9906-A05FD5DC3793}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{181C9A9D-058F-4ECD-9906-A05FD5DC3793}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

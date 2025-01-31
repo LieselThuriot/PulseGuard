@@ -30,7 +30,7 @@ public class Generator : IIncrementalGenerator
                                          bool removeRouteExtension = removeRouteString != null && bool.TryParse(removeRouteString, out bool remove) && remove;
                                          string? cacheControl = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicCacheControl");
 
-                                         string? shouldMinifyString = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicConstantsMinify");
+                                         string? shouldMinifyString = GetAdditionalFileMetadata(pair.Right, pair.Left, "MagicMinify");
                                          bool? shouldMinify = shouldMinifyString == null ? null : bool.TryParse(shouldMinifyString, out bool minify) && minify;
                                          
                                          return (Class: @class, RemoveRouteExtension: removeRouteExtension, File: pair.Left, CacheControl: cacheControl, Minify: shouldMinify);

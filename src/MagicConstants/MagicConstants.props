@@ -1,0 +1,11 @@
+<Project>
+    <ItemGroup>
+		<CompilerVisibleProperty Include="MagicConstantsVisibility" />
+		<CompilerVisibleProperty Include="MagicConstantsRoutes" />
+		<CompilerVisibleProperty Include="MagicConstantsRoutesCacheControl" />
+		<CompilerVisibleProperty Include="MagicConstantsMinify" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicClass" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicRemoveRouteExtension" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MagicCacheControl" />
+    </ItemGroup>
+</Project>
