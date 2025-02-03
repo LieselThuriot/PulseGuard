@@ -42,9 +42,7 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
     public Task PostAsync(Pulse old, Pulse @new, CancellationToken token)
     {
-        double? duration = old.Timestamp.HasValue
-            ? (old.Timestamp.GetValueOrDefault() - old.CreationTimestamp).TotalMinutes
-            : null;
+        double? duration = (old.LastUpdatedTimestamp - old.CreationTimestamp).TotalMinutes;
 
         WebhookEvent webhookEvent = new()
         {

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Routes;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services;
@@ -31,7 +32,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         Task? webhookTask = null;
 
-        if (pulse is null || pulse.Timestamp < start)
+        if (pulse is null || pulse.LastUpdatedTimestamp < start)
         {
             _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
             pulse = Pulse.From(report);
@@ -39,15 +40,17 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
         {
             _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name}", report.Options.Name);
-            pulse.Timestamp = now;
+            pulse.LastUpdatedTimestamp = now;
         }
         else // State, message or error has changed
         {
             var oldPulse = pulse;
 
             _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name} due to state change", report.Options.Name);
-            pulse.Timestamp = now;
+            pulse.LastUpdatedTimestamp = now;
+
             await _context.Pulses.UpdateEntityAsync(pulse, token);
+            await _context.RecentPulses.UpdateEntityAsync(pulse, token);
 
             _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
             pulse = Pulse.From(report);
@@ -56,11 +59,20 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
 
         await _context.Pulses.UpsertEntityAsync(pulse, token);
+        await _context.RecentPulses.UpsertEntityAsync(pulse, token);
 
         if (webhookTask is not null)
         {
             await webhookTask;
         }
+    }
+
+    public Task CleanRecent(CancellationToken token)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
+
+        return _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
     }
 
     private async Task GenerateSqid(PulseConfiguration configuration, CancellationToken token)

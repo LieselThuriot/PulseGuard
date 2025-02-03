@@ -1,6 +1,4 @@
-﻿using Azure.Core;
-using Microsoft.Extensions.Options;
-using PulseGuard.Checks;
+﻿using PulseGuard.Checks;
 using PulseGuard.Models;
 using TableStorage;
 
@@ -9,8 +7,11 @@ namespace PulseGuard.Entities;
 [TableContext]
 public sealed partial class PulseContext
 {
+    internal const int RecentMinutes = 720;
+
     public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<Pulse> Pulses { get; }
+    public TableSet<Pulse> RecentPulses { get; }
     public TableSet<UniqueIdentifiers> UniqueIdentifiers { get; }
     public TableSet<Webhook> Webhooks { get; }
 }
@@ -57,6 +58,7 @@ public sealed partial class PulseConfiguration
 [TableSetProperty(typeof(string), "Error")]
 [TableSetProperty(typeof(PulseStates), "State")]
 [TableSetProperty(typeof(DateTimeOffset), "CreationTimestamp")]
+[TableSetProperty(typeof(DateTimeOffset), "LastUpdatedTimestamp")]
 public sealed partial class Pulse
 {
     public string GetFullName()
@@ -84,6 +86,7 @@ public sealed partial class Pulse
             Message = report.Message,
             Error = report.Error,
             Timestamp = executionTime,
+            LastUpdatedTimestamp = executionTime,
             CreationTimestamp = executionTime
         };
     }

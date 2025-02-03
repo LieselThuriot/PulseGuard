@@ -53,10 +53,10 @@ public static class HealthRoutes
         healthGroup.MapGet("applications", (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
         {
             DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
-            return context.Pulses.Where(x => x.Timestamp > offset)
-                          .SelectFields(x => new { x.Group, x.Name, x.State, x.Timestamp })
+            return context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
+                          .SelectFields(x => new { x.Group, x.Name, x.State, x.LastUpdatedTimestamp })
                           .GroupBy(x => x.GetFullName())
-                          .SelectAwait(x => x.OrderByDescending(y => y.Timestamp).Select(y => (Name: x.Key, y.State)).FirstAsync(token))
+                          .SelectAwait(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).FirstAsync(token))
                           .OrderBy(x => x.Name)
                           .ToDictionaryAsync(x => x.Name, x => x.State, token);
         });

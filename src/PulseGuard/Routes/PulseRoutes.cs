@@ -3,22 +3,20 @@ using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
 using System.Net.Mime;
+using TableStorage;
 using TableStorage.Linq;
 
 namespace PulseGuard.Routes;
 
 public static class PulseRoutes
 {
-    private const int DefaultMinutes = 720;
-
     public static void MapPulses(this WebApplication app)
     {
         RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses");
 
         group.MapGet("", (PulseContext context, [FromQuery] uint? minutes = null, [FromQuery(Name = "f")] string? groupFilter = null) =>
         {
-            DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-(minutes ?? DefaultMinutes));
-            var query = context.Pulses.Where(x => x.Timestamp > offset);
+            ISelectedTableQueryable<Pulse> query = BuildQuery(context, minutes);
 
             if (!string.IsNullOrWhiteSpace(groupFilter))
             {
@@ -30,10 +28,12 @@ public static class PulseRoutes
 
         group.MapGet("group/{group}", async (string group, PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
         {
-            List<string> relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
+            ISelectedTableQueryable<Pulse> query = BuildQuery(context, minutes);
 
-            DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-(minutes ?? DefaultMinutes));
-            return GetPulses(context.Pulses.ExistsIn(x => x.Sqid, relevantSqids).Where(x => x.Timestamp > offset));
+            List<string> relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
+            query = query.ExistsIn(x => x.Sqid, relevantSqids);
+
+            return GetPulses(query);
         });
 
         group.MapGet("group/{group}/states", async (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
@@ -50,7 +50,7 @@ public static class PulseRoutes
                 return Results.NotFound();
             }
 
-            var entries = groups.Select(g => new PulseOverviewStateGroupItem(g.Key, g.First().Name, g.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.Timestamp)).ToAsyncEnumerable()));
+            var entries = groups.Select(g => new PulseOverviewStateGroupItem(g.Key, g.First().Name, g.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp)).ToAsyncEnumerable()));
             return Results.Ok(new PulseOverviewStateGroup(group, entries.ToAsyncEnumerable()));
         });
 
@@ -72,7 +72,7 @@ public static class PulseRoutes
                 return Results.NotFound();
             }
 
-            var entries = items.Select(x => new PulseDetailItem(x.State, x.Message, x.CreationTimestamp, x.Timestamp, x.Error));
+            var entries = items.Select(x => new PulseDetailItem(x.State, x.Message, x.CreationTimestamp, x.LastUpdatedTimestamp, x.Error));
 
             Pulse pulse = items[^1];
 
@@ -94,7 +94,7 @@ public static class PulseRoutes
                 return Results.NotFound();
             }
 
-            var entries = items.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.Timestamp));
+            var entries = items.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp));
 
             Pulse pulse = items[^1];
 
@@ -121,9 +121,29 @@ public static class PulseRoutes
         });
     }
 
+    private static ISelectedTableQueryable<Pulse> SelectPulseOverviewFields(TableSet<Pulse> pulses)
+    {
+        return pulses.SelectFields(x => new { x.Sqid, x.Group, x.Name, x.Message, x.State, x.CreationTimestamp, x.LastUpdatedTimestamp });
+    }
+
+    private static ISelectedTableQueryable<Pulse> BuildQuery(PulseContext context, uint? minutes)
+    {
+        uint minuteOffset = minutes ?? PulseContext.RecentMinutes;
+        DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-minuteOffset);
+
+        ISelectedTableQueryable<Pulse> query = SelectPulseOverviewFields(minuteOffset > PulseContext.RecentMinutes ? context.Pulses : context.RecentPulses);
+
+        if (minuteOffset is not PulseContext.RecentMinutes)
+        {
+            query = query.Where(x => x.LastUpdatedTimestamp > offset);
+        }
+
+        return query;
+    }
+
     private static ValueTask<List<string>> GetRelevantSqidsForGroup(string group, PulseContext context, CancellationToken token)
     {
-        return context.Configurations.Where(x => x.Group == group)
+        return context.Configurations.Where(x => x.Group == group && x.Enabled)
                                      .SelectFields(x => x.Sqid)
                                      .Select(x => x.Sqid)
                                      .Distinct()
@@ -131,15 +151,14 @@ public static class PulseRoutes
                                      .ToListAsync(token);
     }
 
-    private static IAsyncEnumerable<PulseOverviewGroup> GetPulses(IFilteredTableQueryable<Pulse> query)
+    private static IAsyncEnumerable<PulseOverviewGroup> GetPulses(ISelectedTableQueryable<Pulse> query)
     {
-        return query.SelectFields(x => new { x.Sqid, x.Group, x.Name, x.Message, x.State, x.CreationTimestamp, x.Timestamp })
-                    .GroupBy(x => x.Group ?? "")
+        return query.GroupBy(x => x.Group ?? "")
                     .Select(group =>
                         new PulseOverviewGroup(group.Key, group.GroupBy(x => new { x.Sqid, x.Name })
                                                                .Select(pulses =>
                                                                {
-                                                                   var entries = pulses.Select(x => new PulseOverviewItem(x.State, x.Message, x.CreationTimestamp, x.Timestamp));
+                                                                   var entries = pulses.Select(x => new PulseOverviewItem(x.State, x.Message, x.CreationTimestamp, x.LastUpdatedTimestamp));
                                                                    return new PulseOverviewGroupItem(pulses.Key.Sqid, pulses.Key.Name, entries);
                                                                }))
                     );

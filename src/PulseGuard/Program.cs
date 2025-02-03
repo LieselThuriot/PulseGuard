@@ -10,7 +10,12 @@ string storeConnectionString = builder.Configuration.GetConnectionString("PulseS
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
 
-builder.Services.AddApplicationInsightsTelemetry(x => x.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
+builder.Services.AddApplicationInsightsTelemetry(x =>
+{
+    x.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    x.EnableDependencyTrackingTelemetryModule = bool.TryParse(builder.Configuration["APPLICATIONINSIGHTS_DEPENDENCY_TRACKING"], out bool track) && track;
+});
+
 builder.Services.ConfigureHttpJsonOptions(x =>
 {
     x.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
