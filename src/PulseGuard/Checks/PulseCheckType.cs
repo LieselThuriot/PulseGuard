@@ -6,5 +6,6 @@ public enum PulseCheckType
     StatusCode,
     Json,
     Contains,
-    HealthCheck
+    HealthCheck,
+    StatusApi
 }

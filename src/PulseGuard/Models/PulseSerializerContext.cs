@@ -4,7 +4,11 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace PulseGuard.Models;
 
-[JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(
+    JsonSerializerDefaults.Web,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    UseStringEnumConverter = true,
+    PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(IAsyncEnumerable<PulseOverviewGroup>))]
 [JsonSerializable(typeof(Dictionary<string, PulseStates>))]
 [JsonSerializable(typeof(PulseOverviewStateGroup))]
@@ -12,6 +16,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(PulseStateGroupItem))]
 [JsonSerializable(typeof(PulseReport))]
 [JsonSerializable(typeof(HealthApiResponse))]
+[JsonSerializable(typeof(StatusApiResponse))]
 [JsonSerializable(typeof(WebhookEvent))]
 public partial class PulseSerializerContext : JsonSerializerContext;
 
