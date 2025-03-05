@@ -16,28 +16,31 @@ public sealed partial class PulseContext
     public TableSet<Webhook> Webhooks { get; }
 }
 
-[TableSet, PartitionKey("IdentifierType"), RowKey("Id")]
+[TableSet(PartitionKey = "IdentifierType", RowKey = "Id")]
 public sealed partial class UniqueIdentifiers;
 
-[TableSet, PartitionKey("Secret"), RowKey("EntryNumber")]
-[TableSetProperty(typeof(string), "Group")]
-[TableSetProperty(typeof(string), "Name")]
-[TableSetProperty(typeof(string), "Location")]
-[TableSetProperty(typeof(bool), "Enabled")]
-public sealed partial class Webhook;
+[TableSet(PartitionKey = "Secret", RowKey = "EntryNumber")]
+public sealed partial class Webhook
+{
+    public partial string Group { get; set; }
+    public partial string Name { get; set; }
+    public partial string Location { get; set; }
+    public partial bool Enabled { get; set; }
+}
 
-[TableSet, PartitionKey("Group"), RowKey("Name")]
-[TableSetProperty(typeof(string), "Location")]
-[TableSetProperty(typeof(PulseCheckType), "Type")]
-[TableSetProperty(typeof(int), "Timeout")]
-[TableSetProperty(typeof(int?), "DegrationTimeout")]
-[TableSetProperty(typeof(bool), "Enabled")]
-[TableSetProperty(typeof(bool), "IgnoreSslErrors")]
-[TableSetProperty(typeof(string), "Sqid")]
-[TableSetProperty(typeof(string), "ComparisonValue")]
-[TableSetProperty(typeof(string), "Headers")]
+[TableSet(PartitionKey = "Group", RowKey = "Name")]
 public sealed partial class PulseConfiguration
 {
+    public partial string Location { get; set; }
+    public partial PulseCheckType Type { get; set; }
+    public partial int Timeout { get; set; }
+    public partial int? DegrationTimeout { get; set; }
+    public partial bool Enabled { get; set; }
+    public partial bool IgnoreSslErrors { get; set; }
+    public partial string Sqid { get; set; }
+    public partial string ComparisonValue { get; set; }
+    public partial string Headers { get; set; }
+
     public IEnumerable<(string name, string values)> GetHeaders()
     {
         if (!string.IsNullOrEmpty(Headers))
@@ -51,16 +54,17 @@ public sealed partial class PulseConfiguration
     }
 }
 
-[TableSet, PartitionKey("Sqid"), RowKey("ContinuationToken")]
-[TableSetProperty(typeof(string), "Group")]
-[TableSetProperty(typeof(string), "Name")]
-[TableSetProperty(typeof(string), "Message")]
-[TableSetProperty(typeof(string), "Error")]
-[TableSetProperty(typeof(PulseStates), "State")]
-[TableSetProperty(typeof(DateTimeOffset), "CreationTimestamp")]
-[TableSetProperty(typeof(DateTimeOffset), "LastUpdatedTimestamp")]
+[TableSet(PartitionKey = "Sqid", RowKey = "ContinuationToken")]
 public sealed partial class Pulse
 {
+    public partial string Group { get; set; }
+    public partial string Name { get; set; }
+    public partial string Message { get; set; }
+    public partial string? Error { get; set; }
+    public partial PulseStates State { get; set; }
+    public partial DateTimeOffset CreationTimestamp { get; set; }
+    public partial DateTimeOffset LastUpdatedTimestamp { get; set; }
+
     public string GetFullName()
     {
         string result = Name;
