@@ -1,4 +1,5 @@
 using PulseGuard.Entities;
+using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
@@ -24,7 +25,12 @@ builder.Services.ConfigureHttpJsonOptions(x =>
 });
 
 builder.Services.ConfigurePulseHttpClients();
-builder.Services.AddPulseContext(storeConnectionString, x => x.CreateTableIfNotExists = false);
+builder.Services.AddPulseContext(storeConnectionString,
+static x => x.CreateTableIfNotExists = false,
+static x =>
+{
+    x.Serializer = new PulseBlobSerializer();
+});
 builder.Services.ConfigurePulseServices();
 
 builder.Services.AddEndpointsApiExplorer();

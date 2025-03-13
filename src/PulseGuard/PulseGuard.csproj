@@ -17,6 +17,7 @@
 		<PackageReference Include="System.Linq.Async" />
 		<PackageReference Include="System.Text.Json" />
 		<PackageReference Include="TableStorage" />
+		<PackageReference Include="TableStorage.Blobs" />
 	</ItemGroup>
 
 	<ItemGroup>

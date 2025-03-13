@@ -84,15 +84,21 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
     private async Task CheckPulseAsync(PulseCheck check, PulseStore store, CancellationToken token)
     {
         PulseReport? report = null;
+
+        var sw = Stopwatch.StartNew();
+        bool success = false;
+
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
             cts.CancelAfter(check.Options.Timeout);
 
-            var sw = Stopwatch.StartNew();
-
             report = await check.CheckAsync(cts.Token);
+
+            sw.Stop();
+
             report = PostProcessReport(report, sw);
+            success = true;
         }
         catch (TaskCanceledException ex)
         {
@@ -120,7 +126,8 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         {
             if (report is not null)
             {
-                await store.StoreAsync(report, token);
+                long? elapsedMilliseconds = success ? sw.ElapsedMilliseconds : null;
+                await store.StoreAsync(report, elapsedMilliseconds, token);
             }
         }
     }

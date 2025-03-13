@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
 using PulseGuard.Models;
-using PulseGuard.Routes;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services;
@@ -15,7 +14,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
-    public async Task StoreAsync(PulseReport report, CancellationToken token)
+    public async Task StoreAsync(PulseReport report, long? elapsedMilliseconds, CancellationToken token)
     {
         _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Name}", report.Options.Name);
 
@@ -61,6 +60,16 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         await _context.Pulses.UpsertEntityAsync(pulse, token);
         await _context.RecentPulses.UpsertEntityAsync(pulse, token);
 
+        try
+        {
+            (string partition, string row, BinaryData data)  = PulseCheckResult.GetAppendValue(report, elapsedMilliseconds);
+            await _context.PulseCheckResults.AppendAsync(partition, row, data.ToStream(), token);
+        }
+        catch
+        {
+            await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, elapsedMilliseconds), token);
+        }
+
         if (webhookTask is not null)
         {
             await webhookTask;
@@ -72,7 +81,14 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         DateTimeOffset now = DateTimeOffset.UtcNow;
         DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
 
-        return _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
+        Task deleteRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
+
+        var partitionsToKeep = Enumerable.Range(0, PulseContext.RecentDays)
+                                         .Select(x => now.AddDays(-x).ToString(PulseCheckResult.PartitionKeyFormat));
+
+        Task deleteResults = _context.PulseCheckResults.NotExistsIn(x => x.Day, partitionsToKeep).BatchDeleteAsync(token);
+
+        return Task.WhenAll(deleteRecent, deleteResults);
     }
 
     private async Task GenerateSqid(PulseConfiguration configuration, CancellationToken token)
