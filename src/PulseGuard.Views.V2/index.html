@@ -51,11 +51,12 @@
       </div>
     </nav>
 
-    <div class="container-fluid mt-3">
+    <div class="container-fluid mt-3 position-relative">
       <div class="row">
         <div class="col-4">
           <div class="card shadow-sm">
-            <div id="overview-card" class="card-body">...</div>
+            <div id="overview-card" class="card-body">
+            </div>
           </div>
         </div>
         <div class="col-8">
@@ -97,6 +98,12 @@
                       <p class="card-text" id="detail-card-error-rate">...</p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div class="text-center mt-5" id="detail-card-spinner">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
                 </div>
               </div>
 

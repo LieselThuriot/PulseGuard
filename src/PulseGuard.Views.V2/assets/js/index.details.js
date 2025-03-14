@@ -103,6 +103,13 @@
       detailCardChart = null;
     }
 
+    const detailCardSpinner = document.querySelector("#detail-card-spinner");
+    if (detailCardSpinner) {
+      detailCardSpinner.classList.remove("d-none");
+    } else {
+      console.error("Error getting detail-card-spinner");
+    }
+
     const detailCardHeader = document.querySelector("#detail-card-header");
     if (detailCardHeader) {
       detailCardHeader.textContent = "...";
@@ -198,6 +205,13 @@
     }
 
     setBadge(data.items);
+
+    const detailCardSpinner = document.querySelector("#detail-card-spinner");
+    if (detailCardSpinner) {
+      detailCardSpinner.classList.add("d-none");
+    } else {
+      console.error("Error getting detail-card-spinner");
+    }
   }
 
   function setBadge(items) {
