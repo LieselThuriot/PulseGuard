@@ -1,7 +1,7 @@
 "use strict";
 /**
  * Formats a given string by converting it to lowercase and replacing spaces and dots with hyphens.
- * 
+ *
  * @param {string} value - The string to format.
  * @returns {string} - The formatted string.
  */
@@ -15,11 +15,11 @@ function formatId(value) {
 
 /**
  * Sets the theme of the application.
- * 
+ *
  * This function sets the theme based on the provided mode or retrieves it from localStorage.
  * If the mode is "auto", it will determine the theme based on the user's system preferences.
  * It also updates the theme icon accordingly.
- * 
+ *
  * @param {string} [mode] - The theme mode to set. Can be "light", "dark", or "auto". If not provided, it defaults to "auto".
  * @returns {void}
  */

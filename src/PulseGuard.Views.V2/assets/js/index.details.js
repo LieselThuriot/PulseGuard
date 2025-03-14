@@ -138,6 +138,12 @@
     } else {
       console.error("Error getting detail-card-uptime");
     }
+    const sinceElement = document.querySelector("#detail-card-since");
+    if (sinceElement) {
+      sinceElement.textContent = "...";
+    } else {
+      console.error("Error getting detail-card-since");
+    }
     const responseTimeElement = document.querySelector(
       "#detail-card-average-response"
     );
@@ -202,6 +208,14 @@
       uptimeElement.textContent = `${uptime.toFixed(2)}%`;
     } else {
       console.error("Error getting detail-card-uptime");
+    }
+
+    const since = earliestTimestamp(data.items);
+    const sinceElement = document.querySelector("#detail-card-since");
+    if (sinceElement) {
+      sinceElement.textContent = since.toLocaleString();
+    } else {
+      console.error("Error getting detail-card-since");
     }
 
     const responseTime = calculateAverageResponseTime(data.items);
@@ -375,6 +389,17 @@
       default:
         return "rgba(201, 203, 207, 1)";
     }
+  }
+
+  /**
+   * Finds the earliest timestamp from a list of items.
+   *
+   * @param {Array<PulseDetailResult>} items - The list of items, each containing a timestamp property.
+   * @returns {Date} The earliest timestamp in milliseconds since the Unix Epoch.
+   */
+  function earliestTimestamp(items) {
+    const timestamps = items.map((item) => new Date(item.timestamp));
+    return new Date(Math.min(...timestamps));
   }
 
   /**

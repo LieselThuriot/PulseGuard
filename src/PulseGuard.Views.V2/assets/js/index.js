@@ -216,9 +216,10 @@
         const startTime = bucket.start.toLocaleTimeString();
         const endDate = bucket.end.toLocaleDateString();
         const endTime = bucket.end.toLocaleTimeString();
-        const tooltipText = startDate === endDate 
-          ? `${startDate} ${startTime} - ${endTime}` 
-          : `${startDate} ${startTime} - ${endDate} ${endTime}`;
+        const tooltipText =
+          startDate === endDate
+            ? `${startDate} ${startTime} - ${endTime}`
+            : `${startDate} ${startTime} - ${endDate} ${endTime}`;
         bucketDiv.setAttribute("title", tooltipText);
         new bootstrap.Tooltip(bucketDiv);
 
@@ -250,17 +251,19 @@
     window.history.pushState({}, "", url);
 
     // Set the window title
-    document.title = group ? `PulseGuard > ${group} > ${item.name}` : `PulseGuard > ${item.name}`;
+    document.title = group
+      ? `PulseGuard > ${group} > ${item.name}`
+      : `PulseGuard > ${item.name}`;
 
     // Trigger a custom event
     const event = new Event("pushstate");
     window.dispatchEvent(event);
   }
-  
+
   function handleQueryParamChange() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqid = urlParams.get("details");
-    
+
     if (sqid) {
       markPulseAsActive("pulse-selection-" + sqid);
     }
