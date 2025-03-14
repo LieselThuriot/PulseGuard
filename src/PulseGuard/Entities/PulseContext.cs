@@ -6,7 +6,7 @@ namespace PulseGuard.Entities;
 public sealed partial class PulseContext
 {
     internal const int RecentMinutes = 720;
-    internal const int RecentDays = 14;
+    internal const int RecentDays = 90;
 
     public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<Pulse> Pulses { get; }
@@ -18,5 +18,5 @@ public sealed partial class PulseContext
     /// </summary>
     public TableSet<Pulse> RecentPulses { get; }
 
-    public AppendBlobSet<PulseCheckResult> PulseCheckResults { get; } //TODO: Blobs with appending results
+    public AppendBlobSet<PulseCheckResult> PulseCheckResults { get; }
 }

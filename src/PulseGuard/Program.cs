@@ -7,6 +7,8 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(o => o.AddPolicy("GetorPost", x => x.AllowAnyOrigin().WithMethods("GET", "POST").AllowAnyHeader()));
+
 string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
@@ -24,16 +26,12 @@ builder.Services.ConfigureHttpJsonOptions(x =>
     x.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-#if DEBUG
-const bool autoCreate = true;
-#else
-const bool autoCreate = false;
-#endif
+bool autoCreate = builder.Environment.IsDevelopment();
 
 builder.Services.ConfigurePulseHttpClients();
 builder.Services.AddPulseContext(storeConnectionString,
-static x => x.CreateTableIfNotExists = autoCreate,
-static x =>
+x => x.CreateTableIfNotExists = autoCreate,
+x =>
 {
     x.CreateTableIfNotExists = autoCreate;
     x.Serializer = new PulseBlobSerializer();
@@ -56,6 +54,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("GetorPost");
 }
 
 app.UseHttpsRedirection();

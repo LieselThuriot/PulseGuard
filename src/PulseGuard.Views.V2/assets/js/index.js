@@ -22,24 +22,27 @@
    * @property {PulseGroupItem[]} items
    */
 
-  // fetch('https://app.sdworx.com/pulseguard/api/1.0/pulses')
-  //     .then(response => {
-  //         if (!response.ok) {
-  //             throw new Error('Network response was not ok ' + response.statusText);
-  //         }
-  //         /** @type {PulseGroup[]} */
-  //         const data = response.json();
-  //         return data;
-  //     })
-  //     .then(data => {
-  //         handleData(data);
-  //     })
-  //     .catch(error => {
-  //         console.error('There has been a problem with your fetch operation:', error);
-  //     });
-
-  /** @type {PulseGroup[]} */
-  const data = [];
+  fetch("https://localhost:7010/pulseguard/api/1.0/pulses")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok " + response.statusText);
+      }
+      /** @type {PulseGroup[]} */
+      const data = response.json();
+      return data;
+    })
+    .then((data) => {
+      handleData(data);
+      const urlParams = new URLSearchParams(window.location.search);
+      const detailsId = urlParams.get("details");
+      showDetailsForId(data, detailsId);
+    })
+    .catch((error) => {
+      console.error(
+        "There has been a problem with your fetch operation:",
+        error
+      );
+    });
 
   /**
    * Handles the data by sorting, formatting, and displaying it.
@@ -135,7 +138,8 @@
       } else {
         a.href = "#" + id;
         a.id = "pulse-selection-" + id;
-        a.addEventListener("click", () => {
+        a.addEventListener("click", (event) => {
+          event.preventDefault();
           showDetails(item, indentGroup);
         });
 
@@ -196,7 +200,10 @@
               states.indexOf(pulse.state),
               states.indexOf(bucket.state)
             );
-            bucket.state = states[worstStateIndex];
+
+            if (worstStateIndex !== -1) {
+              bucket.state = states[worstStateIndex];
+            }
           }
         });
       });
@@ -204,6 +211,16 @@
       buckets.forEach((bucket) => {
         const bucketDiv = document.createElement("div");
         bucketDiv.className = "rounded";
+        bucketDiv.setAttribute("data-bs-toggle", "tooltip");
+        const startDate = bucket.start.toLocaleDateString();
+        const startTime = bucket.start.toLocaleTimeString();
+        const endDate = bucket.end.toLocaleDateString();
+        const endTime = bucket.end.toLocaleTimeString();
+        const tooltipText = startDate === endDate 
+          ? `${startDate} ${startTime} - ${endTime}` 
+          : `${startDate} ${startTime} - ${endDate} ${endTime}`;
+        bucketDiv.setAttribute("title", tooltipText);
+        new bootstrap.Tooltip(bucketDiv);
 
         if (bucket.state === "Healthy") {
           bucketDiv.classList.add("text-bg-success");
@@ -225,14 +242,33 @@
   /**
    * Shows the details for the given item.
    * @param {PulseGroupItem} item - The item to show details for.
-   * @param {string} group - The group of the item.
+   * @param {string} group - The group the item belongs to.
    */
   function showDetails(item, group) {
-    const header = !!group ? `${group} > ${item.name}` : item.name;
+    const url = new URL(window.location);
+    url.searchParams.set("details", item.id);
+    window.history.pushState({}, "", url);
 
-    setDetailsHeader(header);
-    markPulseAsActive("pulse-selection-" + item.id);
+    // Set the window title
+    document.title = group ? `PulseGuard > ${group} > ${item.name}` : `PulseGuard > ${item.name}`;
+
+    // Trigger a custom event
+    const event = new Event("pushstate");
+    window.dispatchEvent(event);
   }
+  
+  function handleQueryParamChange() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sqid = urlParams.get("details");
+    
+    if (sqid) {
+      markPulseAsActive("pulse-selection-" + sqid);
+    }
+  }
+
+  window.addEventListener("popstate", handleQueryParamChange);
+  window.addEventListener("pushstate", handleQueryParamChange);
+  window.addEventListener("replacestate", handleQueryParamChange);
 
   /**
    * Shows the details for the item with the given id.
@@ -240,8 +276,8 @@
    * @param {string} idToShow - The id of the item to show.
    */
   function showDetailsForId(data, idToShow) {
-    let groupToShow;
     let itemToShow;
+    let groupToShow;
 
     if (idToShow) {
       idToShow = idToShow.replace(/^pulse-selection-/, "");
@@ -265,19 +301,6 @@
 
     if (!!itemToShow) {
       showDetails(itemToShow, groupToShow.group);
-    }
-  }
-
-  /**
-   * Sets the header of the details section.
-   * @param {string} value - The value to set as the header.
-   */
-  function setDetailsHeader(value) {
-    const detailCardHeader = document.querySelector("#detail-card-header");
-    if (detailCardHeader) {
-      detailCardHeader.textContent = value;
-    } else {
-      console.error("Error getting detail-card-header");
     }
   }
 
@@ -307,7 +330,4 @@
       }
     }
   }
-
-  handleData(data);
-  showDetailsForId(data, window.location.hash.substring(1));
 })();

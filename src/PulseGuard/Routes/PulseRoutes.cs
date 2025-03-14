@@ -119,6 +119,30 @@ public static class PulseRoutes
 
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
         });
+
+        group.MapGet("details/{id}", async (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
+        {
+            var query = context.PulseCheckResults.Where(x => x.Sqid == id);
+
+            if (days.HasValue)
+            {
+                var partitions = PulseCheckResult.GetPartitions();
+                query = query.ExistsIn(x => x.Day, partitions);
+            }
+
+            var results = await query.OrderBy(x => x.Day).ToListAsync(token);
+
+            if (results.Count is 0)
+            {
+                return Results.NotFound();
+            }
+
+            string group = results[0].Group;
+            string name = results[0].Name;
+            IEnumerable<PulseDetailResult> items = results.SelectMany(x => x.Items).Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
+
+            return Results.Ok(new PulseDetailResultGroup(group, name, items));
+        });
     }
 
     private static ISelectedTableQueryable<Pulse> SelectPulseOverviewFields(TableSet<Pulse> pulses)

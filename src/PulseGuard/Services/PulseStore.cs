@@ -65,8 +65,9 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             (string partition, string row, BinaryData data)  = PulseCheckResult.GetAppendValue(report, elapsedMilliseconds);
             await _context.PulseCheckResults.AppendAsync(partition, row, data.ToStream(), token);
         }
-        catch
+        catch (Exception e)
         {
+            _logger.LogError(PulseEventIds.Store, e, "Failed to append pulse check result for {Name} -- Creating a new one.", report.Options.Name);
             await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, elapsedMilliseconds), token);
         }
 
@@ -83,9 +84,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         Task deleteRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
 
-        var partitionsToKeep = Enumerable.Range(0, PulseContext.RecentDays)
-                                         .Select(x => now.AddDays(-x).ToString(PulseCheckResult.PartitionKeyFormat));
-
+        var partitionsToKeep = PulseCheckResult.GetPartitions();
         Task deleteResults = _context.PulseCheckResults.NotExistsIn(x => x.Day, partitionsToKeep).BatchDeleteAsync(token);
 
         return Task.WhenAll(deleteRecent, deleteResults);

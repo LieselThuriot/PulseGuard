@@ -10,3 +10,6 @@ public sealed record PulseOverviewStateGroupItem(string Id, string Name, IAsyncE
 public sealed record PulseOverviewStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 public sealed record PulseStateGroupItem(string Id, string Name, IAsyncEnumerable<PulseStateItem> Items);
 public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
+
+public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerable<PulseDetailResult> Items);
+public sealed record PulseDetailResult(PulseStates State, DateTimeOffset Timestamp, long? ElapsedMilliseconds);

@@ -1,3 +1,8 @@
+.healthbar > div {
+    width: 0.6em;
+    height: 2rem;
+}
+
 .healthbar-tiny > div {
     width: 0.33em;
     height: 1rem;

@@ -32,7 +32,7 @@ public static class BadgeRoutes
                 PulseStates.Degraded => "FF9800",
                 PulseStates.Unhealthy => "E91E63",
                 _ => UnknownColor
-            }}";
+            }}?style=flat-square";
 
             return Badge(url);
 

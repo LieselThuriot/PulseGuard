@@ -56,6 +56,15 @@ public sealed partial class PulseCheckResult
 
         return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
+
+    public static IEnumerable<string> GetPartitions(int days = PulseContext.RecentDays)
+    {
+        var now = DateTimeOffset.UtcNow;
+        for (int i = 0; i < days; i++)
+        {
+            yield return now.AddDays(-i).ToString(PartitionKeyFormat);
+        }
+    }
 }
 
 public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
@@ -80,7 +89,7 @@ public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset Cr
     {
         string[] detail = value.Split(Separator, 3);
 
-        PulseStates state = PulseStatesFastString.FromString(detail[0]);
+        PulseStates state = PulseStatesFastString.FromNumber(detail[0]);
         var creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(detail[1]));
         long? elapsedMilliseconds = long.TryParse(detail[2], out long elapsed) ? elapsed : null;
 
@@ -89,6 +98,6 @@ public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset Cr
 
     public static string Serialize(PulseStates state, DateTimeOffset executionTime, long? elapsedMilliseconds)
     {
-        return string.Join(Separator, state.Stringify(), executionTime.ToUnixTimeSeconds(), elapsedMilliseconds);
+        return string.Join(Separator, state.Numberify(), executionTime.ToUnixTimeSeconds(), elapsedMilliseconds);
     }
 }
