@@ -92,7 +92,7 @@
    */
   function createListGroup(groups) {
     const list = document.createElement("div");
-    list.className = "list-group list-group-flush";
+    list.className = "list-group list-group-flush pulse-selection";
 
     groups.forEach((group) => {
       if (!!group.group) {

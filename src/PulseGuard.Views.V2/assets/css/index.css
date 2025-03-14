@@ -1,9 +1,23 @@
 .healthbar > div {
-    width: 0.6em;
-    height: 2rem;
+  width: 0.6em;
+  height: 2rem;
+}
+
+.healthbar-md {
+  display: none;
 }
 
 .healthbar-tiny > div {
-    width: 0.33em;
-    height: 1rem;
+  width: 0.33em;
+  height: 1rem;
+}
+
+.pulse-selection {
+  overflow: auto;
+}
+
+@media (max-width: 768px) {
+  .pulse-selection {
+    max-height: 25vh;
+  }
 }

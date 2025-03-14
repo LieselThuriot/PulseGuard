@@ -124,6 +124,14 @@
     } else {
       console.error("Error getting detail-card-healthbar");
     }
+    const detailCardHealthBarMd = document.querySelector(
+      "#detail-card-healthbar-md"
+    );
+    if (detailCardHealthBarMd) {
+      detailCardHealthBarMd.innerHTML = "";
+    } else {
+      console.error("Error getting detail-card-healthbar-md");
+    }
     const uptimeElement = document.querySelector("#detail-card-uptime");
     if (uptimeElement) {
       uptimeElement.textContent = "...";
@@ -167,7 +175,7 @@
 
     detailCardChart = renderGraph(data.items);
 
-    const healthBar = createHealthBar(data.items);
+    const healthBar = createHealthBar(data.items, 100);
     const detailCardHealthBar = document.querySelector(
       "#detail-card-healthbar"
     );
@@ -176,6 +184,16 @@
       detailCardHealthBar.appendChild(healthBar);
     } else {
       console.error("Error getting detail-card-healthbar");
+    }
+    const healthBarMd = createHealthBar(data.items, 50);
+    const detailCardHealthBarMd = document.querySelector(
+      "#detail-card-healthbar-md"
+    );
+    if (detailCardHealthBarMd) {
+      detailCardHealthBarMd.innerHTML = "";
+      detailCardHealthBarMd.appendChild(healthBarMd);
+    } else {
+      console.error("Error getting detail-card-healthbar-md");
     }
 
     const uptime = calculateUptime(data.items);
@@ -407,9 +425,10 @@
   /**
    * Creates a health bar element for the given items.
    * @param {Array<PulseDetailResult>} items - The items to create the health bar for.
+   * @param {number} bucketCount - The amount of buckets to create.
    * @returns {HTMLElement} The created health bar element.
    */
-  function createHealthBar(items) {
+  function createHealthBar(items, bucketCount) {
     const healthBar = document.createElement("div");
     healthBar.className =
       "healthbar d-flex flex-row border rounded p-1 gap-1 bg-body-secondary m-auto";
@@ -422,8 +441,8 @@
     const minTimestamp = Math.min(...timestamps);
     const maxTimestamp = Math.max(...timestamps);
     const totalHours = (maxTimestamp - minTimestamp) / (1000 * 60 * 60); // Difference in hours
-    const bucketSize = totalHours / 100; // 100 buckets
-    const buckets = Array.from({ length: 100 }, (_, i) => ({
+    const bucketSize = totalHours / bucketCount;
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({
       start: new Date(minTimestamp + i * bucketSize * 60 * 60 * 1000),
       end: new Date(minTimestamp + (i + 1) * bucketSize * 60 * 60 * 1000),
       state: "Unknown",

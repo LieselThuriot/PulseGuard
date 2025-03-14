@@ -53,13 +53,12 @@
 
     <div class="container-fluid mt-3 position-relative">
       <div class="row">
-        <div class="col-4">
+        <div class="col-12 col-md-4 mb-2 mb-md-0">
           <div class="card shadow-sm">
-            <div id="overview-card" class="card-body">
-            </div>
+            <div id="overview-card" class="card-body"></div>
           </div>
         </div>
-        <div class="col-8">
+        <div class="col-12 col-md-8">
           <div class="card shadow-sm d-none" id="detail-card-container">
             <div class="card-header d-flex justify-content-between">
               <span id="detail-card-header">...</span>
@@ -67,11 +66,19 @@
             </div>
             <div id="detail-card" class="card-body">
               <div class="row mb-3">
-                <div class="col-md-12" id="detail-card-healthbar">...</div>
+                <div
+                  class="col-md-12 d-none d-md-block"
+                  id="detail-card-healthbar"
+                >
+                  ...
+                </div>
+                <div class="col-md-12 d-md-none" id="detail-card-healthbar-md">
+                  ...
+                </div>
               </div>
 
               <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-4 mb-2 mb-md-0">
                   <div class="card">
                     <div class="card-body">
                       <h5 class="card-title">Uptime</h5>
@@ -80,7 +87,7 @@
                   </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-4 mb-2 mb-md-0">
                   <div class="card">
                     <div class="card-body">
                       <h5 class="card-title">Average Response Time</h5>
@@ -91,7 +98,7 @@
                   </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-4 mb-2 mb-md-0">
                   <div class="card">
                     <div class="card-body">
                       <h5 class="card-title">Error Rate</h5>
