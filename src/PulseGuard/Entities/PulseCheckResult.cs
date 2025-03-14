@@ -54,7 +54,7 @@ public sealed partial class PulseCheckResult
         string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, executionTime, elapsedMilliseconds);
         var data = BinaryData.FromString(result);
 
-        return (report.Options.Sqid, report.Options.Name, data);
+        return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
 }
 

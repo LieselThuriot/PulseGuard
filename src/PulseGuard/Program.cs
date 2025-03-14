@@ -24,11 +24,18 @@ builder.Services.ConfigureHttpJsonOptions(x =>
     x.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+#if DEBUG
+const bool autoCreate = true;
+#else
+const bool autoCreate = false;
+#endif
+
 builder.Services.ConfigurePulseHttpClients();
 builder.Services.AddPulseContext(storeConnectionString,
-static x => x.CreateTableIfNotExists = false,
+static x => x.CreateTableIfNotExists = autoCreate,
 static x =>
 {
+    x.CreateTableIfNotExists = autoCreate;
     x.Serializer = new PulseBlobSerializer();
 });
 builder.Services.ConfigurePulseServices();
