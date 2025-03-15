@@ -92,7 +92,7 @@
 
   /**
    * Resets the details of the detail card by clearing or resetting various elements.
-   * 
+   *
    * This function performs the following actions:
    * - Destroys the `detailCardChart` if it exists and sets it to null.
    * - Shows the spinner element by removing the "d-none" class.
@@ -100,7 +100,7 @@
    * - Clears the inner HTML of the health bar and health bar (medium) elements.
    * - Clears the text content and hides the badge element.
    * - Disables the decimation select element.
-   * 
+   *
    * Logs an error to the console if any of the elements are not found.
    */
   function resetDetails() {
@@ -343,7 +343,11 @@
    */
   function renderChart(data, decimation) {
     const set = [];
-    const timestamps = data.map((item) => new Date(item.timestamp));
+    const timestamps = data.map((item) => {
+      const result = new Date(item.timestamp);
+      result.setSeconds(0, 0);
+      return result.getTime();
+    });
     const minTimestamp = Math.min(...timestamps);
     const maxTimestamp = Math.max(...timestamps);
 

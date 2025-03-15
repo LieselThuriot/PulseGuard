@@ -313,7 +313,7 @@
    */
   function markPulseAsActive(id) {
     const activeElement = document.querySelector(
-      ".pulse-selection.list-group-item.active"
+      "a.list-group-item.active"
     );
     if (activeElement) {
       activeElement.classList.remove("active");
