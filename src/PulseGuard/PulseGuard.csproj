@@ -9,11 +9,12 @@
 		<PackageReference Include="Azure.Data.Tables" />
 		<PackageReference Include="Azure.Storage.Queues" />
 		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Microsoft.Extensions.Http.Polly" />
 		<PackageReference Include="Newtonsoft.Json" />
+		<PackageReference Include="Scalar.AspNetCore" />
 		<PackageReference Include="SecureWebhooks.SystemTextJson" />
 		<PackageReference Include="Sqids" />
-		<PackageReference Include="Swashbuckle.AspNetCore" />
 		<PackageReference Include="System.Linq.Async" />
 		<PackageReference Include="System.Text.Json" />
 		<PackageReference Include="TableStorage" />

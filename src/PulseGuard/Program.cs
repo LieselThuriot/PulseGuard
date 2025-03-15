@@ -3,11 +3,18 @@ using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
+using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCors(o => o.AddPolicy("GetorPost", x => x.AllowAnyOrigin().WithMethods("GET", "POST").AllowAnyHeader()));
+bool autoCreate = false;
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(o => o.AddPolicy("GetorPost", x => x.AllowAnyOrigin().WithMethods("GET", "POST").AllowAnyHeader()));
+    autoCreate = true;
+}
 
 string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
@@ -26,8 +33,6 @@ builder.Services.ConfigureHttpJsonOptions(x =>
     x.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-bool autoCreate = builder.Environment.IsDevelopment();
-
 builder.Services.ConfigurePulseHttpClients();
 builder.Services.AddPulseContext(storeConnectionString,
 x => x.CreateTableIfNotExists = autoCreate,
@@ -38,8 +43,7 @@ x =>
 });
 builder.Services.ConfigurePulseServices();
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -52,8 +56,8 @@ if (!string.IsNullOrEmpty(pathBase))
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
     app.UseCors("GetorPost");
 }
 
