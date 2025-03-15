@@ -80,7 +80,7 @@
     });
 
     data.forEach((group) => {
-      group.id = "group-" + formatId(group.group);
+      group.id = "group-" + group.group.toLowerCase().replaceAll(/[\s\.]/g, "-");
       group.items.sort((a, b) => a.name.localeCompare(b.name));
     });
   }

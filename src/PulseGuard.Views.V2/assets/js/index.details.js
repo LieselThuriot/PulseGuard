@@ -19,6 +19,7 @@
 (async function () {
   /** @type {Chart} */
   let detailCardChart = null;
+  let renderChartListener = null;
 
   /** @type {string} */
   let currentSqid = null;
@@ -165,6 +166,14 @@
     } else {
       console.error("Error getting detail-card-badge");
     }
+    let decimationSelect = document.querySelector(
+      "#detail-card-chart-decimation"
+    );
+    if (decimationSelect) {
+      decimationSelect.setAttribute("disabled", "");
+    } else {
+      console.error("Error getting detail-card-chart-decimation");
+    }
   }
 
   /**
@@ -179,7 +188,31 @@
       detailCardChart = null;
     }
 
-    detailCardChart = renderGraph(data.items);
+    let decimationSelect = document.querySelector(
+      "#detail-card-chart-decimation"
+    );
+
+    if (decimationSelect) {
+      if (renderChartListener) {
+        decimationSelect.removeEventListener("change", renderChartListener);
+      }
+
+      renderChartListener = (event) => {
+        if (detailCardChart) {
+          detailCardChart.destroy();
+          detailCardChart = null;
+        }
+
+        const newDecimation =
+          event && event.target ? parseInt(event.target.value, 10) : 15;
+        detailCardChart = renderChart(data.items, newDecimation);
+      };
+
+      decimationSelect.addEventListener("change", renderChartListener);
+      decimationSelect.removeAttribute("disabled");
+    }
+
+    renderChartListener({ target: decimationSelect });
 
     const healthBar = createHealthBar(data.items, 100);
     const detailCardHealthBar = document.querySelector(
@@ -288,9 +321,10 @@
   /**
    * Renders a graph using the provided data.
    * @param {Array<PulseDetailResult>} data - The data to be used for rendering the graph.
+   * @param {number} decimation - The number of data points to skip between each plotted point.
    * @returns {Chart} The rendered Chart.js instance.
    */
-  function renderGraph(data) {
+  function renderChart(data, decimation) {
     const set = [];
     const timestamps = data.map((item) => new Date(item.timestamp));
     const minTimestamp = Math.min(...timestamps);
@@ -316,27 +350,64 @@
         });
       }
     }
+    const buckets = [];
+    let currentBucket = null;
+    set.forEach((item) => {
+      const itemTime = new Date(item.timestamp);
+      itemTime.setSeconds(0, 0); // Ignore seconds and milliseconds
+
+      if (
+        !currentBucket ||
+        item.state !== currentBucket.state ||
+        itemTime - currentBucket.timestamp >= decimation * 60 * 1000
+      ) {
+        if (currentBucket) {
+          currentBucket.elapsedMilliseconds /= currentBucket.count;
+          buckets.push(currentBucket);
+        }
+        currentBucket = {
+          timestamp: itemTime,
+          state: item.state,
+          elapsedMilliseconds: isNaN(item.elapsedMilliseconds)
+            ? NaN
+            : item.elapsedMilliseconds,
+          count: 1,
+        };
+      } else {
+        if (!isNaN(item.elapsedMilliseconds)) {
+          currentBucket.elapsedMilliseconds += item.elapsedMilliseconds;
+        }
+        currentBucket.count += 1;
+      }
+    });
+
+    if (currentBucket) {
+      currentBucket.elapsedMilliseconds /= currentBucket.count;
+      buckets.push(currentBucket);
+    }
 
     const skipped = (ctx, value) =>
       ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
     const healthColor = (ctx) =>
-      getStateColor(set[ctx.p1DataIndex].state, false);
+      getStateColor(buckets[ctx.p1DataIndex].state, false);
 
     const ctx = document.getElementById("detail-card-chart").getContext("2d");
     return new Chart(ctx, {
       type: "line",
       data: {
-        labels: set.map((x) => x.timestamp),
+        labels: buckets.map((x) => x.timestamp),
         datasets: [
           {
             label: "Response Time (ms)",
-            data: set.map((x) => x.elapsedMilliseconds),
+            data: buckets.map((x) => x.elapsedMilliseconds),
             borderColor: "rgba(75, 192, 192, 1)",
             backgroundColor: "rgba(75, 192, 192, 0.2)",
             fill: false,
             tension: 0.1,
-            pointBackgroundColor: set.map((x) => getStateColor(x.state, true)),
+            pointBackgroundColor: buckets.map((x) =>
+              getStateColor(x.state, true)
+            ),
             segment: {
               borderDash: (ctx) => skipped(ctx, [6, 6]),
               borderColor: (ctx) =>

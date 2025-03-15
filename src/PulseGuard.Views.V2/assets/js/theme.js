@@ -1,17 +1,4 @@
 "use strict";
-/**
- * Formats a given string by converting it to lowercase and replacing spaces and dots with hyphens.
- *
- * @param {string} value - The string to format.
- * @returns {string} - The formatted string.
- */
-function formatId(value) {
-  if (value) {
-    value = value.toLowerCase().replaceAll(/[\s\.]/g, "-");
-  }
-
-  return value;
-}
 
 /**
  * Sets the theme of the application.
