@@ -80,7 +80,8 @@
     });
 
     data.forEach((group) => {
-      group.id = "group-" + group.group.toLowerCase().replaceAll(/[\s\.]/g, "-");
+      group.id =
+        "group-" + group.group.toLowerCase().replaceAll(/[\s\.]/g, "-");
       group.items.sort((a, b) => a.name.localeCompare(b.name));
     });
   }
@@ -252,8 +253,8 @@
 
     // Set the window title
     document.title = group
-      ? `PulseGuard > ${group} > ${item.name}`
-      : `PulseGuard > ${item.name}`;
+      ? `${group} > ${item.name} | PulseGuard`
+      : `${item.name} | PulseGuard`;
 
     // Trigger a custom event
     const event = new Event("pushstate");
@@ -312,9 +313,7 @@
    * @param {string} id - The id of the pulse to mark as active.
    */
   function markPulseAsActive(id) {
-    const activeElement = document.querySelector(
-      "a.list-group-item.active"
-    );
+    const activeElement = document.querySelector("a.list-group-item.active");
     if (activeElement) {
       activeElement.classList.remove("active");
     }
