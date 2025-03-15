@@ -123,7 +123,7 @@
     function createListGroupEntry(item, text, id, toggleGroup, indentGroup) {
       const a = document.createElement("a");
       a.className =
-        "list-group-item list-group-item-action rounded pulse-selection d-flex flex-row";
+        "list-group-item list-group-item-action rounded pulse-selection d-flex flex-row overflow-hidden";
 
       if ("group" in item) {
         a.href = "#";
