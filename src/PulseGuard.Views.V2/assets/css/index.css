@@ -1,3 +1,7 @@
+.offcanvas {
+    --bs-offcanvas-width: 75%;
+}
+
 .healthbar > div {
   width: 0.6em;
   height: 2rem;
@@ -19,5 +23,13 @@
 @media (max-width: 768px) {
   .pulse-selection {
     max-height: 25vh;
+  }
+
+  .pulse-selection a {
+    min-height: 2.7rem;
+  }
+
+  .offcanvas {
+      --bs-offcanvas-width: 100%;
   }
 }
