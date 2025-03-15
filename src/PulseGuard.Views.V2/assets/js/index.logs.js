@@ -19,6 +19,12 @@
   /** @type {string} */
   let currentSqid = null;
 
+  /**
+   * Fetches data from the PulseGuard API and processes it.
+   *
+   * @param {string} [continuationToken] - The token to fetch the next set of results.
+   * @returns {Promise<void>} A promise that resolves when the data has been fetched and processed.
+   */
   function fetchData(continuationToken) {
     let url = `https://localhost:7010/pulseguard/api/1.0/pulses/application/${currentSqid}?pageSize=10`;
     if (continuationToken) {
@@ -33,8 +39,38 @@
       })
       .then((data) => {
         handleLoadMoreButton(data.continuationToken);
+        fillMissingData(data.items);
         handleData(data.items);
       });
+  }
+
+  /**
+   * Fills in missing data between items in the provided array.
+   * If there is a gap between the 'to' time of one item and the 'from' time of the next item,
+   * a new item with state "Unknown" and a message indicating no pulse checks were done is inserted.
+   *
+   * @param {Array<LogItem>} items - The array of items to process.
+   */
+  function fillMissingData(items) {
+    for (let i = 0; i < items.length - 1; i++) {
+      const currentItem = items[i];
+      const nextItem = items[i + 1];
+
+      const currentFrom = new Date(currentItem.from);
+      const nextTo = new Date(nextItem.to);
+      currentFrom.setSeconds(0, 0);
+      nextTo.setSeconds(0, 0);
+
+      if (currentFrom.getTime() !== nextTo.getTime()) {
+        const missingItem = {
+          state: "Unknown",
+          message: "No Pulse checks were done during this timeframe.",
+          from: nextItem.to,
+          to: currentItem.from,
+        };
+        items.splice(i + 1, 0, missingItem);
+      }
+    }
   }
 
   /**
@@ -60,6 +96,12 @@
     }
   }
 
+  /**
+   * Handles the provided data items and populates a table with log entries.
+   * Each log entry includes from and to dates, duration, state, message, and error information.
+   * 
+   * @param {Array<LogItem>} items - The array of log entry objects.
+   */
   function handleData(items) {
     const table = document.querySelector("#detail-card-open-log-entries");
     if (table) {
@@ -156,6 +198,17 @@
     }
   }
 
+  /**
+   * Calculates the readable time difference between two dates.
+   *
+   * @param {Date} from - The start date.
+   * @param {Date} to - The end date.
+   * @returns {string} A human-readable string representing the time difference.
+   *
+   * @example
+   * // Returns "1 year, 2 weeks, 3 days, 4 hours, 5 minutes, 6 seconds"
+   * getReadableTimeDifference(new Date('2020-01-01'), new Date('2021-01-15T04:05:06'));
+   */
   function getReadableTimeDifference(from, to) {
     const diffInMilliseconds = Math.abs(to - from);
     const seconds = Math.floor(diffInMilliseconds / 1000);
@@ -196,6 +249,13 @@
       fetchData();
     });
 
+  /**
+   * Handles changes to the query parameters in the URL.
+   * Specifically, it checks for the presence of the "details" parameter.
+   * If the "details" parameter is present and has changed, it updates the currentSqid
+   * and clears the content of the detailCardLogEntries element.
+   * If the "details" parameter is not present, it clears the content of the detailCardLogEntries element.
+   */
   function handleQueryParamChange() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqid = urlParams.get("details");

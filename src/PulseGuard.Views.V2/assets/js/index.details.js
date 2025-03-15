@@ -24,6 +24,11 @@
   /** @type {string} */
   let currentSqid = null;
 
+  /**
+   * Handles changes to the query parameters in the URL.
+   * If the "details" query parameter is present, it updates the currentSqid and refreshes the data.
+   * It also shows or hides the detail card container based on the presence of the "details" query parameter.
+   */
   function handleQueryParamChange() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqid = urlParams.get("details");
@@ -88,15 +93,17 @@
   }
 
   /**
-   * Resets the details section of the page by clearing or setting default values
-   * for various elements. Specifically, it:
-   * - Clears the inner HTML of the health bar element.
-   * - Sets the text content of the uptime element to '...'.
-   * - Sets the text content of the average response time element to '...'.
-   * - Sets the text content of the error rate element to '...'.
-   * - Clears the text content of the badge element and hides it by setting its class to 'd-none'.
-   *
-   * Logs an error to the console if any of the elements cannot be found.
+   * Resets the details of the detail card by clearing or resetting various elements.
+   * 
+   * This function performs the following actions:
+   * - Destroys the `detailCardChart` if it exists and sets it to null.
+   * - Shows the spinner element by removing the "d-none" class.
+   * - Resets the text content of the header, uptime, since, response time, and error rate elements to "...".
+   * - Clears the inner HTML of the health bar and health bar (medium) elements.
+   * - Clears the text content and hides the badge element.
+   * - Disables the decimation select element.
+   * 
+   * Logs an error to the console if any of the elements are not found.
    */
   function resetDetails() {
     if (detailCardChart) {
@@ -279,6 +286,12 @@
     }
   }
 
+  /**
+   * Updates the badge element with the state of the last item in the provided list.
+   *
+   * @param {Array<PulseDetailResult>} items - An array of items where each item contains a `state` property.
+   * @throws Will log an error if the badge element with the ID `detail-card-badge` is not found.
+   */
   function setBadge(items) {
     const lastItem = items[items.length - 1];
     const detailCardBadge = document.querySelector("#detail-card-badge");
@@ -292,6 +305,12 @@
     }
   }
 
+  /**
+   * Returns the badge color based on the given state.
+   *
+   * @param {string} state - The state of the system which can be "Healthy", "Degraded", or "Unhealthy".
+   * @returns {string} - The corresponding badge color: "success" for "Healthy", "warning" for "Degraded", "danger" for "Unhealthy", and "secondary" for any other state.
+   */
   function getBadgeColor(state) {
     switch (state) {
       case "Healthy":
