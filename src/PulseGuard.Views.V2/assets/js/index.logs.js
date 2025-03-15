@@ -26,21 +26,25 @@
    * @returns {Promise<void>} A promise that resolves when the data has been fetched and processed.
    */
   function fetchData(continuationToken) {
-    let url = `https://localhost:7010/pulseguard/api/1.0/pulses/application/${currentSqid}?pageSize=10`;
+    let url = `../api/1.0/pulses/application/${currentSqid}?pageSize=11`;
     if (continuationToken) {
       url = `${url}&continuationToken=${continuationToken}`;
     }
 
     fetch(url)
       .then((response) => {
-        /** @type {LogModel} */
-        const data = response.json();
-        return data;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       })
       .then((data) => {
         handleLoadMoreButton(data.continuationToken);
         fillMissingData(data.items);
         handleData(data.items);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch data: ", error);
       });
   }
 
@@ -83,7 +87,7 @@
   function handleLoadMoreButton(continuationToken) {
     if (continuationToken) {
       const loadMoreButton = document.createElement("button");
-      loadMoreButton.id = 'detail-card-open-log-more';
+      loadMoreButton.id = "detail-card-open-log-more";
       loadMoreButton.textContent = "Load More";
       loadMoreButton.addEventListener("click", () => {
         fetchData(continuationToken);
@@ -99,7 +103,7 @@
   /**
    * Handles the provided data items and populates a table with log entries.
    * Each log entry includes from and to dates, duration, state, message, and error information.
-   * 
+   *
    * @param {Array<LogItem>} items - The array of log entry objects.
    */
   function handleData(items) {
@@ -235,19 +239,40 @@
     return formattedTime;
   }
 
-  document
-    .querySelector("#detail-card-open-log-action")
-    .addEventListener("click", () => {
-      const logEntries = document.querySelector(
-        "#detail-card-open-log-entries"
-      );
-      logEntries.innerHTML = "";
-      const loadMoreButton = document.querySelector("#detail-card-open-log-more");
-      if (loadMoreButton) {
-        loadMoreButton.remove();
-      }
-      fetchData();
-    });
+  /**
+   * Sets up the log button by adding a click event listener to it.
+   * When the button is clicked, it clears the log entries, removes the load more button,
+   * fetches new data, and enables the button if it was disabled.
+   *
+   * @function
+   * @name hookUpLogButton
+   * @returns {void}
+   */
+  function hookUpLogButton() {
+    const logActionButton = document.querySelector(
+      "#detail-card-open-log-action"
+    );
+    if (logActionButton) {
+      logActionButton.addEventListener("click", () => {
+        const logEntries = document.querySelector(
+          "#detail-card-open-log-entries"
+        );
+        if (logEntries) {
+          logEntries.innerHTML = "";
+        }
+        const loadMoreButton = document.querySelector(
+          "#detail-card-open-log-more"
+        );
+        if (loadMoreButton) {
+          loadMoreButton.remove();
+        }
+        fetchData();
+      });
+      logActionButton.removeAttribute("disabled");
+    } else {
+      console.error("Error getting detail-card-open-log-action");
+    }
+  }
 
   /**
    * Handles changes to the query parameters in the URL.
@@ -287,4 +312,6 @@
 
   // Initial call to handle the current query param value
   handleQueryParamChange();
+
+  hookUpLogButton();
 })();

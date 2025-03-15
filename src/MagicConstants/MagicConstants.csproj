@@ -11,7 +11,7 @@
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<NoWarn>NU5128</NoWarn>
 		<VersionPrefix>1.0.0</VersionPrefix>
-		<VersionSuffix>preview-02</VersionSuffix>
+		<VersionSuffix>preview-03</VersionSuffix>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>

@@ -63,7 +63,10 @@ public class Generator : IIncrementalGenerator
                 {
                     if (extension is ".html" or ".htm")
                     {
-                        UglifyResult result = Uglify.Html(content);
+                        UglifyResult result = Uglify.Html(content, new NUglify.Html.HtmlSettings()
+                        {
+                            ShortBooleanAttribute = false
+                        });
 
                         if (!result.HasErrors)
                         {

@@ -22,7 +22,7 @@
    * @property {PulseGroupItem[]} items
    */
 
-  fetch("https://localhost:7010/pulseguard/api/1.0/pulses")
+  fetch("../api/1.0/pulses")
     .then((response) => {
       if (!response.ok) {
         throw new Error("Network response was not ok " + response.statusText);

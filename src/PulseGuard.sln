@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		..\LICENSE = ..\LICENSE
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PulseGuard.Views.V2", "PulseGuard.Views.V2\PulseGuard.Views.V2.csproj", "{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,10 @@ Global
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3C493F8-B88A-487C-AC06-4DA216CD0A81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

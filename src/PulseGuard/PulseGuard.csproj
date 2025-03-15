@@ -21,6 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\PulseGuard.Views.V2\PulseGuard.Views.V2.csproj" />
 	  <ProjectReference Include="..\PulseGuard.Views\PulseGuard.Views.csproj" />
 	</ItemGroup>
 </Project>
