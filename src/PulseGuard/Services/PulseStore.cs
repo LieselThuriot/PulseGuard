@@ -84,8 +84,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         Task deleteRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
 
-        var partitionsToKeep = PulseCheckResult.GetPartitions();
-        Task deleteResults = _context.PulseCheckResults.NotExistsIn(x => x.Day, partitionsToKeep).BatchDeleteAsync(token);
+        var partitionsToKeep = PulseCheckResult.GetPartitions().ToHashSet();
+        Task deleteResults = _context.PulseCheckResults.WhereId(x => !partitionsToKeep.Contains(x.PartitionKey)).BatchDeleteAsync(token);
 
         return Task.WhenAll(deleteRecent, deleteResults);
     }

@@ -26,7 +26,7 @@
    * @returns {Promise<void>} A promise that resolves when the data has been fetched and processed.
    */
   function fetchData(continuationToken) {
-    let url = `../api/1.0/pulses/application/${currentSqid}?pageSize=11`;
+    let url = `../api/1.0/pulses/application/${currentSqid}?pageSize=10`;
     if (continuationToken) {
       url = `${url}&continuationToken=${continuationToken}`;
     }

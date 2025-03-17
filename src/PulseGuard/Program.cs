@@ -38,7 +38,7 @@ builder.Services.AddPulseContext(storeConnectionString,
 x => x.CreateTableIfNotExists = autoCreate,
 x =>
 {
-    x.CreateTableIfNotExists = autoCreate;
+    x.CreateContainerIfNotExists = autoCreate;
     x.Serializer = new PulseBlobSerializer();
 });
 builder.Services.ConfigurePulseServices();
