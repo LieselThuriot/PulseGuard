@@ -91,17 +91,18 @@
   }
 
   /**
-   * Resets the details of the detail card by clearing or resetting various elements.
+   * Resets the details card by destroying the chart, showing the spinner,
+   * and resetting the content of various elements to their default states.
    *
    * This function performs the following actions:
    * - Destroys the `detailCardChart` if it exists and sets it to null.
-   * - Shows the spinner element by removing the "d-none" class.
+   * - Shows the spinner by removing the "d-none" class from the spinner element.
    * - Resets the text content of the header, uptime, since, response time, and error rate elements to "...".
    * - Clears the inner HTML of the health bar and health bar (medium) elements.
-   * - Clears the text content and hides the badge element.
-   * - Disables the decimation select element.
+   * - Hides the badge by setting its text content to an empty string and adding the "d-none" class.
+   * - Disables the decimation, from, and to select elements.
    *
-   * Logs an error to the console if any of the elements are not found.
+   * Logs an error to the console if any of the elements cannot be found.
    */
   function resetDetails() {
     if (detailCardChart) {
@@ -171,13 +172,25 @@
     } else {
       console.error("Error getting detail-card-badge");
     }
-    let decimationSelect = document.querySelector(
+    const decimationSelect = document.querySelector(
       "#detail-card-chart-decimation"
     );
     if (decimationSelect) {
       decimationSelect.setAttribute("disabled", "");
     } else {
       console.error("Error getting detail-card-chart-decimation");
+    }
+    const fromSelect = document.querySelector("#detail-card-chart-from");
+    if (fromSelect) {
+      fromSelect.setAttribute("disabled", "");
+    } else {
+      console.error("Error getting detail-card-chart-from");
+    }
+    const toSelect = document.querySelector("#detail-card-chart-to");
+    if (toSelect) {
+      toSelect.setAttribute("disabled", "");
+    } else {
+      console.error("Error getting detail-card-chart-to");
     }
   }
 
@@ -192,87 +205,126 @@
       detailCardChart.destroy();
       detailCardChart = null;
     }
-
-    let decimationSelect = document.querySelector(
+    const decimationSelect = document.querySelector(
       "#detail-card-chart-decimation"
     );
+
+    const fromSelect = document.querySelector("#detail-card-chart-from");
+
+    const toSelect = document.querySelector("#detail-card-chart-to");
+
+    const updateChart = function () {
+      if (detailCardChart) {
+        detailCardChart.destroy();
+        detailCardChart = null;
+      }
+
+      let filteredData = data.items;
+      const fromDate =
+        fromSelect && fromSelect.value ? new Date(fromSelect.value) : null;
+      const toDate =
+        toSelect && toSelect.value ? new Date(toSelect.value) : null;
+      if (fromDate) {
+        filteredData = filteredData.filter(
+          (item) => new Date(item.timestamp) >= fromDate
+        );
+      }
+      if (toDate) {
+        toDate.setHours(23, 59, 59, 999);
+        filteredData = filteredData.filter(
+          (item) => new Date(item.timestamp) <= toDate
+        );
+      }
+
+      const newDecimation = decimationSelect
+        ? parseInt(decimationSelect.value, 10)
+        : 15;
+
+      detailCardChart = renderChart(filteredData, newDecimation);
+
+      const healthBar = createHealthBar(filteredData, 100);
+      const detailCardHealthBar = document.querySelector(
+        "#detail-card-healthbar"
+      );
+      if (detailCardHealthBar) {
+        detailCardHealthBar.innerHTML = "";
+        detailCardHealthBar.appendChild(healthBar);
+      } else {
+        console.error("Error getting detail-card-healthbar");
+      }
+      const healthBarMd = createHealthBar(filteredData, 50);
+      const detailCardHealthBarMd = document.querySelector(
+        "#detail-card-healthbar-md"
+      );
+      if (detailCardHealthBarMd) {
+        detailCardHealthBarMd.innerHTML = "";
+        detailCardHealthBarMd.appendChild(healthBarMd);
+      } else {
+        console.error("Error getting detail-card-healthbar-md");
+      }
+
+      const uptime = calculateUptime(filteredData);
+      const uptimeElement = document.querySelector("#detail-card-uptime");
+      if (uptimeElement) {
+        uptimeElement.textContent = !isNaN(uptime)
+          ? `${uptime.toFixed(2)}%`
+          : "...";
+      } else {
+        console.error("Error getting detail-card-uptime");
+      }
+
+      const since = earliestTimestamp(filteredData);
+      const sinceElement = document.querySelector("#detail-card-since");
+      if (sinceElement) {
+        sinceElement.textContent = since && !isNaN(since.getTime()) ? since.toLocaleString() : "...";
+      } else {
+        console.error("Error getting detail-card-since");
+      }
+
+      const responseTime = calculateAverageResponseTime(filteredData);
+      const responseTimeElement = document.querySelector(
+        "#detail-card-average-response"
+      );
+      if (responseTimeElement) {
+        responseTimeElement.textContent = !isNaN(responseTime)
+          ? `${responseTime.toFixed(2)}ms`
+          : "...";
+      } else {
+        console.error("Error getting detail-card-average-response");
+      }
+
+      const errorRate = calculateErrorRate(filteredData);
+      const errorRateElement = document.querySelector(
+        "#detail-card-error-rate"
+      );
+      if (errorRateElement) {
+        errorRateElement.textContent = !isNaN(errorRate)
+          ? `${errorRate.toFixed(2)}%`
+          : "...";
+      } else {
+        console.error("Error getting detail-card-error-rate");
+      }
+    };
 
     if (decimationSelect) {
       if (renderChartListener) {
         decimationSelect.removeEventListener("change", renderChartListener);
+        fromSelect.removeEventListener("change", renderChartListener);
+        toSelect.removeEventListener("change", renderChartListener);
       }
 
-      renderChartListener = (event) => {
-        if (detailCardChart) {
-          detailCardChart.destroy();
-          detailCardChart = null;
-        }
-
-        const newDecimation =
-          event && event.target ? parseInt(event.target.value, 10) : 15;
-        detailCardChart = renderChart(data.items, newDecimation);
-      };
+      renderChartListener = updateChart;
 
       decimationSelect.addEventListener("change", renderChartListener);
+      fromSelect.addEventListener("change", renderChartListener);
+      toSelect.addEventListener("change", renderChartListener);
+
       decimationSelect.removeAttribute("disabled");
+      fromSelect.removeAttribute("disabled");
+      toSelect.removeAttribute("disabled");
     }
 
-    renderChartListener({ target: decimationSelect });
-
-    const healthBar = createHealthBar(data.items, 100);
-    const detailCardHealthBar = document.querySelector(
-      "#detail-card-healthbar"
-    );
-    if (detailCardHealthBar) {
-      detailCardHealthBar.innerHTML = "";
-      detailCardHealthBar.appendChild(healthBar);
-    } else {
-      console.error("Error getting detail-card-healthbar");
-    }
-    const healthBarMd = createHealthBar(data.items, 50);
-    const detailCardHealthBarMd = document.querySelector(
-      "#detail-card-healthbar-md"
-    );
-    if (detailCardHealthBarMd) {
-      detailCardHealthBarMd.innerHTML = "";
-      detailCardHealthBarMd.appendChild(healthBarMd);
-    } else {
-      console.error("Error getting detail-card-healthbar-md");
-    }
-
-    const uptime = calculateUptime(data.items);
-    const uptimeElement = document.querySelector("#detail-card-uptime");
-    if (uptimeElement) {
-      uptimeElement.textContent = `${uptime.toFixed(2)}%`;
-    } else {
-      console.error("Error getting detail-card-uptime");
-    }
-
-    const since = earliestTimestamp(data.items);
-    const sinceElement = document.querySelector("#detail-card-since");
-    if (sinceElement) {
-      sinceElement.textContent = since.toLocaleString();
-    } else {
-      console.error("Error getting detail-card-since");
-    }
-
-    const responseTime = calculateAverageResponseTime(data.items);
-    const responseTimeElement = document.querySelector(
-      "#detail-card-average-response"
-    );
-    if (responseTimeElement) {
-      responseTimeElement.textContent = `${responseTime.toFixed(2)}ms`;
-    } else {
-      console.error("Error getting detail-card-average-response");
-    }
-
-    const errorRate = calculateErrorRate(data.items);
-    const errorRateElement = document.querySelector("#detail-card-error-rate");
-    if (errorRateElement) {
-      errorRateElement.textContent = `${errorRate.toFixed(2)}%`;
-    } else {
-      console.error("Error getting detail-card-error-rate");
-    }
+    updateChart();
 
     setBadge(data.items);
 

@@ -60,60 +60,20 @@
               <span class="badge" id="detail-card-badge">...</span>
             </div>
             <div id="detail-card" class="card-body">
+              
+
               <div class="row mb-2">
-                <div
-                  class="col-md-12 d-none d-md-block"
-                  id="detail-card-healthbar"
-                >
-                  ...
-                </div>
-                <div class="col-md-12 d-md-none" id="detail-card-healthbar-md">
-                  ...
-                </div>
-              </div>
+                <div class="col-md-6">
+                  <div class="input-group mb-2 mb-md-0">
+                    <label class="input-group-text" for="detail-card-chart-from">From</label>
+                    <input id="detail-card-chart-from" class="form-control" type="date" disabled />
 
-              <div class="row">
-                <div class="col-md-3 mb-2 mb-md-0">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">Start Time</h5>
-                      <p class="card-text" id="detail-card-since">...</p>
-                    </div>
+                    <label class="input-group-text" for="detail-card-chart-to">To</label>
+                    <input id="detail-card-chart-to" class="form-control" type="date" disabled />
                   </div>
                 </div>
 
-                <div class="col-md-3 mb-2 mb-md-0">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">Uptime</h5>
-                      <p class="card-text" id="detail-card-uptime">...</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-3 mb-2 mb-md-0">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">Average Response</h5>
-                      <p class="card-text" id="detail-card-average-response">
-                        ...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-3 mb-2 mb-md-0">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">Error Rate</h5>
-                      <p class="card-text" id="detail-card-error-rate">...</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row mt-md-3">
-                <div class="col-md-12 d-flex flex-row">
+                <div class="col-md-6 d-flex flex-row">
                   <div class="input-group">
                     <label class="input-group-text" for="decimation-select"
                       >Decimation</label
@@ -180,6 +140,58 @@
                           <tbody id="detail-card-open-log-entries"></tbody>
                         </table>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-2">
+                <div
+                  class="col-md-12 d-none d-md-block"
+                  id="detail-card-healthbar"
+                >
+                  ...
+                </div>
+                <div class="col-md-12 d-md-none" id="detail-card-healthbar-md">
+                  ...
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-3 mb-2 mb-md-0">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Start Time</h5>
+                      <p class="card-text" id="detail-card-since">...</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-2 mb-md-0">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Uptime</h5>
+                      <p class="card-text" id="detail-card-uptime">...</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-2 mb-md-0">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Average Response</h5>
+                      <p class="card-text" id="detail-card-average-response">
+                        ...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-2 mb-md-0">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Error Rate</h5>
+                      <p class="card-text" id="detail-card-error-rate">...</p>
                     </div>
                   </div>
                 </div>
