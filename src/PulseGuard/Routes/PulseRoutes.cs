@@ -125,18 +125,12 @@ public static class PulseRoutes
         {
             var query = context.PulseCheckResults.Where(x => x.Sqid == id);
 
-            IAsyncEnumerable<PulseCheckResult> filteredQuery;
             if (days.HasValue)
             {
-                var partitions = PulseCheckResult.GetPartitions().ToHashSet();
-                filteredQuery = query.WhereId(x => partitions.Contains(x.PartitionKey));
-            }
-            else
-            {
-                filteredQuery = query;
+                query = query.ExistsIn(x => x.Day, PulseCheckResult.GetPartitions());
             }
 
-            var results = await filteredQuery.OrderBy(x => x.Day).ToListAsync(token);
+            var results = await query.OrderBy(x => x.Day).ToListAsync(token);
 
             if (results.Count is 0)
             {

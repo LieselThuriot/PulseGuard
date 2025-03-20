@@ -60,10 +60,7 @@ public sealed partial class PulseCheckResult
     public static IEnumerable<string> GetPartitions(int days = PulseContext.RecentDays)
     {
         var now = DateTimeOffset.UtcNow;
-        for (int i = 0; i < days; i++)
-        {
-            yield return now.AddDays(-i).ToString(PartitionKeyFormat);
-        }
+        return Enumerable.Range(0, days).Select(i => now.AddDays(-i).ToString(PartitionKeyFormat));
     }
 }
 

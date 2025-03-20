@@ -240,9 +240,29 @@
         ? parseInt(decimationSelect.value, 10)
         : 15;
 
-      detailCardChart = renderChart(filteredData, newDecimation);
+      const timeMap = new Map();
+      filteredData.forEach((item) => {
+        const itemTime = new Date(item.timestamp);
+        itemTime.setSeconds(0, 0);
+        timeMap.set(itemTime.getTime(), item);
+      });
 
-      const healthBar = createHealthBar(filteredData, 100);
+      const minTimestamp = Math.min(...timeMap.keys());
+      const maxTimestamp = Math.max(...timeMap.keys());
+
+      detailCardChart = renderChart(
+        newDecimation,
+        timeMap,
+        minTimestamp,
+        maxTimestamp
+      );
+
+      const healthBar = createHealthBar(
+        100,
+        timeMap,
+        minTimestamp,
+        maxTimestamp
+      );
       const detailCardHealthBar = document.querySelector(
         "#detail-card-healthbar"
       );
@@ -252,7 +272,12 @@
       } else {
         console.error("Error getting detail-card-healthbar");
       }
-      const healthBarMd = createHealthBar(filteredData, 50);
+      const healthBarMd = createHealthBar(
+        50,
+        timeMap,
+        minTimestamp,
+        maxTimestamp
+      );
       const detailCardHealthBarMd = document.querySelector(
         "#detail-card-healthbar-md"
       );
@@ -263,20 +288,23 @@
         console.error("Error getting detail-card-healthbar-md");
       }
 
-      const uptime = calculateUptime(filteredData);
+      const uptimes = calculateUptimes(filteredData);
+
       const uptimeElement = document.querySelector("#detail-card-uptime");
       if (uptimeElement) {
-        uptimeElement.textContent = !isNaN(uptime)
-          ? `${uptime.toFixed(2)}%`
+        uptimeElement.textContent = !isNaN(uptimes.Healthy)
+          ? `${uptimes.Healthy.toFixed(2)}%`
           : "...";
       } else {
         console.error("Error getting detail-card-uptime");
       }
 
-      const since = earliestTimestamp(filteredData);
       const sinceElement = document.querySelector("#detail-card-since");
       if (sinceElement) {
-        sinceElement.textContent = since && !isNaN(since.getTime()) ? since.toLocaleString() : "...";
+        sinceElement.textContent =
+          minTimestamp && !isNaN(minTimestamp)
+            ? new Date(minTimestamp).toLocaleString()
+            : "...";
       } else {
         console.error("Error getting detail-card-since");
       }
@@ -293,13 +321,12 @@
         console.error("Error getting detail-card-average-response");
       }
 
-      const errorRate = calculateErrorRate(filteredData);
       const errorRateElement = document.querySelector(
         "#detail-card-error-rate"
       );
       if (errorRateElement) {
-        errorRateElement.textContent = !isNaN(errorRate)
-          ? `${errorRate.toFixed(2)}%`
+        errorRateElement.textContent = !isNaN(uptimes.Unhealthy)
+          ? `${uptimes.Unhealthy.toFixed(2)}%`
           : "...";
       } else {
         console.error("Error getting detail-card-error-rate");
@@ -388,46 +415,43 @@
   }
 
   /**
-   * Renders a graph using the provided data.
-   * @param {Array<PulseDetailResult>} data - The data to be used for rendering the graph.
-   * @param {number} decimation - The number of data points to skip between each plotted point.
-   * @returns {Chart} The rendered Chart.js instance.
+   * Renders a chart displaying response times over a specified time range.
+   *
+   * @param {number} decimation - The decimation factor to reduce the number of data points.
+   * @param {Map<number, {timestamp: number, elapsedMilliseconds: number, state: string}>} timeMap - A map of timestamps to data points.
+   * @param {number} minTimestamp - The minimum timestamp for the chart.
+   * @param {number} maxTimestamp - The maximum timestamp for the chart.
+   * @returns {Chart} The rendered Chart.js chart instance.
    */
-  function renderChart(data, decimation) {
+  function renderChart(decimation, timeMap, minTimestamp, maxTimestamp) {
     const set = [];
-    const timestamps = data.map((item) => {
-      const result = new Date(item.timestamp);
-      result.setSeconds(0, 0);
-      return result.getTime();
-    });
-    const minTimestamp = Math.min(...timestamps);
-    const maxTimestamp = Math.max(...timestamps);
-
     for (let time = minTimestamp; time <= maxTimestamp; time += 60000) {
-      const item = data.find((d) => {
-        const itemTime = new Date(d.timestamp);
-        itemTime.setSeconds(0, 0); // Ignore seconds and milliseconds
-        return itemTime.getTime() === time;
-      });
+      const item = timeMap.get(time);
       if (item) {
+        const timestamp = new Date(item.timestamp);
+        timestamp.setSeconds(0, 0);
+
         set.push({
-          timestamp: new Date(item.timestamp),
+          timestamp: timestamp,
           elapsedMilliseconds: item.elapsedMilliseconds || 0,
           state: item.state,
         });
       } else {
+        const timestamp = new Date(time);
+        timestamp.setSeconds(0, 0);
+
         set.push({
-          timestamp: new Date(time),
+          timestamp: timestamp,
           elapsedMilliseconds: NaN,
           state: "Unknown",
         });
       }
     }
+
     const buckets = [];
     let currentBucket = null;
     set.forEach((item) => {
-      const itemTime = new Date(item.timestamp);
-      itemTime.setSeconds(0, 0); // Ignore seconds and milliseconds
+      const itemTime = item.timestamp;
 
       if (
         !currentBucket ||
@@ -466,6 +490,17 @@
       getStateColor(buckets[ctx.p1DataIndex].state, false);
 
     const ctx = document.getElementById("detail-card-chart").getContext("2d");
+
+    const timeDiff = maxTimestamp - minTimestamp;
+    let timeUnit = "day";
+    if (timeDiff <= 3600000) {
+      // less than or equal to 1 hour
+      timeUnit = "minute";
+    } else if (timeDiff <= 86400000) {
+      // less than or equal to 1 day
+      timeUnit = "hour";
+    }
+
     return new Chart(ctx, {
       type: "line",
       data: {
@@ -496,7 +531,7 @@
           x: {
             type: "time",
             time: {
-              unit: "minute",
+              unit: timeUnit,
             },
             title: {
               display: true,
@@ -536,29 +571,33 @@
   }
 
   /**
-   * Finds the earliest timestamp from a list of items.
-   *
-   * @param {Array<PulseDetailResult>} items - The list of items, each containing a timestamp property.
-   * @returns {Date} The earliest timestamp in milliseconds since the Unix Epoch.
+   * Represents a single health check result
+   * @typedef {Object} UptimeResult
+   * @property {number} Healthy
+   * @property {number} Degraded
+   * @property {number} Unhealthy
+   * @property {number} Unknown
    */
-  function earliestTimestamp(items) {
-    const timestamps = items.map((item) => new Date(item.timestamp));
-    return new Date(Math.min(...timestamps));
-  }
 
   /**
-   * Calculates the uptime percentage based on the provided items.
+   * Calculates the uptime and error rate percentages based on the given items.
    *
-   * @param {Array<PulseDetailResult>} items - An array of objects representing the checks.
-   * @returns {number} The uptime percentage calculated as (healthyChecks / totalChecks) * 100.
+   * @param {Array<PulseDetailResult>} items - An array of items to check. Each item should have a `state` property.
+   * @returns {UptimeResult} An object containing the uptime and error rate percentages.
    */
-  function calculateUptime(items) {
+  function calculateUptimes(items) {
     const totalChecks = items.length;
-    const healthyChecks = items.filter(
-      (item) => item.state === "Healthy"
-    ).length;
-    const uptimePercent = (healthyChecks / totalChecks) * 100;
-    return uptimePercent;
+    const stateCounts = items.reduce((counts, item) => {
+      counts[item.state] = (counts[item.state] || 0) + 1;
+      return counts;
+    }, {});
+
+    const percentages = {};
+    for (const [state, count] of Object.entries(stateCounts)) {
+      percentages[state] = (count / totalChecks) * 100;
+    }
+
+    return percentages;
   }
 
   /**
@@ -577,51 +616,35 @@
   }
 
   /**
-   * Calculates the error rate based on the provided items.
+   * Creates a health bar element representing the health status over time.
    *
-   * @param {Array<PulseDetailResult>} items - An array of objects representing the checks.
-   * @returns {number} - The error rate calculated as (unhealthyChecks / totalChecks) * 100.
+   * @param {number} bucketCount - The number of buckets to divide the time range into.
+   * @param {Array<{time: number, state: string}>} timeMap - An array of objects representing the time and state of each pulse.
+   * @param {number} minTimestamp - The minimum timestamp of the time range.
+   * @param {number} maxTimestamp - The maximum timestamp of the time range.
+   * @returns {HTMLDivElement} The health bar element.
    */
-  function calculateErrorRate(items) {
-    const totalChecks = items.length;
-    const unhealthyChecks = items.filter(
-      (item) => item.state === "Unhealthy"
-    ).length;
-    const errorRate = (unhealthyChecks / totalChecks) * 100;
-    return errorRate;
-  }
-
-  /**
-   * Creates a health bar element for the given items.
-   * @param {Array<PulseDetailResult>} items - The items to create the health bar for.
-   * @param {number} bucketCount - The amount of buckets to create.
-   * @returns {HTMLElement} The created health bar element.
-   */
-  function createHealthBar(items, bucketCount) {
+  function createHealthBar(bucketCount, timeMap, minTimestamp, maxTimestamp) {
     const healthBar = document.createElement("div");
     healthBar.className =
       "healthbar d-flex flex-row border rounded p-1 gap-1 bg-body-secondary m-auto";
 
-    if (items.length === 0) {
+    if (timeMap.length === 0) {
       return healthBar;
     }
 
-    const timestamps = items.map((item) => new Date(item.timestamp));
-    const minTimestamp = Math.min(...timestamps);
-    const maxTimestamp = Math.max(...timestamps);
-    const totalHours = (maxTimestamp - minTimestamp) / (1000 * 60 * 60); // Difference in hours
+    const totalHours = (maxTimestamp - minTimestamp) / (1000 * 60 * 60);
     const bucketSize = totalHours / bucketCount;
+
     const buckets = Array.from({ length: bucketCount }, (_, i) => ({
       start: new Date(minTimestamp + i * bucketSize * 60 * 60 * 1000),
       end: new Date(minTimestamp + (i + 1) * bucketSize * 60 * 60 * 1000),
       state: "Unknown",
     }));
 
-    items.forEach((pulse) => {
-      const from = new Date(pulse.timestamp);
-      const to = new Date(pulse.timestamp);
+    timeMap.forEach((pulse, time) => {
       buckets.forEach((bucket) => {
-        if (from < bucket.end && to > bucket.start) {
+        if (time >= bucket.start.getTime() && time < bucket.end.getTime()) {
           const states = ["Healthy", "Degraded", "Unhealthy"];
           const worstStateIndex = Math.max(
             states.indexOf(pulse.state),
