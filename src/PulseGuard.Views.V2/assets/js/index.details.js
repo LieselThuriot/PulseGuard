@@ -294,7 +294,7 @@
       if (uptimeElement) {
         uptimeElement.textContent = !isNaN(uptimes.Healthy)
           ? `${uptimes.Healthy.toFixed(2)}%`
-          : "...";
+          : "0.00%";
       } else {
         console.error("Error getting detail-card-uptime");
       }
@@ -327,7 +327,7 @@
       if (errorRateElement) {
         errorRateElement.textContent = !isNaN(uptimes.Unhealthy)
           ? `${uptimes.Unhealthy.toFixed(2)}%`
-          : "...";
+          : "0.00%";
       } else {
         console.error("Error getting detail-card-error-rate");
       }
