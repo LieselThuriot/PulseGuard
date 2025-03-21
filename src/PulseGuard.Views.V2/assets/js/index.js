@@ -163,7 +163,7 @@
 
       textSpan.setAttribute("data-bs-toggle", "tooltip");
       textSpan.setAttribute("data-bs-placement", "right");
-      textSpan.setAttribute("data-bs-custom-class", "d-md-none");
+      textSpan.setAttribute("data-bs-custom-class", "d-lg-none");
       textSpan.setAttribute("title", text);
       new bootstrap.Tooltip(textSpan);
 
