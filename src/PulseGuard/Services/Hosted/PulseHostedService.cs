@@ -59,7 +59,11 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         }
 
         await Task.WhenAll(checks);
-        await store.CleanRecent(token);
+
+        if (DateTimeOffset.UtcNow.Minute % _options.CleaningInterval is 0)
+        {
+            await store.CleanRecent(token);
+        }
 
         async Task Check(PulseConfiguration config)
         {

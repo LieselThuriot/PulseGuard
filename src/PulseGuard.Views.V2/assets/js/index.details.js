@@ -539,6 +539,7 @@
             },
           },
           y: {
+            suggestedMin: 0,
             title: {
               display: true,
               text: "Response Time (ms)",

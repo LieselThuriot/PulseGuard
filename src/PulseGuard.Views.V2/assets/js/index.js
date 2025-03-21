@@ -93,7 +93,8 @@
    */
   function createListGroup(groups) {
     const list = document.createElement("div");
-    list.className = "list-group list-group-flush pulse-selection";
+    list.className =
+      "list-group list-group-flush pulse-selection d-flex flex-grow-1 overflow-auto";
 
     groups.forEach((group) => {
       if (!!group.group) {
@@ -152,11 +153,19 @@
 
       const textSpan = document.createElement("span");
       textSpan.textContent = text;
-      textSpan.className = "flex-grow-1";
+      textSpan.className = "flex-grow-1 d-inline-block text-truncate";
 
       if (!!indentGroup) {
-        textSpan.classList.add("ms-4");
+        textSpan.classList.add("mx-4");
+      } else {
+        textSpan.classList.add("me-4");
       }
+
+      textSpan.setAttribute("data-bs-toggle", "tooltip");
+      textSpan.setAttribute("data-bs-placement", "right");
+      textSpan.setAttribute("data-bs-custom-class", "d-md-none");
+      textSpan.setAttribute("title", text);
+      new bootstrap.Tooltip(textSpan);
 
       a.appendChild(textSpan);
 

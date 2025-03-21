@@ -8,9 +8,11 @@ internal static class ServicesSetup
     public static void ConfigurePulseServices(this IServiceCollection services)
     {
         services.AddMemoryCache();
+
         services.AddSingleton<IdService>();
         services.AddSingleton<WebhookService>();
         services.AddScoped<PulseStore>();
+
         services.AddHostedService<Hosted.PulseHostedService>();
         services.AddHostedService<Hosted.WebhookHostedService>();
     }

@@ -16,7 +16,7 @@
     <link href="assets/css/index.css" rel="stylesheet" />
   </head>
 
-  <body>
+  <body class="d-flex vh-100 m-0 p-0 overflow-hidden flex-column">
     <nav class="navbar sticky-top bg-body-tertiary">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">
@@ -46,30 +46,53 @@
       </div>
     </nav>
 
-    <div class="container-fluid mt-3 position-relative">
-      <div class="row">
-        <div class="col-12 col-md-4 mb-2 mb-md-0">
-          <div class="card shadow-sm">
-            <div id="overview-card" class="card-body"></div>
+    <div
+      class="container-fluid my-3 position-relative d-flex flex-grow-1 overflow-hidden"
+    >
+      <div class="row d-flex flex-grow-1 overflow-hidden">
+        <div
+          id="pulse-container"
+          class="d-flex flex-grow-1 overflow-hidden col-12 col-md-4 mb-2 mb-md-0"
+        >
+          <div class="card shadow-sm d-flex flex-grow-1 overflow-hidden h-100">
+            <div
+              id="overview-card"
+              class="card-body d-flex flex-grow-1 overflow-hidden"
+            ></div>
           </div>
         </div>
-        <div class="col-12 col-md-8">
-          <div class="card shadow-sm d-none" id="detail-card-container">
+        <div class="d-flex flex-grow-1 overflow-hidden col-12 col-md-8">
+          <div
+            class="card shadow-sm d-flex flex-grow-1 overflow-hidden d-none"
+            id="detail-card-container"
+          >
             <div class="card-header d-flex justify-content-between">
               <span id="detail-card-header">...</span>
               <span class="badge" id="detail-card-badge">...</span>
             </div>
             <div id="detail-card" class="card-body">
-              
-
               <div class="row mb-2">
                 <div class="col-md-6">
                   <div class="input-group mb-2 mb-md-0">
-                    <label class="input-group-text" for="detail-card-chart-from">From</label>
-                    <input id="detail-card-chart-from" class="form-control" type="date" disabled />
+                    <label class="input-group-text" for="detail-card-chart-from"
+                      >From</label
+                    >
+                    <input
+                      id="detail-card-chart-from"
+                      class="form-control"
+                      type="date"
+                      disabled
+                    />
 
-                    <label class="input-group-text" for="detail-card-chart-to">To</label>
-                    <input id="detail-card-chart-to" class="form-control" type="date" disabled />
+                    <label class="input-group-text" for="detail-card-chart-to"
+                      >To</label
+                    >
+                    <input
+                      id="detail-card-chart-to"
+                      class="form-control"
+                      type="date"
+                      disabled
+                    />
                   </div>
                 </div>
 
@@ -160,7 +183,7 @@
                 </div>
               </div>
 
-              <div class="row">
+              <div class="row mb-2">
                 <div class="col-md-3 mb-2 mb-md-0">
                   <div class="card">
                     <div class="card-body">
@@ -200,13 +223,15 @@
                 </div>
               </div>
 
-              <div class="text-center mt-5" id="detail-card-spinner">
-                <div class="spinner-border" role="status">
-                  <span class="visually-hidden">Loading...</span>
+              <div class="row position-relative">
+                <div class="text-center mt-5 position-absolute" id="detail-card-spinner">
+                  <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
                 </div>
-              </div>
 
-              <canvas id="detail-card-chart"></canvas>
+                <canvas id="detail-card-chart" class="position-absolute"></canvas>
+              </div>
             </div>
           </div>
         </div>

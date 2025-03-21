@@ -1,5 +1,9 @@
+#pulse-container {
+  height: 100%;
+}
+
 .offcanvas {
-    --bs-offcanvas-width: 75%;
+  --bs-offcanvas-width: 75%;
 }
 
 .healthbar > div {
@@ -24,12 +28,28 @@
   min-height: 2.7rem;
 }
 
+#detail-card {
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
+  #pulse-container {
+    height: unset;
+  }
+
+  #detail-card-container {
+    height: calc(100% - 4em);
+  }
+
+  #detail-card {
+    overflow: auto;
+  }
+
   .pulse-selection {
     max-height: 25vh;
   }
 
   .offcanvas {
-      --bs-offcanvas-width: 100%;
+    --bs-offcanvas-width: 100%;
   }
 }
