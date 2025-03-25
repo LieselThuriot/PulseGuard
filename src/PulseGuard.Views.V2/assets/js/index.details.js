@@ -117,6 +117,13 @@
       console.error("Error getting detail-card-spinner");
     }
 
+    const detailCardChartElement = document.querySelector("#detail-card-chart");
+    if (detailCardChartElement) {
+      detailCardChartElement.classList.add("d-none");
+    } else {
+      console.error("Error getting detail-card-chart");
+    }
+
     const detailCardHeader = document.querySelector("#detail-card-header");
     if (detailCardHeader) {
       detailCardHeader.textContent = "...";
@@ -361,6 +368,13 @@
     } else {
       console.error("Error getting detail-card-spinner");
     }
+
+    const detailCardChartElement = document.querySelector("#detail-card-chart");
+    if (detailCardChartElement) {
+      detailCardChartElement.classList.remove("d-none");
+    } else {
+      console.error("Error getting detail-card-chart");
+    }
   }
 
   /**
@@ -527,6 +541,10 @@
         ],
       },
       options: {
+        // Boolean - whether or not the chart should be responsive and resize when the browser does.
+        responsive: true,
+        // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
+        maintainAspectRatio: false,
         scales: {
           x: {
             type: "time",

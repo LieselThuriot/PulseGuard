@@ -8,13 +8,7 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-bool autoCreate = false;
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddCors(o => o.AddPolicy("GetorPost", x => x.AllowAnyOrigin().WithMethods("GET", "POST").AllowAnyHeader()));
-    autoCreate = true;
-}
+bool autoCreate = !builder.Environment.IsDevelopment();
 
 string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
@@ -58,7 +52,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
-    app.UseCors("GetorPost");
 }
 
 app.UseHttpsRedirection();

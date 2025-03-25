@@ -1,3 +1,11 @@
+.col {
+  min-height: 0;
+}
+
+.min-vh-50 {
+  min-height: 50vh;
+}
+
 #pulse-container {
   height: 100%;
 }
@@ -6,13 +14,13 @@
   --bs-offcanvas-width: 75%;
 }
 
+.healthbar-container {
+  min-height: 2rem;
+}
+
 .healthbar > div {
   width: 0.6em;
   height: 2rem;
-}
-
-.healthbar-md {
-  display: none;
 }
 
 .healthbar-tiny > div {
@@ -37,11 +45,9 @@
     height: unset;
   }
 
-  #detail-card-container {
-    height: calc(100% - 4em);
-  }
-
   #detail-card {
+    /** TODO: This is dirty */
+    height: 48vh;
     overflow: auto;
   }
 
