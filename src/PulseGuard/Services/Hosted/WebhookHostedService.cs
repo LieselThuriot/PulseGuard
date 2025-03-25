@@ -18,8 +18,7 @@ public class WebhookHostedService(WebhookService webhookClient, IOptions<PulseOp
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var intervalTimespan = TimeSpan.FromMinutes(_interval);
-        long margin = intervalTimespan.Ticks / 2;
+        long margin = TimeSpan.FromMinutes(_interval).Ticks / 2;
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -30,16 +29,13 @@ public class WebhookHostedService(WebhookService webhookClient, IOptions<PulseOp
                 next = next.AddMinutes(((now.Minute / _interval) + 1) * _interval).AddTicks(margin);
                 await Task.Delay(next - now, stoppingToken);
 
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(/*stoppingToken*/);
-                cts.CancelAfter(intervalTimespan);
-
                 HttpClient client = _httpClientFactory.CreateClient("Webhooks");
 
-                await foreach (QueueMessage message in _queueClient.ReceiveMessagesAsync(cts.Token))
+                await foreach (QueueMessage message in _queueClient.ReceiveMessagesAsync(stoppingToken))
                 {
                     try
                     {
-                        await Handle(client, message, cts.Token);
+                        await Handle(client, message, stoppingToken);
                     }
                     catch (Exception ex)
                     {
