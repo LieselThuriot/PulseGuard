@@ -27,7 +27,7 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
                 next = next.AddMinutes(((now.Minute / interval) + 1) * interval);
                 await Task.Delay(next - now, stoppingToken);
 
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(/*stoppingToken*/);
                 cts.CancelAfter(maxExecution);
 
                 await CheckPulseAsync(cts.Token);

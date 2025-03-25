@@ -1,4 +1,6 @@
 ﻿using PulseGuard.Models;
+using System;
+using System.Runtime.InteropServices;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -21,31 +23,54 @@ public sealed partial class PulseCheckResult
             Sqid = report.Options.Sqid,
             Group = report.Options.Group,
             Name = report.Options.Name,
-            Items = [ new(report.State, executionTime, elapsedMilliseconds) ]
+            Items = [new(report.State, executionTime, elapsedMilliseconds)]
         };
     }
 
-    public const char Separator = '>';
+    public const char BodySeparator = '>';
+    public const char Separator = ';';
 
     public BinaryData Serialize()
     {
-        string data = string.Join(Separator, string.Join(PulseCheckResultDetail.Separator, Day, Sqid, Group, Name), Items?.Serialize());
+        string data = string.Join(BodySeparator, string.Join(Separator, Day, Sqid, Group, Name), Items?.Serialize());
         return BinaryData.FromString(data);
     }
 
     public static PulseCheckResult Deserialize(BinaryData data)
     {
-        string[] parts = data.ToString().Split(Separator, 2);
-        string[] header = parts[0].Split(PulseCheckResultDetail.Separator, 4);
-        string details = parts[1];
-        return new()
+        var span = data.ToString().AsSpan();
+
+        int splitIdx = span.IndexOf(BodySeparator);
+        var header = span[..splitIdx];
+
+        PulseCheckResult result = [];
+
+        int headerSplitIdx = 0;
+        foreach (Range headerRange in header.Split(Separator))
         {
-            Day = header[0],
-            Sqid = header[1],
-            Group = header[2],
-            Name = header[3],
-            Items = PulseCheckResultDetails.Deserialize(details)
-        };
+            switch (headerSplitIdx)
+            {
+                case 0:
+                    result.Day = new(header[headerRange]);
+                    break;
+                case 1:
+                    result.Sqid = new(header[headerRange]);
+                    break;
+                case 2:
+                    result.Group = new(header[headerRange]);
+                    break;
+                case 3:
+                    result.Name = new(header[headerRange]);
+                    break;
+            }
+
+            headerSplitIdx++;
+        }
+
+        var details = span[(splitIdx + 1)..];
+        result.Items = PulseCheckResultDetails.Deserialize(details);
+
+        return result;
     }
 
     public static (string partition, string row, BinaryData data) GetAppendValue(PulseReport report, long? elapsedMilliseconds)
@@ -73,7 +98,17 @@ public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
 
     public string Serialize() => string.Join(Separator, this.Select(x => x.Serialize()));
 
-    public static PulseCheckResultDetails Deserialize(string details) => [.. details.Split(Separator).Select(PulseCheckResultDetail.Deserialize)];
+    public static PulseCheckResultDetails Deserialize(ReadOnlySpan<char> details)
+    {
+        PulseCheckResultDetails result = [];
+
+        foreach (Range range in details.Split(Separator))
+        {
+            result.Add(PulseCheckResultDetail.Deserialize(details[range]));
+        }
+
+        return result;
+    }
 }
 
 public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset CreationTimestamp, long? ElapsedMilliseconds)
@@ -81,14 +116,15 @@ public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset Cr
     public const char Separator = ';';
 
     public string Serialize() => Serialize(State, CreationTimestamp, ElapsedMilliseconds);
-    
-    public static PulseCheckResultDetail Deserialize(string value)
-    {
-        string[] detail = value.Split(Separator, 3);
 
-        PulseStates state = PulseStatesFastString.FromNumber(detail[0]);
-        var creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(detail[1]));
-        long? elapsedMilliseconds = long.TryParse(detail[2], out long elapsed) ? elapsed : null;
+    public static PulseCheckResultDetail Deserialize(ReadOnlySpan<char> value)
+    {
+        PulseStates state = PulseStatesFastString.FromNumber(value[0]);
+        value = value[2..];
+
+        int splitIdx = value.IndexOf(Separator);
+        DateTimeOffset creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(value[..splitIdx]));
+        long? elapsedMilliseconds = long.TryParse(value[(splitIdx+1)..], out long elapsed) ? elapsed : null;
 
         return new(state, creationTimestamp, elapsedMilliseconds);
     }
