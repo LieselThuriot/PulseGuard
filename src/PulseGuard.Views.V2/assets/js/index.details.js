@@ -457,59 +457,56 @@
    * @returns {Chart} The rendered Chart.js chart instance.
    */
   function renderChart(decimation, timeMap, minTimestamp, maxTimestamp) {
-    const set = [];
-    for (let time = minTimestamp; time <= maxTimestamp; time += 60000) {
-      const item = timeMap.get(time);
-      if (item) {
-        const timestamp = new Date(item.timestamp);
-        timestamp.setSeconds(0, 0);
-
-        set.push({
-          timestamp: timestamp,
-          elapsedMilliseconds: item.elapsedMilliseconds || 0,
-          state: item.state,
-        });
-      } else {
-        const timestamp = new Date(time);
-        timestamp.setSeconds(0, 0);
-
-        set.push({
-          timestamp: timestamp,
-          elapsedMilliseconds: NaN,
-          state: "Unknown",
-        });
-      }
-    }
+    const interval = 60000;
+    const timestampDecimation = decimation * interval;
 
     const buckets = [];
     let currentBucket = null;
-    set.forEach((item) => {
-      const itemTime = item.timestamp;
+
+    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
+      const item = timeMap.get(time);
+      const timestamp = new Date(time);
+      timestamp.setSeconds(0, 0);
+
+      const [elapsedMilliseconds, state] = item
+        ? [item.elapsedMilliseconds, item.state]
+        : [NaN, "Unknown"];
 
       if (
         !currentBucket ||
-        item.state !== currentBucket.state ||
-        itemTime - currentBucket.timestamp >= decimation * 60 * 1000
+        state !== currentBucket.state ||
+        time - currentBucket.timestamp >= timestampDecimation
       ) {
         if (currentBucket) {
           currentBucket.elapsedMilliseconds /= currentBucket.count;
           buckets.push(currentBucket);
+
+          if (state !== currentBucket.state && currentBucket.count > 1) {
+            const lastItem = timeMap.get(time - interval);
+            if (lastItem) {
+              buckets.push({
+                timestamp: new Date(time - interval),
+                state: lastItem.state,
+                elapsedMilliseconds: lastItem.elapsedMilliseconds,
+                count: 1,
+              });
+            }
+          }
         }
+
         currentBucket = {
-          timestamp: itemTime,
-          state: item.state,
-          elapsedMilliseconds: isNaN(item.elapsedMilliseconds)
-            ? NaN
-            : item.elapsedMilliseconds,
+          timestamp: timestamp,
+          state: state,
+          elapsedMilliseconds: elapsedMilliseconds,
           count: 1,
         };
       } else {
-        if (!isNaN(item.elapsedMilliseconds)) {
-          currentBucket.elapsedMilliseconds += item.elapsedMilliseconds;
+        if (!isNaN(elapsedMilliseconds)) {
+          currentBucket.elapsedMilliseconds += elapsedMilliseconds;
         }
         currentBucket.count += 1;
       }
-    });
+    }
 
     if (currentBucket) {
       currentBucket.elapsedMilliseconds /= currentBucket.count;
