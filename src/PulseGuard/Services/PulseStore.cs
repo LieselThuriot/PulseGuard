@@ -14,7 +14,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
-    public async Task StoreAsync(PulseReport report, long? elapsedMilliseconds, CancellationToken token)
+    public async Task StoreAsync(PulseReport report, long elapsedMilliseconds, CancellationToken token)
     {
         _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Name}", report.Options.Name);
 

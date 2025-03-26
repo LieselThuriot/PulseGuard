@@ -130,7 +130,7 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         {
             if (report is not null)
             {
-                long? elapsedMilliseconds = success ? sw.ElapsedMilliseconds : null;
+                long elapsedMilliseconds = success ? sw.ElapsedMilliseconds : check.Options.Timeout;
                 await store.StoreAsync(report, elapsedMilliseconds, token);
             }
         }

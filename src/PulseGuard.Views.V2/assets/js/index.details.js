@@ -24,6 +24,9 @@
   /** @type {string} */
   let currentSqid = null;
 
+  /** @type {AbortController} */
+  let fetchAbortController;
+
   /**
    * Handles changes to the query parameters in the URL.
    * If the "details" query parameter is present, it updates the currentSqid and refreshes the data.
@@ -70,7 +73,16 @@
   function refreshData(sqid) {
     resetDetails();
 
-    fetch(`../api/1.0/pulses/details/${sqid}`)
+    if (fetchAbortController) {
+      fetchAbortController.abort(`Starting new request for ${sqid}.`);
+    }
+
+    fetchAbortController = new AbortController();
+
+    fetch(`../api/1.0/pulses/details/${sqid}`, {
+      method: "get",
+      signal: fetchAbortController.signal,
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Network response was not ok " + response.statusText);
@@ -83,10 +95,17 @@
         handleData(data);
       })
       .catch((error) => {
-        console.error(
-          "There has been a problem with your fetch operation:",
-          error
-        );
+        if (error && error.name === "AbortError") {
+          //console.log("Fetch aborted");
+        } else {
+          console.error(
+            "There has been a problem with your fetch operation:",
+            error
+          );
+        }
+      })
+      .finally(() => {
+        fetchAbortController = null;
       });
   }
 
@@ -627,7 +646,7 @@
    */
   function calculateAverageResponseTime(items) {
     const totalResponseTime = items.reduce(
-      (acc, item) => acc + item.elapsedMilliseconds || 0,
+      (acc, item) => acc + (item.elapsedMilliseconds || 0),
       0
     );
     const averageResponseTime = totalResponseTime / items.length;

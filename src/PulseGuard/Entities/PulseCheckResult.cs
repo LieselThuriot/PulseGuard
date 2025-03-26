@@ -1,6 +1,4 @@
 ﻿using PulseGuard.Models;
-using System;
-using System.Runtime.InteropServices;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -14,7 +12,7 @@ public sealed partial class PulseCheckResult
 
     public const string PartitionKeyFormat = "yyyyMMdd";
 
-    public static PulseCheckResult From(PulseReport report, long? elapsedMilliseconds)
+    public static PulseCheckResult From(PulseReport report, long elapsedMilliseconds)
     {
         var executionTime = DateTimeOffset.UtcNow;
         return new()
