@@ -16,6 +16,33 @@
  * @property {number} elapsedMilliseconds - The response time in milliseconds
  */
 
+/**
+ * Represents a single health check result
+ * @typedef {Object} UptimeResult
+ * @property {number} Healthy
+ * @property {number} Degraded
+ * @property {number} Unhealthy
+ * @property {number} Unknown
+ */
+
+/**
+ * Represents the DOM elements we use
+ * @typedef {Object} DetailDomElements
+ * @property {HTMLElement|null} spinner - The spinner element for loading state.
+ * @property {HTMLElement|null} chart - The chart element displaying data.
+ * @property {HTMLElement|null} header - The header element of the detail card.
+ * @property {HTMLElement|null} healthBar - The health bar element.
+ * @property {HTMLElement|null} healthBarMd - The medium-sized health bar element.
+ * @property {HTMLElement|null} uptime - The element displaying uptime information.
+ * @property {HTMLElement|null} since - The element displaying the "since" timestamp.
+ * @property {HTMLElement|null} averageResponse - The element displaying average response time.
+ * @property {HTMLElement|null} errorRate - The element displaying the error rate.
+ * @property {HTMLElement|null} badge - The badge element.
+ * @property {HTMLElement|null} decimationSelect - The dropdown for chart decimation options.
+ * @property {HTMLElement|null} fromSelect - The dropdown for selecting the start date/time.
+ * @property {HTMLElement|null} toSelect - The dropdown for selecting the end date/time.
+ */
+
 (async function () {
   /** @type {Chart} */
   let detailCardChart = null;
@@ -110,114 +137,64 @@
   }
 
   /**
-   * Resets the details card by destroying the chart, showing the spinner,
-   * and resetting the content of various elements to their default states.
+   * Retrieves DOM elements used in the detail card view.
    *
-   * This function performs the following actions:
-   * - Destroys the `detailCardChart` if it exists and sets it to null.
-   * - Shows the spinner by removing the "d-none" class from the spinner element.
-   * - Resets the text content of the header, uptime, since, response time, and error rate elements to "...".
-   * - Clears the inner HTML of the health bar and health bar (medium) elements.
-   * - Hides the badge by setting its text content to an empty string and adding the "d-none" class.
-   * - Disables the decimation, from, and to select elements.
-   *
-   * Logs an error to the console if any of the elements cannot be found.
+   * @returns {DetailDomElements} An object containing references to various DOM elements used in the detail card view.
    */
-  function resetDetails() {
+  function getDetailCardElements() {
+    return {
+      spinner: document.querySelector("#detail-card-spinner"),
+      chart: document.querySelector("#detail-card-chart"),
+      header: document.querySelector("#detail-card-header"),
+      healthBar: document.querySelector("#detail-card-healthbar"),
+      healthBarMd: document.querySelector("#detail-card-healthbar-md"),
+      uptime: document.querySelector("#detail-card-uptime"),
+      since: document.querySelector("#detail-card-since"),
+      averageResponse: document.querySelector("#detail-card-average-response"),
+      errorRate: document.querySelector("#detail-card-error-rate"),
+      badge: document.querySelector("#detail-card-badge"),
+      decimationSelect: document.querySelector("#detail-card-chart-decimation"),
+      fromSelect: document.querySelector("#detail-card-chart-from"),
+      toSelect: document.querySelector("#detail-card-chart-to"),
+    };
+  }
+
+  /**
+   * Destroys the existing chart instance if it exists.
+   * This function ensures that the `detailCardChart` is properly destroyed
+   * and its reference is set to `null` to free up resources.
+   */
+  function destroyChart() {
     if (detailCardChart) {
       detailCardChart.destroy();
       detailCardChart = null;
     }
+  }
 
-    const detailCardSpinner = document.querySelector("#detail-card-spinner");
-    if (detailCardSpinner) {
-      detailCardSpinner.classList.remove("d-none");
-    } else {
-      console.error("Error getting detail-card-spinner");
-    }
+  /**
+   * Resets the details card by destroying the chart, showing the spinner,
+   * and resetting the content of various elements to their default states.
+   */
+  function resetDetails() {
+    destroyChart();
 
-    const detailCardChartElement = document.querySelector("#detail-card-chart");
-    if (detailCardChartElement) {
-      detailCardChartElement.classList.add("d-none");
-    } else {
-      console.error("Error getting detail-card-chart");
-    }
+    const detailCardElements = getDetailCardElements();
 
-    const detailCardHeader = document.querySelector("#detail-card-header");
-    if (detailCardHeader) {
-      detailCardHeader.textContent = "...";
-    } else {
-      console.error("Error getting detail-card-header");
-    }
-    const detailCardHealthBar = document.querySelector(
-      "#detail-card-healthbar"
-    );
-    if (detailCardHealthBar) {
-      detailCardHealthBar.innerHTML = "";
-    } else {
-      console.error("Error getting detail-card-healthbar");
-    }
-    const detailCardHealthBarMd = document.querySelector(
-      "#detail-card-healthbar-md"
-    );
-    if (detailCardHealthBarMd) {
-      detailCardHealthBarMd.innerHTML = "";
-    } else {
-      console.error("Error getting detail-card-healthbar-md");
-    }
-    const uptimeElement = document.querySelector("#detail-card-uptime");
-    if (uptimeElement) {
-      uptimeElement.textContent = "...";
-    } else {
-      console.error("Error getting detail-card-uptime");
-    }
-    const sinceElement = document.querySelector("#detail-card-since");
-    if (sinceElement) {
-      sinceElement.textContent = "...";
-    } else {
-      console.error("Error getting detail-card-since");
-    }
-    const responseTimeElement = document.querySelector(
-      "#detail-card-average-response"
-    );
-    if (responseTimeElement) {
-      responseTimeElement.textContent = "...";
-    } else {
-      console.error("Error getting detail-card-average-response");
-    }
-    const errorRateElement = document.querySelector("#detail-card-error-rate");
-    if (errorRateElement) {
-      errorRateElement.textContent = "...";
-    } else {
-      console.error("Error getting detail-card-error-rate");
-    }
-    const detailCardBadge = document.querySelector("#detail-card-badge");
-    if (detailCardBadge) {
-      detailCardBadge.textContent = "";
-      detailCardBadge.className = "d-none";
-    } else {
-      console.error("Error getting detail-card-badge");
-    }
-    const decimationSelect = document.querySelector(
-      "#detail-card-chart-decimation"
-    );
-    if (decimationSelect) {
-      decimationSelect.setAttribute("disabled", "");
-    } else {
-      console.error("Error getting detail-card-chart-decimation");
-    }
-    const fromSelect = document.querySelector("#detail-card-chart-from");
-    if (fromSelect) {
-      fromSelect.setAttribute("disabled", "");
-    } else {
-      console.error("Error getting detail-card-chart-from");
-    }
-    const toSelect = document.querySelector("#detail-card-chart-to");
-    if (toSelect) {
-      toSelect.setAttribute("disabled", "");
-    } else {
-      console.error("Error getting detail-card-chart-to");
-    }
+    toggleSpinner(detailCardElements.spinner, true);
+    toggleElementVisibility(detailCardElements.chart, false);
+    resetTextContent(detailCardElements.header, "...");
+    resetTextContent(detailCardElements.uptime, "...");
+    resetTextContent(detailCardElements.since, "...");
+    resetTextContent(detailCardElements.averageResponse, "...");
+    resetTextContent(detailCardElements.errorRate, "...");
+    resetInnerHTML(detailCardElements.healthBar);
+    resetInnerHTML(detailCardElements.healthBarMd);
+    resetBadge(detailCardElements.badge);
+    disableSelectElements([
+      detailCardElements.decimationSelect,
+      detailCardElements.fromSelect,
+      detailCardElements.toSelect,
+    ]);
   }
 
   /**
@@ -225,19 +202,14 @@
    * @param {PulseDetailResultGroup} data - The data to handle.
    */
   function handleData(data) {
-    setDetailsHeader(!!data.group ? data.group + " > " + data.name : data.name);
+    destroyChart();
 
-    if (detailCardChart) {
-      detailCardChart.destroy();
-      detailCardChart = null;
-    }
-    const decimationSelect = document.querySelector(
-      "#detail-card-chart-decimation"
+    const detailCardElements = getDetailCardElements();
+
+    resetTextContent(
+      detailCardElements.header,
+      !!data.group ? `${data.group} > ${data.name}` : data.name
     );
-
-    const fromSelect = document.querySelector("#detail-card-chart-from");
-
-    const toSelect = document.querySelector("#detail-card-chart-to");
 
     const updateChart = function () {
       if (detailCardChart) {
@@ -245,34 +217,17 @@
         detailCardChart = null;
       }
 
-      let filteredData = data.items;
-      const fromDate =
-        fromSelect && fromSelect.value ? new Date(fromSelect.value) : null;
-      const toDate =
-        toSelect && toSelect.value ? new Date(toSelect.value) : null;
-      if (fromDate) {
-        filteredData = filteredData.filter(
-          (item) => new Date(item.timestamp) >= fromDate
-        );
-      }
-      if (toDate) {
-        toDate.setHours(23, 59, 59, 999);
-        filteredData = filteredData.filter(
-          (item) => new Date(item.timestamp) <= toDate
-        );
-      }
+      const filteredData = filterDataByDateRange(
+        data.items,
+        detailCardElements.fromSelect,
+        detailCardElements.toSelect
+      );
 
-      const newDecimation = decimationSelect
-        ? parseInt(decimationSelect.value, 10)
+      const newDecimation = detailCardElements.decimationSelect
+        ? parseInt(detailCardElements.decimationSelect.value, 10)
         : 15;
 
-      const timeMap = new Map();
-      filteredData.forEach((item) => {
-        const itemTime = new Date(item.timestamp);
-        itemTime.setSeconds(0, 0);
-        timeMap.set(itemTime.getTime(), item);
-      });
-
+      const timeMap = createTimeMap(filteredData);
       const minTimestamp = Math.min(...timeMap.keys());
       const maxTimestamp = Math.max(...timeMap.keys());
 
@@ -283,128 +238,286 @@
         maxTimestamp
       );
 
-      const healthBar = createHealthBar(
-        100,
+      updateHealthBars(
+        detailCardElements.healthBar,
+        detailCardElements.healthBarMd,
         timeMap,
         minTimestamp,
         maxTimestamp
       );
-      const detailCardHealthBar = document.querySelector(
-        "#detail-card-healthbar"
-      );
-      if (detailCardHealthBar) {
-        detailCardHealthBar.innerHTML = "";
-        detailCardHealthBar.appendChild(healthBar);
-      } else {
-        console.error("Error getting detail-card-healthbar");
-      }
-      const healthBarMd = createHealthBar(
-        50,
-        timeMap,
-        minTimestamp,
-        maxTimestamp
-      );
-      const detailCardHealthBarMd = document.querySelector(
-        "#detail-card-healthbar-md"
-      );
-      if (detailCardHealthBarMd) {
-        detailCardHealthBarMd.innerHTML = "";
-        detailCardHealthBarMd.appendChild(healthBarMd);
-      } else {
-        console.error("Error getting detail-card-healthbar-md");
-      }
 
       const uptimes = calculateUptimes(filteredData);
-
-      const uptimeElement = document.querySelector("#detail-card-uptime");
-      if (uptimeElement) {
-        uptimeElement.textContent = !isNaN(uptimes.Healthy)
-          ? `${uptimes.Healthy.toFixed(2)}%`
-          : "0.00%";
-      } else {
-        console.error("Error getting detail-card-uptime");
-      }
-
-      const sinceElement = document.querySelector("#detail-card-since");
-      if (sinceElement) {
-        sinceElement.textContent =
-          minTimestamp && !isNaN(minTimestamp)
-            ? new Date(minTimestamp).toLocaleString()
-            : "...";
-      } else {
-        console.error("Error getting detail-card-since");
-      }
-
-      const responseTime = calculateAverageResponseTime(filteredData);
-      const responseTimeElement = document.querySelector(
-        "#detail-card-average-response"
+      updateUptimeAndErrorRate(
+        detailCardElements,
+        uptimes,
+        minTimestamp,
+        filteredData
       );
-      if (responseTimeElement) {
-        responseTimeElement.textContent = !isNaN(responseTime)
-          ? `${responseTime.toFixed(2)}ms`
-          : "...";
-      } else {
-        console.error("Error getting detail-card-average-response");
-      }
-
-      const errorRateElement = document.querySelector(
-        "#detail-card-error-rate"
-      );
-      if (errorRateElement) {
-        errorRateElement.textContent = !isNaN(uptimes.Unhealthy)
-          ? `${uptimes.Unhealthy.toFixed(2)}%`
-          : "0.00%";
-      } else {
-        console.error("Error getting detail-card-error-rate");
-      }
     };
 
-    if (decimationSelect) {
-      if (renderChartListener) {
-        decimationSelect.removeEventListener("change", renderChartListener);
-        fromSelect.removeEventListener("change", renderChartListener);
-        toSelect.removeEventListener("change", renderChartListener);
+    setupChartListeners(detailCardElements, updateChart, renderChartListener);
+
+    updateChart();
+
+    setBadge(detailCardElements.badge, data.items);
+
+    toggleSpinner(detailCardElements.spinner, false);
+    toggleElementVisibility(detailCardElements.chart, true);
+  }
+
+  /**
+   * Toggles the visibility of a spinner element by adding or removing the "d-none" class.
+   *
+   * @param {HTMLElement} spinner - The spinner element to show or hide.
+   * @param {boolean} show - A boolean indicating whether to show (true) or hide (false) the spinner.
+   */
+  function toggleSpinner(spinner, show) {
+    if (spinner) {
+      spinner.classList.toggle("d-none", !show);
+    } else {
+      console.error("Error getting spinner element");
+    }
+  }
+
+  /**
+   * Toggles the visibility of a given HTML element by adding or removing the "d-none" class.
+   *
+   * @param {HTMLElement} element - The HTML element whose visibility is to be toggled.
+   * @param {boolean} visible - A boolean indicating whether the element should be visible (true) or hidden (false).
+   */
+  function toggleElementVisibility(element, visible) {
+    if (element) {
+      element.classList.toggle("d-none", !visible);
+    } else {
+      console.error("Error getting element");
+    }
+  }
+
+  /**
+   * Resets the text content of a given DOM element.
+   *
+   * @param {HTMLElement} element - The DOM element whose text content will be reset.
+   * @param {string} text - The new text content to set for the element.
+   */
+  function resetTextContent(element, text) {
+    if (element) {
+      element.textContent = text;
+    } else {
+      console.error("Error resetting text content");
+    }
+  }
+
+  /**
+   * Resets the innerHTML of the specified DOM element to an empty string.
+   *
+   * @param {HTMLElement} element - The DOM element whose innerHTML will be reset.
+   *                                If null or undefined, an error will be logged to the console.
+   */
+  function resetInnerHTML(element) {
+    if (element) {
+      element.innerHTML = "";
+    } else {
+      console.error("Error resetting inner HTML");
+    }
+  }
+
+  /**
+   * Resets the content and visibility of a badge element.
+   *
+   * @param {HTMLElement} badge - The badge element to reset. If null or undefined, an error is logged to the console.
+   */
+  function resetBadge(badge) {
+    if (badge) {
+      badge.textContent = "";
+      badge.className = "d-none";
+    } else {
+      console.error("Error resetting badge");
+    }
+  }
+
+  /**
+   * Disables a list of <select> elements by setting the "disabled" attribute.
+   *
+   * @param {HTMLSelectElement[]} selectElements - An array of <select> elements to disable.
+   */
+  function disableSelectElements(selectElements) {
+    selectElements.forEach((select) => {
+      if (select) {
+        select.setAttribute("disabled", "");
+      } else {
+        console.error("Error disabling select element");
+      }
+    });
+  }
+
+  /**
+   * Filters an array of items based on a date range specified by two HTML select elements.
+   *
+   * @param {Array<Object>} items - The array of items to filter. Each item is expected to have a `timestamp` property.
+   * @param {HTMLSelectElement} fromSelect - The HTML select element representing the start date of the range.
+   *                                         Its `value` should be a valid date string.
+   * @param {HTMLSelectElement} toSelect - The HTML select element representing the end date of the range.
+   *                                       Its `value` should be a valid date string.
+   * @returns {Array<Object>} The filtered array of items that fall within the specified date range.
+   */
+  function filterDataByDateRange(items, fromSelect, toSelect) {
+    let filteredData = items;
+    const fromDate =
+      fromSelect && fromSelect.value ? new Date(fromSelect.value) : null;
+    const toDate = toSelect && toSelect.value ? new Date(toSelect.value) : null;
+
+    if (fromDate) {
+      filteredData = filteredData.filter(
+        (item) => new Date(item.timestamp) >= fromDate
+      );
+    }
+    if (toDate) {
+      toDate.setHours(23, 59, 59, 999);
+      filteredData = filteredData.filter(
+        (item) => new Date(item.timestamp) <= toDate
+      );
+    }
+
+    return filteredData;
+  }
+
+  /**
+   * Creates a Map where the keys are timestamps (rounded to the nearest minute)
+   * and the values are the corresponding items from the input array.
+   *
+   * @param {Array<Object>} items - An array of objects, each containing a `timestamp` property.
+   * @returns {Map<number, Object>} A Map with keys as rounded timestamps (in milliseconds since epoch)
+   * and values as the corresponding items.
+   */
+  function createTimeMap(items) {
+    const timeMap = new Map();
+    items.forEach((item) => {
+      const itemTime = new Date(item.timestamp);
+      itemTime.setSeconds(0, 0);
+      timeMap.set(itemTime.getTime(), item);
+    });
+    return timeMap;
+  }
+
+  /**
+   * Updates the content of the health bars by clearing their current content
+   * and appending newly created health bar elements based on the provided parameters.
+   *
+   * @param {HTMLElement} healthBar - The HTML element representing the primary health bar.
+   * @param {HTMLElement} healthBarMd - The HTML element representing the medium health bar.
+   * @param {Object} timeMap - A mapping of time-related data used to create the health bars.
+   * @param {number} minTimestamp - The minimum timestamp value for the health bar range.
+   * @param {number} maxTimestamp - The maximum timestamp value for the health bar range.
+   */
+  function updateHealthBars(
+    healthBar,
+    healthBarMd,
+    timeMap,
+    minTimestamp,
+    maxTimestamp
+  ) {
+    if (healthBar) {
+      healthBar.innerHTML = "";
+      healthBar.appendChild(
+        createHealthBar(100, timeMap, minTimestamp, maxTimestamp)
+      );
+    } else {
+      console.error("Error updating health bar");
+    }
+
+    if (healthBarMd) {
+      healthBarMd.innerHTML = "";
+      healthBarMd.appendChild(
+        createHealthBar(50, timeMap, minTimestamp, maxTimestamp)
+      );
+    } else {
+      console.error("Error updating medium health bar");
+    }
+  }
+
+  /**
+   * Updates the UI elements with uptime, error rate, average response time, and the earliest timestamp.
+   *
+   * @param {Object} elements - The DOM elements to update.
+   * @param {HTMLElement} elements.uptime - The element to display the healthy uptime percentage.
+   * @param {HTMLElement} elements.since - The element to display the earliest timestamp.
+   * @param {HTMLElement} elements.averageResponse - The element to display the average response time.
+   * @param {HTMLElement} elements.errorRate - The element to display the unhealthy uptime percentage (error rate).
+   * @param {Object} uptimes - An object containing uptime percentages.
+   * @param {number} uptimes.Healthy - The percentage of healthy uptime.
+   * @param {number} uptimes.Unhealthy - The percentage of unhealthy uptime (error rate).
+   * @param {number} minTimestamp - The earliest timestamp in milliseconds.
+   * @param {Array<Object>} filteredData - The filtered data used to calculate the average response time.
+   */
+  function updateUptimeAndErrorRate(
+    elements,
+    uptimes,
+    minTimestamp,
+    filteredData
+  ) {
+    resetTextContent(
+      elements.uptime,
+      !isNaN(uptimes.Healthy) ? `${uptimes.Healthy.toFixed(2)}%` : "0.00%"
+    );
+
+    resetTextContent(
+      elements.since,
+      minTimestamp && !isNaN(minTimestamp)
+        ? new Date(minTimestamp).toLocaleString()
+        : "..."
+    );
+
+    const responseTime = calculateAverageResponseTime(filteredData);
+    resetTextContent(
+      elements.averageResponse,
+      !isNaN(responseTime) ? `${responseTime.toFixed(2)}ms` : "..."
+    );
+
+    resetTextContent(
+      elements.errorRate,
+      !isNaN(uptimes.Unhealthy) ? `${uptimes.Unhealthy.toFixed(2)}%` : "0.00%"
+    );
+  }
+
+  /**
+   * Sets up event listeners for chart-related elements and updates the chart when changes occur.
+   *
+   * @param {Object} elements - An object containing the DOM elements to attach listeners to.
+   * @param {HTMLElement} elements.decimationSelect - The dropdown element for decimation selection.
+   * @param {HTMLElement} elements.fromSelect - The dropdown element for the "from" selection.
+   * @param {HTMLElement} elements.toSelect - The dropdown element for the "to" selection.
+   * @param {Function} updateChart - The callback function to update the chart when an event occurs.
+   * @param {Function|null} listener - The existing event listener to be removed, if any.
+   */
+  function setupChartListeners(elements, updateChart, listener) {
+    if (elements.decimationSelect) {
+      if (listener) {
+        elements.decimationSelect.removeEventListener("change", listener);
+        elements.fromSelect.removeEventListener("change", listener);
+        elements.toSelect.removeEventListener("change", listener);
       }
 
       renderChartListener = updateChart;
 
-      decimationSelect.addEventListener("change", renderChartListener);
-      fromSelect.addEventListener("change", renderChartListener);
-      toSelect.addEventListener("change", renderChartListener);
+      elements.decimationSelect.addEventListener("change", renderChartListener);
+      elements.fromSelect.addEventListener("change", renderChartListener);
+      elements.toSelect.addEventListener("change", renderChartListener);
 
-      decimationSelect.removeAttribute("disabled");
-      fromSelect.removeAttribute("disabled");
-      toSelect.removeAttribute("disabled");
-    }
-
-    updateChart();
-
-    setBadge(data.items);
-
-    const detailCardSpinner = document.querySelector("#detail-card-spinner");
-    if (detailCardSpinner) {
-      detailCardSpinner.classList.add("d-none");
-    } else {
-      console.error("Error getting detail-card-spinner");
-    }
-
-    const detailCardChartElement = document.querySelector("#detail-card-chart");
-    if (detailCardChartElement) {
-      detailCardChartElement.classList.remove("d-none");
-    } else {
-      console.error("Error getting detail-card-chart");
+      elements.decimationSelect.removeAttribute("disabled");
+      elements.fromSelect.removeAttribute("disabled");
+      elements.toSelect.removeAttribute("disabled");
     }
   }
 
   /**
    * Updates the badge element with the state of the last item in the provided list.
    *
+   * @param {HTMLElement|null} detailCardBadge - The badge element to update.
    * @param {Array<PulseDetailResult>} items - An array of items where each item contains a `state` property.
-   * @throws Will log an error if the badge element with the ID `detail-card-badge` is not found.
    */
-  function setBadge(items) {
+  function setBadge(detailCardBadge, items) {
     const lastItem = items[items.length - 1];
-    const detailCardBadge = document.querySelector("#detail-card-badge");
+
     if (detailCardBadge) {
       detailCardBadge.textContent = lastItem.state;
       detailCardBadge.className = `badge text-bg-${getBadgeColor(
@@ -431,19 +544,6 @@
         return "danger";
       default:
         return "secondary";
-    }
-  }
-
-  /**
-   * Sets the header of the details section.
-   * @param {string} value - The value to set as the header.
-   */
-  function setDetailsHeader(value) {
-    const detailCardHeader = document.querySelector("#detail-card-header");
-    if (detailCardHeader) {
-      detailCardHeader.textContent = value;
-    } else {
-      console.error("Error getting detail-card-header");
     }
   }
 
@@ -593,12 +693,12 @@
               pinch: {
                 enabled: true,
               },
-              pan: {
-                enabled: true,
-                mode: "x",
-                modifierKey: "ctrl",
-              },
               mode: "x",
+            },
+            pan: {
+              enabled: true,
+              mode: "x",
+              modifierKey: "ctrl",
             },
             limits: {
               x: {
@@ -632,15 +732,6 @@
         return "rgba(201, 203, 207, 1)";
     }
   }
-
-  /**
-   * Represents a single health check result
-   * @typedef {Object} UptimeResult
-   * @property {number} Healthy
-   * @property {number} Degraded
-   * @property {number} Unhealthy
-   * @property {number} Unknown
-   */
 
   /**
    * Calculates the uptime and error rate percentages based on the given items.
