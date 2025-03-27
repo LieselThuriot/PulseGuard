@@ -585,12 +585,18 @@
             zoom: {
               wheel: {
                 enabled: true,
+                modifierKey: "ctrl",
               },
               drag: {
                 enabled: true,
               },
               pinch: {
                 enabled: true,
+              },
+              pan: {
+                enabled: true,
+                mode: "x",
+                modifierKey: "ctrl",
               },
               mode: "x",
             },
