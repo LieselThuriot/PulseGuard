@@ -23,8 +23,8 @@ public static class Routes
         app.MapPulses();
         app.MapBadges();
 
-        PulseGuard.Views.Routes.MapViews(app);
-        PulseGuard.Views.V2.Routes.MapViews(app.MapGroup("v-next"));
+        Views.Routes.MapViews(app.MapGroup("").WithTags("Views"));
+        Views.V2.Routes.MapViews(app.MapGroup("v-next").WithTags("V-Next"));
 
         app.MapHealth();
     }

@@ -7,7 +7,6 @@ public sealed record PulseDetailGroupItem(string Id, string Name, string? Contin
 public sealed record PulseDetailItem(PulseStates State, string? Message, DateTimeOffset? From, DateTimeOffset? To, string? Error);
 public sealed record PulseOverviewStateGroup(string Group, IAsyncEnumerable<PulseOverviewStateGroupItem> Items);
 public sealed record PulseOverviewStateGroupItem(string Id, string Name, IAsyncEnumerable<PulseStateItem> Items);
-public sealed record PulseOverviewStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 public sealed record PulseStateGroupItem(string Id, string Name, IAsyncEnumerable<PulseStateItem> Items);
 public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 

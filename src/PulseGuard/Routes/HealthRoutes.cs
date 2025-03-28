@@ -13,7 +13,7 @@ public static class HealthRoutes
 {
     public static void MapHealth(this WebApplication app)
     {
-        var healthGroup = app.MapGroup("/health");
+        var healthGroup = app.MapGroup("/health").WithTags("Health");
 
         healthGroup.MapGet("", async (IMemoryCache cache, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {

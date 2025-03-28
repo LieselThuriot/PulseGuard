@@ -7,8 +7,8 @@ namespace PulseGuard.Models;
 [JsonSourceGenerationOptions(
     JsonSerializerDefaults.Web,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    UseStringEnumConverter = true,
-    PropertyNameCaseInsensitive = true)]
+    PropertyNameCaseInsensitive = true,
+    UseStringEnumConverter = true)]
 [JsonSerializable(typeof(IAsyncEnumerable<PulseOverviewGroup>))]
 [JsonSerializable(typeof(Dictionary<string, PulseStates>))]
 [JsonSerializable(typeof(PulseOverviewStateGroup))]
@@ -20,6 +20,11 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(PulseDetailResultGroup))]
 [JsonSerializable(typeof(PulseDetailResult))]
+[JsonSerializable(typeof(Entities.Pulse))]
+[JsonSerializable(typeof(Entities.PulseCheckResult))]
+[JsonSerializable(typeof(Entities.PulseConfiguration))]
+[JsonSerializable(typeof(Entities.UniqueIdentifiers))]
+[JsonSerializable(typeof(Entities.Webhook))]
 public partial class PulseSerializerContext : JsonSerializerContext;
 
 internal static class SerializerExtensions

@@ -10,7 +10,9 @@ public static class BadgeRoutes
 
     public static void MapBadges(this WebApplication app)
     {
-        app.MapGet("/1.0/badges/{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
+        var group = app.MapGroup("/1.0/badges").WithTags("Badges");
+
+        group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
         {
             Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
                                                .SelectFields(x => new { x.Group, x.Name, x.State, x.CreationTimestamp })

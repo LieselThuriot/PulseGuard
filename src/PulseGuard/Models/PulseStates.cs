@@ -1,11 +1,27 @@
-﻿namespace PulseGuard.Models;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
+namespace PulseGuard.Models;
+
+[JsonConverter(typeof(PulseStatesJsonConverter))]
 public enum PulseStates
 {
     Unknown,
     Healthy,
     Degraded,
     Unhealthy
+}
+
+public sealed class PulseStatesJsonConverter : JsonConverter<PulseStates>
+{
+    public override PulseStates Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => reader.TokenType switch
+    {
+        JsonTokenType.String => PulseStatesFastString.FromString(reader.GetString()!),
+        JsonTokenType.Number => PulseStatesFastString.FromNumber(reader.GetInt32()),
+        _ => throw new JsonException()
+    };
+
+    public override void Write(Utf8JsonWriter writer, PulseStates value, JsonSerializerOptions options) => writer.WriteStringValue(value.Stringify());
 }
 
 internal static class PulseStatesFastString

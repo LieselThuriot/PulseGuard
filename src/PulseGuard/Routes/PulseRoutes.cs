@@ -1,5 +1,5 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
@@ -13,7 +13,7 @@ public static class PulseRoutes
 {
     public static void MapPulses(this WebApplication app)
     {
-        RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses");
+        RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses").WithTags("Pulses");
 
         group.MapGet("", (PulseContext context, [FromQuery] uint? minutes = null, [FromQuery(Name = "f")] string? groupFilter = null) =>
         {
@@ -37,7 +37,7 @@ public static class PulseRoutes
             return GetPulses(query);
         });
 
-        group.MapGet("group/{group}/states", async (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
+        group.MapGet("group/{group}/states", async Task<Results<Ok<PulseOverviewStateGroup>, NotFound>> (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
             List<string> relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
 
@@ -48,14 +48,14 @@ public static class PulseRoutes
 
             if (groups.Count is 0)
             {
-                return Results.NotFound();
+                return TypedResults.NotFound();
             }
 
             var entries = groups.Select(g => new PulseOverviewStateGroupItem(g.Key, g.First().Name, g.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp)).ToAsyncEnumerable()));
-            return Results.Ok(new PulseOverviewStateGroup(group, entries.ToAsyncEnumerable()));
+            return TypedResults.Ok(new PulseOverviewStateGroup(group, entries.ToAsyncEnumerable()));
         });
 
-        group.MapGet("application/{id}", async (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
+        group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>>  (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
         {
             var query = context.Pulses.Where(x => x.Sqid == id);
 
@@ -70,7 +70,7 @@ public static class PulseRoutes
 
             if (items.Count is 0)
             {
-                return Results.NotFound();
+                return TypedResults.NotFound();
             }
 
             var entries = items.Select(x => new PulseDetailItem(x.State, x.Message, x.CreationTimestamp, x.LastUpdatedTimestamp, x.Error));
@@ -81,10 +81,10 @@ public static class PulseRoutes
                                      ? null
                                      : pulse.ContinuationToken;
 
-            return Results.Ok(new PulseDetailGroupItem(pulse.Sqid, pulse.Name, continuationToken, entries.ToAsyncEnumerable()));
+            return TypedResults.Ok(new PulseDetailGroupItem(pulse.Sqid, pulse.Name, continuationToken, entries.ToAsyncEnumerable()));
         });
 
-        group.MapGet("application/{id}/states", async (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
+        group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
             var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
 
@@ -92,14 +92,14 @@ public static class PulseRoutes
 
             if (items.Count is 0)
             {
-                return Results.NotFound();
+                return TypedResults.NotFound();
             }
 
             var entries = items.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp));
 
             Pulse pulse = items[^1];
 
-            return Results.Ok(new PulseStateGroupItem(pulse.Sqid, pulse.Name, entries.ToAsyncEnumerable()));
+            return TypedResults.Ok(new PulseStateGroupItem(pulse.Sqid, pulse.Name, entries.ToAsyncEnumerable()));
         });
 
         group.MapGet("application/{id}/state", async (string id, PulseContext context, CancellationToken token) =>
@@ -121,7 +121,7 @@ public static class PulseRoutes
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
         });
 
-        group.MapGet("details/{id}", async (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
+        group.MapGet("details/{id}", async Task<Results<Ok<PulseDetailResultGroup>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
             var query = context.PulseCheckResults.Where(x => x.Sqid == id);
 
@@ -134,14 +134,14 @@ public static class PulseRoutes
 
             if (results.Count is 0)
             {
-                return Results.NotFound();
+                return TypedResults.NotFound();
             }
 
             string group = results[0].Group;
             string name = results[0].Name;
             IEnumerable<PulseDetailResult> items = results.SelectMany(x => x.Items).Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
 
-            return Results.Ok(new PulseDetailResultGroup(group, name, items));
+            return TypedResults.Ok(new PulseDetailResultGroup(group, name, items));
         });
     }
 

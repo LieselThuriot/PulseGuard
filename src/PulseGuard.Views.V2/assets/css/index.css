@@ -42,17 +42,17 @@
 
 @media (max-width: 768px) {
   #pulse-container {
-    height: unset;
+    height: 25vh;
+  }
+
+  #pulse-detail-container {
+    max-height: calc(75vh - 7rem);
+    height: 100%;
   }
 
   #detail-card {
-    /** TODO: This is dirty */
-    height: 48vh;
+    height: 48vh; /** TODO: This is dirty */
     overflow: auto;
-  }
-
-  .pulse-selection {
-    max-height: 25vh;
   }
 
   .offcanvas {

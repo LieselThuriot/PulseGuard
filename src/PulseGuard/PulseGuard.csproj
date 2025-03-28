@@ -1,17 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-	  <UserSecretsId>ca07f3be-343d-4cb5-8a4d-8cd5574d739b</UserSecretsId>
-	  <TargetFramework>net9.0</TargetFramework>
+		<UserSecretsId>ca07f3be-343d-4cb5-8a4d-8cd5574d739b</UserSecretsId>
+		<TargetFramework>net9.0</TargetFramework>
+		<TableStorageSerializerContext>PulseGuard.Models.PulseSerializerContext</TableStorageSerializerContext>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" />
+		<PackageReference Include="Azure.Storage.Blobs" />
 		<PackageReference Include="Azure.Storage.Queues" />
+		<PackageReference Include="FastExpressionCompiler" />
 		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Microsoft.Extensions.Http.Polly" />
 		<PackageReference Include="Newtonsoft.Json" />
+		<PackageReference Include="Polly" />
 		<PackageReference Include="Scalar.AspNetCore" />
 		<PackageReference Include="SecureWebhooks.SystemTextJson" />
 		<PackageReference Include="Sqids" />
@@ -22,7 +26,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\PulseGuard.Views.V2\PulseGuard.Views.V2.csproj" />
-	  <ProjectReference Include="..\PulseGuard.Views\PulseGuard.Views.csproj" />
+		<ProjectReference Include="..\PulseGuard.Views.V2\PulseGuard.Views.V2.csproj" />
+		<ProjectReference Include="..\PulseGuard.Views\PulseGuard.Views.csproj" />
 	</ItemGroup>
 </Project>

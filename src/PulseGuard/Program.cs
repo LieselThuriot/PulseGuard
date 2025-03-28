@@ -24,7 +24,6 @@ builder.Services.ConfigureHttpJsonOptions(x =>
 {
     x.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     x.SerializerOptions.TypeInfoResolverChain.Insert(0, PulseSerializerContext.Default);
-    x.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.ConfigurePulseHttpClients();
