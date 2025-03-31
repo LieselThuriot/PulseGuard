@@ -47,7 +47,7 @@ if (!string.IsNullOrEmpty(pathBase))
     app.UseRouting();
 }
 
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();

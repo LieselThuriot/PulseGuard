@@ -23,8 +23,8 @@ public static class Routes
         app.MapPulses();
         app.MapBadges();
 
-        Views.Routes.MapViews(app.MapGroup("").WithTags("Views"));
-        Views.V2.Routes.MapViews(app.MapGroup("v-next").WithTags("V-Next"));
+        Views.Routes.MapViews(app.MapGroup("").WithTags("Views").ExcludeFromDescription());
+        Views.V2.Routes.MapViews(app.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
 
         app.MapHealth();
     }
