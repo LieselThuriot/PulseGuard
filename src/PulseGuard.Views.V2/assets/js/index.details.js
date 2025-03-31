@@ -93,6 +93,62 @@
   handleQueryParamChange();
 
   /**
+   * Retrieves DOM elements used in the detail card view.
+   *
+   * @returns {DetailDomElements} An object containing references to various DOM elements used in the detail card view.
+   */
+  function getDetailCardElements() {
+    return {
+      spinner: document.querySelector("#detail-card-spinner"),
+      chart: document.querySelector("#detail-card-chart"),
+      header: document.querySelector("#detail-card-header"),
+      healthBar: document.querySelector("#detail-card-healthbar"),
+      healthBarMd: document.querySelector("#detail-card-healthbar-md"),
+      uptime: document.querySelector("#detail-card-uptime"),
+      since: document.querySelector("#detail-card-since"),
+      averageResponse: document.querySelector("#detail-card-average-response"),
+      errorRate: document.querySelector("#detail-card-error-rate"),
+      badge: document.querySelector("#detail-card-badge"),
+      decimationSelect: document.querySelector("#detail-card-chart-decimation"),
+      fromSelect: document.querySelector("#detail-card-chart-from"),
+      toSelect: document.querySelector("#detail-card-chart-to"),
+    };
+  }
+  
+  [
+    { id: "detail-card-filter-1", days: 1 },
+    { id: "detail-card-filter-7", days: 7 },
+    { id: "detail-card-filter-14", days: 14 },
+    { id: "detail-card-filter-30", days: 30 },
+    { id: "detail-card-filter-90", days: 90 },
+    { id: "detail-card-filter-all", days: null },
+  ].forEach(({ id, days }) => {
+    const button = document.getElementById(id);
+    if (!button) {
+      console.error(`Error getting button with id ${id}`);
+      return;
+    }
+
+    button.addEventListener("click", () => {
+      const { fromSelect, toSelect } = getDetailCardElements();
+
+      if (days) {
+        const toDate = new Date();
+        const fromDate = new Date(toDate);
+        fromDate.setDate(toDate.getDate() - days);
+
+        if (fromSelect) fromSelect.value = fromDate.toISOString().split("T")[0];
+        if (toSelect) toSelect.value = toDate.toISOString().split("T")[0];
+      } else {
+        if (fromSelect) fromSelect.value = "";
+        if (toSelect) toSelect.value = "";
+      }
+
+      renderChartListener?.();
+    });
+  });
+
+  /**
    * Fetches pulse details data from the API and handles the response.
    * @param {string} sqid - The unique identifier for the pulse details.
    * @returns {Promise<void>} A promise that resolves when the data has been fetched and handled.
@@ -134,29 +190,6 @@
       .finally(() => {
         fetchAbortController = null;
       });
-  }
-
-  /**
-   * Retrieves DOM elements used in the detail card view.
-   *
-   * @returns {DetailDomElements} An object containing references to various DOM elements used in the detail card view.
-   */
-  function getDetailCardElements() {
-    return {
-      spinner: document.querySelector("#detail-card-spinner"),
-      chart: document.querySelector("#detail-card-chart"),
-      header: document.querySelector("#detail-card-header"),
-      healthBar: document.querySelector("#detail-card-healthbar"),
-      healthBarMd: document.querySelector("#detail-card-healthbar-md"),
-      uptime: document.querySelector("#detail-card-uptime"),
-      since: document.querySelector("#detail-card-since"),
-      averageResponse: document.querySelector("#detail-card-average-response"),
-      errorRate: document.querySelector("#detail-card-error-rate"),
-      badge: document.querySelector("#detail-card-badge"),
-      decimationSelect: document.querySelector("#detail-card-chart-decimation"),
-      fromSelect: document.querySelector("#detail-card-chart-from"),
-      toSelect: document.querySelector("#detail-card-chart-to"),
-    };
   }
 
   /**

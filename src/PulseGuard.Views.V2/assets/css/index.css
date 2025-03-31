@@ -40,6 +40,11 @@
   overflow: hidden;
 }
 
+#detail-card-filter {
+  background-color: var(--bs-tertiary-bg);
+  border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
 @media (max-width: 768px) {
   #pulse-container {
     height: 25vh;
