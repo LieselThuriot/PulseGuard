@@ -101,7 +101,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             {
                 await _context.UniqueIdentifiers.AddEntityAsync(new()
                 {
-                    IdentifierType = nameof(PulseConfiguration),
+                    IdentifierType = UniqueIdentifiers.PartitionPulseConfiguration,
                     Id = id
                 }, token);
 

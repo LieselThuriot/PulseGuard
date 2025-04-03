@@ -22,7 +22,7 @@
       </a>
 
       <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="theme-picker"
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="theme-picker"
           data-bs-toggle="dropdown"></button>
         <ul class="dropdown-menu dropdown-menu-end mode-switch">
           <li><a class="dropdown-item" id="dark" href="#">🌘 Dark</a></li>
@@ -44,15 +44,23 @@
         <div class="card shadow-sm d-flex flex-grow-1 overflow-hidden d-none" id="detail-card-container">
           <div class="card-header d-flex justify-content-between">
             <span id="detail-card-header">...</span>
-            <span class="badge" id="detail-card-badge">...</span>
+            <div>
+              <span class="badge" id="detail-card-badge">...</span>
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#detail-card-open-log" aria-controls="detail-card-open-log"
+                id="detail-card-open-log-action" disabled>
+                📄
+              </button>
+            </div>
           </div>
           <div id="detail-card" class="card-body d-flex flex-column">
             <div class="row mb-2">
-              <div class="col-md-6">
+              <div class="col-12 col-md-6">
                 <div class="input-group mb-2 mb-md-0">
                   <input id="detail-card-chart-from" class="form-control" type="date" disabled />
-                  
-                  <button id="detail-card-filter" class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+
+                  <button id="detail-card-filter" class="btn btn-outline-secondary" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
                     ➔
                   </button>
 
@@ -62,7 +70,9 @@
                     <li><a id="detail-card-filter-14" class="dropdown-item" href="#">Last 2 weeks</a></li>
                     <li><a id="detail-card-filter-30" class="dropdown-item" href="#">Last 30 days</a></li>
                     <li><a id="detail-card-filter-90" class="dropdown-item" href="#">Last 90 days</a></li>
-                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <hr class="dropdown-divider">
+                    </li>
                     <li><a id="detail-card-filter-all" class="dropdown-item" href="#">All Pulses</a></li>
                   </ul>
 
@@ -71,54 +81,33 @@
                 </div>
               </div>
 
-              <div class="col-md-6">
-                <div class="d-flex flex-row">
-                  <div class="input-group">
-                    <label class="input-group-text" for="decimation-select">Decimation</label>
-                    <select class="form-select disabled" id="detail-card-chart-decimation" disabled>
-                      <option value="1">1 minute</option>
-                      <option value="5">5 minutes</option>
-                      <option value="15">15 minutes</option>
-                      <option value="60">1 hour</option>
-                      <option value="180" selected>3 hours</option>
-                      <option value="300">5 hours</option>
-                      <option value="720">12 hours</option>
-                      <option value="1440">1 day</option>
-                    </select>
-                  </div>
+              <div class="col-6 col-md-3">
+                <div class="input-group mb-2 mb-md-0">
+                  <label class="input-group-text" for="detail-card-chart-decimation">M</label>
+                  <select class="form-select disabled" id="detail-card-chart-decimation" disabled>
+                    <option value="5">5 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="180" selected>3 hours</option>
+                    <option value="300">5 hours</option>
+                    <option value="720">12 hours</option>
+                    <option value="1440">1 day</option>
+                    <option value="1">None</option>
+                  </select>
+                </div>
+              </div>
 
-                  <button class="btn btn-primary ms-2" type="button" data-bs-toggle="offcanvas"
-                    data-bs-target="#detail-card-open-log" aria-controls="detail-card-open-log"
-                    id="detail-card-open-log-action" disabled>
-                    Logs
-                  </button>
-
-                  <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="detail-card-open-log"
-                    aria-labelledby="detail-card-open-log-label">
-                    <div class="offcanvas-header">
-                      <h5 class="offcanvas-title" id="detail-card-open-log-label">
-                        Log Entries
-                      </h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                    </div>
-                    <div class="offcanvas-body">
-                      <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                          <thead>
-                            <tr>
-                              <th scope="col">Start Time</th>
-                              <th scope="col">End Time</th>
-                              <th scope="col">Duration</th>
-                              <th scope="col">State</th>
-                              <th scope="col">Message</th>
-                              <th scope="col"></th>
-                            </tr>
-                          </thead>
-                          <tbody id="detail-card-open-log-entries"></tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+              <div class="col-6 col-md-3">
+                <div class="input-group mb-2 mb-md-0">
+                  <label class="input-group-text" for="detail-card-chart-percentile">%</label>
+                  <select class="form-select disabled" id="detail-card-chart-percentile" disabled>
+                    <option value="50">P50</option>
+                    <option value="75">P75</option>
+                    <option value="90">P90</option>
+                    <option value="95">P95</option>
+                    <option value="99">P99</option>
+                    <option value="0" selected>None</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -189,6 +178,33 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="detail-card-open-log"
+    aria-labelledby="detail-card-open-log-label">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="detail-card-open-log-label">
+        Log Entries
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Start Time</th>
+              <th scope="col">End Time</th>
+              <th scope="col">Duration</th>
+              <th scope="col">State</th>
+              <th scope="col">Message</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="detail-card-open-log-entries"></tbody>
+        </table>
       </div>
     </div>
   </div>

@@ -45,6 +45,12 @@
   border: var(--bs-border-width) solid var(--bs-border-color);
 }
 
+#detail-card-open-log-action {
+  --bs-btn-padding-y: 0.25rem;
+  --bs-btn-padding-x: 0.5rem;
+  --bs-btn-font-size: 0.75rem;
+}
+
 @media (max-width: 768px) {
   #pulse-container {
     height: 25vh;

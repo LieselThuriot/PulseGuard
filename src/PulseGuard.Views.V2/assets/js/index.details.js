@@ -39,6 +39,7 @@
  * @property {HTMLElement|null} errorRate - The element displaying the error rate.
  * @property {HTMLElement|null} badge - The badge element.
  * @property {HTMLElement|null} decimationSelect - The dropdown for chart decimation options.
+ * @property {HTMLElement|null} percentileSelect - The dropdown for chart percentile options.
  * @property {HTMLElement|null} fromSelect - The dropdown for selecting the start date/time.
  * @property {HTMLElement|null} toSelect - The dropdown for selecting the end date/time.
  */
@@ -110,6 +111,7 @@
       errorRate: document.querySelector("#detail-card-error-rate"),
       badge: document.querySelector("#detail-card-badge"),
       decimationSelect: document.querySelector("#detail-card-chart-decimation"),
+      percentileSelect: document.querySelector("#detail-card-chart-percentile"),
       fromSelect: document.querySelector("#detail-card-chart-from"),
       toSelect: document.querySelector("#detail-card-chart-to"),
     };
@@ -225,6 +227,7 @@
     resetBadge(detailCardElements.badge);
     disableSelectElements([
       detailCardElements.decimationSelect,
+      detailCardElements.percentileSelect,
       detailCardElements.fromSelect,
       detailCardElements.toSelect,
     ]);
@@ -260,12 +263,17 @@
         ? parseInt(detailCardElements.decimationSelect.value, 10)
         : 15;
 
+      const newPercentile = detailCardElements.percentileSelect
+      ? parseInt(detailCardElements.percentileSelect.value, 10)
+      : 0;
+
       const timeMap = createTimeMap(filteredData);
       const minTimestamp = Math.min(...timeMap.keys());
       const maxTimestamp = Math.max(...timeMap.keys());
 
       detailCardChart = renderChart(
         newDecimation,
+        newPercentile,
         timeMap,
         minTimestamp,
         maxTimestamp
@@ -288,7 +296,7 @@
       );
     };
 
-    setupChartListeners(detailCardElements, updateChart, renderChartListener);
+    setupChartListeners(detailCardElements, updateChart);
 
     updateChart();
 
@@ -517,29 +525,35 @@
    *
    * @param {Object} elements - An object containing the DOM elements to attach listeners to.
    * @param {HTMLElement} elements.decimationSelect - The dropdown element for decimation selection.
+   * @param {HTMLElement} elements.percentileSelect - The dropdown element for percentile selection.
    * @param {HTMLElement} elements.fromSelect - The dropdown element for the "from" selection.
    * @param {HTMLElement} elements.toSelect - The dropdown element for the "to" selection.
    * @param {Function} updateChart - The callback function to update the chart when an event occurs.
-   * @param {Function|null} listener - The existing event listener to be removed, if any.
    */
-  function setupChartListeners(elements, updateChart, listener) {
-    if (elements.decimationSelect) {
-      if (listener) {
-        elements.decimationSelect.removeEventListener("change", listener);
-        elements.fromSelect.removeEventListener("change", listener);
-        elements.toSelect.removeEventListener("change", listener);
-      }
+  function setupChartListeners(elements, updateChart) {
+    const selectElements = [
+      elements.decimationSelect,
+      elements.percentileSelect,
+      elements.fromSelect,
+      elements.toSelect,
+    ];
 
-      renderChartListener = updateChart;
-
-      elements.decimationSelect.addEventListener("change", renderChartListener);
-      elements.fromSelect.addEventListener("change", renderChartListener);
-      elements.toSelect.addEventListener("change", renderChartListener);
-
-      elements.decimationSelect.removeAttribute("disabled");
-      elements.fromSelect.removeAttribute("disabled");
-      elements.toSelect.removeAttribute("disabled");
+    if (renderChartListener) {
+      selectElements.forEach((select) => {
+        if (select) {
+          select.removeEventListener("change", renderChartListener);
+        }
+      });
     }
+
+    renderChartListener = updateChart;
+
+    selectElements.forEach((select) => {
+      if (select) {
+        select.addEventListener("change", renderChartListener);
+        select.removeAttribute("disabled");
+      }
+    });
   }
 
   /**
@@ -584,44 +598,43 @@
    * Renders a chart displaying response times over a specified time range.
    *
    * @param {number} decimation - The decimation factor to reduce the number of data points.
+   * @param {number} percentile - The percentile to apply to the number of data points, being P90, P95 and P99.
    * @param {Map<number, {timestamp: number, elapsedMilliseconds: number, state: string}>} timeMap - A map of timestamps to data points.
    * @param {number} minTimestamp - The minimum timestamp for the chart.
    * @param {number} maxTimestamp - The maximum timestamp for the chart.
    * @returns {Chart} The rendered Chart.js chart instance.
    */
-  function renderChart(decimation, timeMap, minTimestamp, maxTimestamp) {
+  function renderChart(decimation, percentile, timeMap, minTimestamp, maxTimestamp) {
     const interval = 60000;
     const timestampDecimation = decimation * interval;
-
     const buckets = [];
     let currentBucket = null;
 
     for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
       const item = timeMap.get(time);
       const timestamp = new Date(time);
-      timestamp.setSeconds(0, 0);
 
       const [elapsedMilliseconds, state] = item
         ? [item.elapsedMilliseconds, item.state]
         : [NaN, "Unknown"];
 
       if (
+        decimation === 1 ||
         !currentBucket ||
-        state !== currentBucket.state ||
+        (!percentile && state !== currentBucket.state) ||
         time - currentBucket.timestamp >= timestampDecimation
       ) {
         if (currentBucket) {
-          currentBucket.elapsedMilliseconds /= currentBucket.count;
+          currentBucket.elapsedMilliseconds = calculatePercentile(currentBucket.items, percentile);
           buckets.push(currentBucket);
 
-          if (state !== currentBucket.state && currentBucket.count > 1) {
+          if (decimation > 1 && state !== currentBucket.state && currentBucket.count > 1) {
             const lastItem = timeMap.get(time - interval);
             if (lastItem) {
               buckets.push({
                 timestamp: new Date(time - interval),
                 state: lastItem.state,
-                elapsedMilliseconds: lastItem.elapsedMilliseconds,
-                count: 1,
+                items: [lastItem.elapsedMilliseconds]
               });
             }
           }
@@ -630,19 +643,15 @@
         currentBucket = {
           timestamp: timestamp,
           state: state,
-          elapsedMilliseconds: elapsedMilliseconds,
-          count: 1,
+          items: [elapsedMilliseconds]
         };
       } else {
-        if (!isNaN(elapsedMilliseconds)) {
-          currentBucket.elapsedMilliseconds += elapsedMilliseconds;
-        }
-        currentBucket.count += 1;
+        currentBucket.items.push(elapsedMilliseconds);
       }
     }
 
     if (currentBucket) {
-      currentBucket.elapsedMilliseconds /= currentBucket.count;
+      currentBucket.elapsedMilliseconds = calculatePercentile(currentBucket.items, percentile);
       buckets.push(currentBucket);
     }
 
@@ -690,9 +699,7 @@
         ],
       },
       options: {
-        // Boolean - whether or not the chart should be responsive and resize when the browser does.
         responsive: true,
-        // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
         maintainAspectRatio: false,
         scales: {
           x: {
@@ -743,6 +750,26 @@
         },
       },
     });
+  }
+
+  /**
+   * Calculates the Xth percentile (PX) of an array of timings.
+   *
+   * @param {Array<number>} values - An array of timing values.
+   * @param {number} percentile - The PX value to calculate.
+   * @returns {number} The PX value from the sorted array of latencies.
+   */
+  function calculatePercentile(values, percentile) {
+    if (values.length === 1) {
+      return values[0];
+    }
+
+    if (!percentile) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    const index = Math.ceil((percentile / 100) * values.length) - 1;
+    return values.sort((a, b) => a - b)[index];
   }
 
   /**
