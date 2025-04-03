@@ -15,7 +15,7 @@ function setTheme(mode) {
     mode = localStorage.getItem("bs-theme") || "auto";
   }
 
-  let icon = "🤖";
+  let icon = "bi-circle-half";
 
   if (mode === "auto") {
     localStorage.removeItem("bs-theme");
@@ -24,7 +24,7 @@ function setTheme(mode) {
       : "dark";
   } else {
     localStorage.setItem("bs-theme", mode);
-    icon = mode === "dark" ? "🌘" : "☀️";
+    icon = mode === "dark" ? "bi-moon-stars-fill" : "bi-brightness-high-fill";
   }
 
   if (mode !== "light") {
@@ -32,7 +32,7 @@ function setTheme(mode) {
   }
 
   document.documentElement.setAttribute("data-bs-theme", mode);
-  document.getElementById("theme-picker").textContent = icon;
+  document.getElementById("theme-picker-icon").className = 'bi ' + icon;
 }
 
 setTheme();

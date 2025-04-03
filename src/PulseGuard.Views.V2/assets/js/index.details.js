@@ -116,7 +116,7 @@
       toSelect: document.querySelector("#detail-card-chart-to"),
     };
   }
-  
+
   [
     { id: "detail-card-filter-1", days: 1 },
     { id: "detail-card-filter-7", days: 7 },
@@ -137,7 +137,7 @@
       if (days) {
         const toDate = new Date();
         const fromDate = new Date(toDate);
-        fromDate.setDate(toDate.getDate() - days);
+        fromDate.setDate(toDate.getDate() - (days - 1));
 
         if (fromSelect) fromSelect.value = fromDate.toISOString().split("T")[0];
         if (toSelect) toSelect.value = toDate.toISOString().split("T")[0];
@@ -264,8 +264,8 @@
         : 15;
 
       const newPercentile = detailCardElements.percentileSelect
-      ? parseInt(detailCardElements.percentileSelect.value, 10)
-      : 0;
+        ? parseInt(detailCardElements.percentileSelect.value, 10)
+        : 0;
 
       const timeMap = createTimeMap(filteredData);
       const minTimestamp = Math.min(...timeMap.keys());
@@ -604,12 +604,19 @@
    * @param {number} maxTimestamp - The maximum timestamp for the chart.
    * @returns {Chart} The rendered Chart.js chart instance.
    */
-  function renderChart(decimation, percentile, timeMap, minTimestamp, maxTimestamp) {
+  function renderChart(
+    decimation,
+    percentile,
+    timeMap,
+    minTimestamp,
+    maxTimestamp
+  ) {
     const interval = 60000;
     const timestampDecimation = decimation * interval;
     const buckets = [];
     let currentBucket = null;
 
+    const healthStates = ["Healthy", "Degraded", "Unhealthy"];
     for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
       const item = timeMap.get(time);
       const timestamp = new Date(time);
@@ -625,16 +632,23 @@
         time - currentBucket.timestamp >= timestampDecimation
       ) {
         if (currentBucket) {
-          currentBucket.elapsedMilliseconds = calculatePercentile(currentBucket.items, percentile);
+          currentBucket.elapsedMilliseconds = calculatePercentile(
+            currentBucket.items,
+            percentile
+          );
           buckets.push(currentBucket);
 
-          if (decimation > 1 && state !== currentBucket.state && currentBucket.count > 1) {
+          if (
+            decimation > 1 &&
+            state !== currentBucket.state &&
+            currentBucket.count > 1
+          ) {
             const lastItem = timeMap.get(time - interval);
             if (lastItem) {
               buckets.push({
                 timestamp: new Date(time - interval),
                 state: lastItem.state,
-                items: [lastItem.elapsedMilliseconds]
+                items: [lastItem.elapsedMilliseconds],
               });
             }
           }
@@ -643,20 +657,32 @@
         currentBucket = {
           timestamp: timestamp,
           state: state,
-          items: [elapsedMilliseconds]
+          items: [elapsedMilliseconds],
         };
       } else {
         currentBucket.items.push(elapsedMilliseconds);
+        
+        const worstStateIndex = Math.max(
+          healthStates.indexOf(state),
+          healthStates.indexOf(currentBucket.state)
+        );
+
+        if (worstStateIndex !== -1) {
+          currentBucket.state = healthStates[worstStateIndex];
+        }
       }
     }
 
     if (currentBucket) {
-      currentBucket.elapsedMilliseconds = calculatePercentile(currentBucket.items, percentile);
+      currentBucket.elapsedMilliseconds = calculatePercentile(
+        currentBucket.items,
+        percentile
+      );
       buckets.push(currentBucket);
     }
 
-    const skipped = (ctx, value) =>
-      ctx.p0.skip || ctx.p1.skip ? value : undefined;
+    // const skipped = (ctx, value) =>
+    //   ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
     const healthColor = (ctx) =>
       getStateColor(buckets[ctx.p1DataIndex].state, false);
@@ -689,9 +715,9 @@
               getStateColor(x.state, true)
             ),
             segment: {
-              borderDash: (ctx) => skipped(ctx, [6, 6]),
+              //borderDash: (ctx) => skipped(ctx, [6, 6]),
               borderColor: (ctx) =>
-                skipped(ctx, getStateColor("Unknown", false)) ||
+                //skipped(ctx, getStateColor("Unknown", false)) ||
                 healthColor(ctx),
             },
             spanGaps: true,
@@ -767,9 +793,15 @@
     if (!percentile) {
       return values.reduce((sum, value) => sum + value, 0) / values.length;
     }
+    
+    values.sort((a, b) => a - b);
 
-    const index = Math.ceil((percentile / 100) * values.length) - 1;
-    return values.sort((a, b) => a - b)[index];
+    if (percentile === 100) {
+      return values[values.length - 1];
+    }
+
+    const index = Math.max(0, Math.ceil((percentile / 100) * values.length) - 1);
+    return values[index];
   }
 
   /**
@@ -856,17 +888,17 @@
       state: "Unknown",
     }));
 
+    const healthStates = ["Healthy", "Degraded", "Unhealthy"];
     timeMap.forEach((pulse, time) => {
       buckets.forEach((bucket) => {
         if (time >= bucket.start.getTime() && time < bucket.end.getTime()) {
-          const states = ["Healthy", "Degraded", "Unhealthy"];
           const worstStateIndex = Math.max(
-            states.indexOf(pulse.state),
-            states.indexOf(bucket.state)
+            healthStates.indexOf(pulse.state),
+            healthStates.indexOf(bucket.state)
           );
 
           if (worstStateIndex !== -1) {
-            bucket.state = states[worstStateIndex];
+            bucket.state = healthStates[worstStateIndex];
           }
         }
       });

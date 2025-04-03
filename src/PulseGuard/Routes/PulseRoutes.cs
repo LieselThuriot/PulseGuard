@@ -127,7 +127,7 @@ public static class PulseRoutes
 
             if (days.HasValue)
             {
-                query = query.ExistsIn(x => x.Day, PulseCheckResult.GetPartitions());
+                query = query.ExistsIn(x => x.Day, PulseCheckResult.GetPartitions(days.GetValueOrDefault()));
             }
 
             var results = await query.OrderBy(x => x.Day).ToListAsync(token);

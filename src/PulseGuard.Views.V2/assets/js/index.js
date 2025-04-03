@@ -167,8 +167,36 @@
       textSpan.setAttribute("title", text);
       new bootstrap.Tooltip(textSpan);
 
-      a.appendChild(textSpan);
+      const icon = document.createElement("i");
+      icon.className = "bi bi-activity me-2";
 
+      const getLastState = (item) => {
+        if ("group" in item) {
+          const states = new Set(
+            item.items.map((entry) => getLastState(entry))
+          );
+
+          if (states.size === 1) {
+            return Array.from(states)[0];
+          }
+
+          return "Degraded";
+        }
+
+        return item.items[item.items.length - 1]?.state;
+      };
+
+      const lastState = getLastState(item);
+      if (lastState === "Healthy") {
+        icon.classList.add("text-success");
+      } else if (lastState === "Degraded") {
+        icon.classList.add("text-warning");
+      } else if (lastState === "Unhealthy") {
+        icon.classList.add("text-danger");
+      }
+
+      a.appendChild(icon);
+      a.appendChild(textSpan);
       a.appendChild(createHealthBar(item));
 
       list.appendChild(a);
@@ -185,12 +213,11 @@
         "healthbar-tiny d-flex flex-row border rounded p-1 gap-1 bg-body-secondary m-auto";
       const totalHours = 12;
       const bucketSize = totalHours / 10;
+      const now = Date.now() + 60000;
       const buckets = Array.from({ length: 10 }, (_, i) => ({
-        start: new Date(
-          Date.now() - (totalHours - i * bucketSize) * 60 * 60 * 1000
-        ),
+        start: new Date(now - (totalHours - i * bucketSize) * 60 * 60 * 1000),
         end: new Date(
-          Date.now() - (totalHours - (i + 1) * bucketSize) * 60 * 60 * 1000
+          now - (totalHours - (i + 1) * bucketSize) * 60 * 60 * 1000
         ),
         state: "Unknown",
       }));
@@ -200,19 +227,20 @@
           ? item.items.flatMap((groupItem) => groupItem.items)
           : item.items;
 
+      const healthStates = ["Healthy", "Degraded", "Unhealthy"];
+
       pulses.forEach((pulse) => {
         const from = new Date(pulse.from);
         const to = new Date(pulse.to);
         buckets.forEach((bucket) => {
-          if (from < bucket.end && to > bucket.start) {
-            const states = ["Healthy", "Degraded", "Unhealthy"];
+          if (from <= bucket.end && to >= bucket.start) {
             const worstStateIndex = Math.max(
-              states.indexOf(pulse.state),
-              states.indexOf(bucket.state)
+              healthStates.indexOf(pulse.state),
+              healthStates.indexOf(bucket.state)
             );
 
             if (worstStateIndex !== -1) {
-              bucket.state = states[worstStateIndex];
+              bucket.state = healthStates[worstStateIndex];
             }
           }
         });
