@@ -570,7 +570,7 @@
 
     if (detailCardBadge) {
       detailCardBadge.textContent = lastItem.state;
-      detailCardBadge.className = `badge text-bg-${getBadgeColor(
+      detailCardBadge.className = `badge my-auto mx-2 text-bg-${getBadgeColor(
         lastItem.state
       )}`;
     } else {
