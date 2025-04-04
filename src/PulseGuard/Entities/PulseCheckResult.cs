@@ -75,8 +75,8 @@ public sealed partial class PulseCheckResult
 
     public static (string partition, string row, BinaryData data) GetAppendValue(PulseReport report, long? elapsedMilliseconds)
     {
-        long executionTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, executionTime, elapsedMilliseconds);
+        var executionTime = DateTimeOffset.UtcNow;
+        string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, executionTime.ToUnixTimeSeconds(), elapsedMilliseconds);
         var data = BinaryData.FromString(result);
 
         return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
