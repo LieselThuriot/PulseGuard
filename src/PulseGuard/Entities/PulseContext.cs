@@ -19,4 +19,5 @@ public sealed partial class PulseContext
     public TableSet<Pulse> RecentPulses { get; }
 
     public AppendBlobSet<PulseCheckResult> PulseCheckResults { get; }
+    public BlobSet<ArchivedPulseCheckResult> ArchivedPulseCheckResults { get; }
 }

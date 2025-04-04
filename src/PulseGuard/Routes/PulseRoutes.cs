@@ -121,25 +121,16 @@ public static class PulseRoutes
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
         });
 
-        group.MapGet("details/{id}", async Task<Results<Ok<PulseDetailResultGroup>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
+        group.MapGet("details/{id}", async Task<Results<Ok<PulseDetailResultGroup>, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
-            var query = context.PulseCheckResults.Where(x => x.Sqid == id);
-
-            if (days.HasValue)
-            {
-                query = query.ExistsIn(x => x.Day, PulseCheckResult.GetPartitions(days.GetValueOrDefault()));
-            }
-
-            var results = await query.OrderBy(x => x.Day).ToListAsync(token);
-
-            if (results.Count is 0)
-            {
-                return TypedResults.NotFound();
-            }
+            var archivedItems = context.ArchivedPulseCheckResults.Where(x => x.Sqid == id).ToListAsync(token);
+            var results = await context.PulseCheckResults.Where(x => x.Sqid == id).ExistsIn(x => x.Day, PulseCheckResult.GetPartitions(1)).ToListAsync(token);
 
             string group = results[0].Group;
             string name = results[0].Name;
-            IEnumerable<PulseDetailResult> items = results.SelectMany(x => x.Items).Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
+
+            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items))
+                               .Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
 
             return TypedResults.Ok(new PulseDetailResultGroup(group, name, items));
         });

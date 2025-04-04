@@ -3,6 +3,14 @@ using TableStorage;
 
 namespace PulseGuard.Entities;
 
+[TableSet(PartitionKey = "Year", RowKey = "Sqid", SupportBlobs = true)]
+public sealed partial class ArchivedPulseCheckResult
+{
+    public partial string Group { get; set; }
+    public partial string Name { get; set; }
+    public partial PulseCheckResultDetails Items { get; set; }
+}
+
 [TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true)]
 public sealed partial class PulseCheckResult
 {
@@ -126,7 +134,7 @@ public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset Cr
 
         int splitIdx = value.IndexOf(Separator);
         DateTimeOffset creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(value[..splitIdx]));
-        long? elapsedMilliseconds = long.TryParse(value[(splitIdx+1)..], out long elapsed) ? elapsed : null;
+        long? elapsedMilliseconds = long.TryParse(value[(splitIdx + 1)..], out long elapsed) ? elapsed : null;
 
         return new(state, creationTimestamp, elapsedMilliseconds);
     }

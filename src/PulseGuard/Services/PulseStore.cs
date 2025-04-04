@@ -82,10 +82,36 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         DateTimeOffset now = DateTimeOffset.UtcNow;
         DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
 
-        Task deleteRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
-        Task deleteResults = _context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions()).BatchDeleteAsync(token);
+        Task cleanRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
+        Task cleanResults = CleanUpPulseChecks(token);//_context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions()).BatchDeleteAsync(token);
 
-        return Task.WhenAll(deleteRecent, deleteResults);
+        return Task.WhenAll(cleanRecent, cleanResults);
+    }
+
+    private async Task CleanUpPulseChecks(CancellationToken token)
+    {
+        await foreach (PulseCheckResult pulse in _context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions(1)).WithCancellation(token))
+        {
+            string year = pulse.Day[..4];
+            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", pulse.Sqid, pulse.Day, year);
+
+            ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Sqid == pulse.Sqid && x.Year == year)
+                                                                                        .FirstOrDefaultAsync(token);
+
+            archive ??= new()
+            {
+                Year = year,
+                Sqid = pulse.Sqid,
+                Items = []
+            };
+
+            archive.Group = pulse.Group;
+            archive.Name = pulse.Name;
+            archive.Items.AddRange(pulse.Items);
+
+            await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, token);
+            await _context.PulseCheckResults.DeleteEntityAsync(pulse, token);
+        }
     }
 
     private async Task GenerateSqid(PulseConfiguration configuration, CancellationToken token)
