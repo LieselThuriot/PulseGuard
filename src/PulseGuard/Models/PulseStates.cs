@@ -35,12 +35,12 @@ internal static class PulseStatesFastString
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
 
-    public static PulseStates FromString(string state) => state switch
+    public static PulseStates FromString(string state) => state?.ToLowerInvariant() switch
     {
-        nameof(PulseStates.Unknown) => PulseStates.Unknown,
-        nameof(PulseStates.Healthy) => PulseStates.Healthy,
-        nameof(PulseStates.Degraded) => PulseStates.Degraded,
-        nameof(PulseStates.Unhealthy) => PulseStates.Unhealthy,
+        "unknown" => PulseStates.Unknown,
+        "healthy" => PulseStates.Healthy,
+        "degraded" => PulseStates.Degraded,
+        "unhealthy" => PulseStates.Unhealthy,
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
 
