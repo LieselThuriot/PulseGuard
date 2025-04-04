@@ -153,13 +153,7 @@
 
       const textSpan = document.createElement("span");
       textSpan.textContent = text;
-      textSpan.className = "flex-grow-1 d-inline-block text-truncate";
-
-      if (!!indentGroup) {
-        textSpan.classList.add("mx-4");
-      } else {
-        textSpan.classList.add("me-4");
-      }
+      textSpan.className = "flex-grow-1 d-inline-block text-truncate me-4";
 
       textSpan.setAttribute("data-bs-toggle", "tooltip");
       textSpan.setAttribute("data-bs-placement", "right");
@@ -193,6 +187,10 @@
         icon.classList.add("text-warning");
       } else if (lastState === "Unhealthy") {
         icon.classList.add("text-danger");
+      }
+
+      if (!!indentGroup) {
+        icon.classList.add("ms-4");
       }
 
       a.appendChild(icon);
