@@ -3,17 +3,11 @@ using TableStorage;
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Year", RowKey = "Sqid", SupportBlobs = true)]
-public sealed partial class ArchivedPulseCheckResult
-{
-    public partial string Group { get; set; }
-    public partial string Name { get; set; }
-    public partial PulseCheckResultDetails Items { get; set; }
-}
-
 [TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true)]
 public sealed partial class PulseCheckResult
 {
+    public partial string Day { get; set; }
+    public partial string Sqid { get; set; }
     public partial string Group { get; set; }
     public partial string Name { get; set; }
     public partial PulseCheckResultDetails Items { get; set; }
@@ -29,7 +23,7 @@ public sealed partial class PulseCheckResult
             Sqid = report.Options.Sqid,
             Group = report.Options.Group,
             Name = report.Options.Name,
-            Items = [new(report.State, executionTime, elapsedMilliseconds)]
+            Items = [new(report.State, executionTime.ToUnixTimeSeconds(), elapsedMilliseconds)]
         };
     }
 
@@ -81,14 +75,14 @@ public sealed partial class PulseCheckResult
 
     public static (string partition, string row, BinaryData data) GetAppendValue(PulseReport report, long? elapsedMilliseconds)
     {
-        var executionTime = DateTimeOffset.UtcNow;
+        long executionTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, executionTime, elapsedMilliseconds);
         var data = BinaryData.FromString(result);
 
         return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
 
-    public static IEnumerable<string> GetPartitions(int days = PulseContext.RecentDays)
+    public static IEnumerable<string> GetPartitions(int days)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -121,7 +115,7 @@ public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
     }
 }
 
-public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset CreationTimestamp, long? ElapsedMilliseconds)
+public sealed record PulseCheckResultDetail(PulseStates State, long CreationTimestamp, long? ElapsedMilliseconds)
 {
     public const char Separator = ';';
 
@@ -133,14 +127,14 @@ public sealed record PulseCheckResultDetail(PulseStates State, DateTimeOffset Cr
         value = value[2..];
 
         int splitIdx = value.IndexOf(Separator);
-        DateTimeOffset creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(value[..splitIdx]));
+        long creationTimestamp = long.Parse(value[..splitIdx]);
         long? elapsedMilliseconds = long.TryParse(value[(splitIdx + 1)..], out long elapsed) ? elapsed : null;
 
         return new(state, creationTimestamp, elapsedMilliseconds);
     }
 
-    public static string Serialize(PulseStates state, DateTimeOffset executionTime, long? elapsedMilliseconds)
+    public static string Serialize(PulseStates state, long executionTime, long? elapsedMilliseconds)
     {
-        return string.Join(Separator, state.Numberify(), executionTime.ToUnixTimeSeconds(), elapsedMilliseconds);
+        return string.Join(Separator, state.Numberify(), executionTime, elapsedMilliseconds);
     }
 }

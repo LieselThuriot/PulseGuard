@@ -6,6 +6,8 @@ namespace PulseGuard.Entities;
 [TableSet(PartitionKey = "Sqid", RowKey = "ContinuationToken")]
 public sealed partial class Pulse
 {
+    public partial string Sqid { set; get; }
+    public partial string ContinuationToken { set; get; }
     public partial string Group { get; set; }
     public partial string Name { get; set; }
     public partial string Message { get; set; }

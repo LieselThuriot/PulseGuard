@@ -12,7 +12,7 @@
  * Represents a single health check result
  * @typedef {Object} PulseDetailResult
  * @property {string} state - The status of the health check (e.g., "Healthy", "Degraded", "Unhealthy")
- * @property {string} timestamp - ISO 8601 formatted timestamp with timezone information
+ * @property {number} timestamp - unix time in seconds
  * @property {number} elapsedMilliseconds - The response time in milliseconds
  */
 
@@ -408,14 +408,17 @@
     const toDate = toSelect && toSelect.value ? new Date(toSelect.value) : null;
 
     if (fromDate) {
+      const fromTimestamp = Math.floor(fromDate.getTime() / 1000);
       filteredData = filteredData.filter(
-        (item) => new Date(item.timestamp) >= fromDate
+        (item) => item.timestamp >= fromTimestamp
       );
     }
     if (toDate) {
       toDate.setHours(23, 59, 59, 999);
+      const toTimestamp = Math.floor(toDate.getTime() / 1000);
+
       filteredData = filteredData.filter(
-        (item) => new Date(item.timestamp) <= toDate
+        (item) => item.timestamp <= toTimestamp
       );
     }
 
@@ -433,7 +436,7 @@
   function createTimeMap(items) {
     const timeMap = new Map();
     items.forEach((item) => {
-      const itemTime = new Date(item.timestamp);
+      const itemTime = new Date(item.timestamp * 1000);
       itemTime.setSeconds(0, 0);
       timeMap.set(itemTime.getTime(), item);
     });

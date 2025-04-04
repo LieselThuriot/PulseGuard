@@ -11,4 +11,4 @@ public sealed record PulseStateGroupItem(string Id, string Name, IAsyncEnumerabl
 public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 
 public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerable<PulseDetailResult> Items);
-public sealed record PulseDetailResult(PulseStates State, DateTimeOffset Timestamp, long? ElapsedMilliseconds);
+public sealed record PulseDetailResult(PulseStates State, long Timestamp, long? ElapsedMilliseconds);

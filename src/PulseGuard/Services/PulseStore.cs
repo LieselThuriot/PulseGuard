@@ -62,7 +62,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         try
         {
-            (string partition, string row, BinaryData data)  = PulseCheckResult.GetAppendValue(report, elapsedMilliseconds);
+            (string partition, string row, BinaryData data) = PulseCheckResult.GetAppendValue(report, elapsedMilliseconds);
             await _context.PulseCheckResults.AppendAsync(partition, row, data.ToStream(), token);
         }
         catch (Exception e)
@@ -83,7 +83,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
 
         Task cleanRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
-        Task cleanResults = CleanUpPulseChecks(token);//_context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions()).BatchDeleteAsync(token);
+        Task cleanResults = CleanUpPulseChecks(token);
 
         return Task.WhenAll(cleanRecent, cleanResults);
     }
@@ -93,15 +93,17 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         await foreach (PulseCheckResult pulse in _context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions(1)).WithCancellation(token))
         {
             string year = pulse.Day[..4];
-            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", pulse.Sqid, pulse.Day, year);
+            string sqid = pulse.Sqid;
 
-            ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Sqid == pulse.Sqid && x.Year == year)
+            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+
+            ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Year == year && x.Sqid == sqid)
                                                                                         .FirstOrDefaultAsync(token);
 
             archive ??= new()
             {
                 Year = year,
-                Sqid = pulse.Sqid,
+                Sqid = sqid,
                 Items = []
             };
 
@@ -109,8 +111,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             archive.Name = pulse.Name;
             archive.Items.AddRange(pulse.Items);
 
-            await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, token);
-            await _context.PulseCheckResults.DeleteEntityAsync(pulse, token);
+            await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, CancellationToken.None);
+            await _context.PulseCheckResults.DeleteEntityAsync(pulse, CancellationToken.None);
         }
     }
 

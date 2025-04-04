@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
+using System.Diagnostics;
 using System.Net.Mime;
 using TableStorage;
 using TableStorage.Linq;
@@ -124,12 +125,19 @@ public static class PulseRoutes
         group.MapGet("details/{id}", async Task<Results<Ok<PulseDetailResultGroup>, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
             var archivedItems = context.ArchivedPulseCheckResults.Where(x => x.Sqid == id).ToListAsync(token);
-            var results = await context.PulseCheckResults.Where(x => x.Sqid == id).ExistsIn(x => x.Day, PulseCheckResult.GetPartitions(1)).ToListAsync(token);
 
-            string group = results[0].Group;
-            string name = results[0].Name;
+            string day = PulseCheckResult.GetPartitions(1).First();
+            var results = await context.PulseCheckResults.Where(x => x.Day == day && x.Sqid == id).FirstAsync(token);
 
-            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items))
+            if (results is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            string group = results.Group;
+            string name = results.Name;
+
+            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.Items)
                                .Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
 
             return TypedResults.Ok(new PulseDetailResultGroup(group, name, items));
