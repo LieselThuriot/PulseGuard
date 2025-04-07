@@ -619,7 +619,7 @@
     const buckets = [];
     let currentBucket = null;
 
-    const healthStates = ["Healthy", "Degraded", "Unhealthy"];
+    const healthStates = ["Healthy", "Degraded", "Unhealthy", "Unknown"];
     for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
       const item = timeMap.get(time);
       const timestamp = new Date(time);
@@ -631,20 +631,19 @@
       if (
         decimation === 1 ||
         !currentBucket ||
-        (!percentile && state !== currentBucket.state) ||
+        ((!percentile ||
+          [state, currentBucket.state].indexOf("Unknown") >= 0) &&
+          state !== currentBucket.state) ||
         time - currentBucket.timestamp >= timestampDecimation
       ) {
         if (currentBucket) {
-          currentBucket.elapsedMilliseconds = calculatePercentile(
-            currentBucket.items,
-            percentile
-          );
           buckets.push(currentBucket);
 
           if (
-            decimation > 1 &&
+            (decimation > 1 ||
+              [state, currentBucket.state].indexOf("Unknown") >= 0) &&
             state !== currentBucket.state &&
-            currentBucket.count > 1
+            currentBucket.items.length > 1
           ) {
             const lastItem = timeMap.get(time - interval);
             if (lastItem) {
@@ -664,7 +663,7 @@
         };
       } else {
         currentBucket.items.push(elapsedMilliseconds);
-        
+
         const worstStateIndex = Math.max(
           healthStates.indexOf(state),
           healthStates.indexOf(currentBucket.state)
@@ -677,15 +676,11 @@
     }
 
     if (currentBucket) {
-      currentBucket.elapsedMilliseconds = calculatePercentile(
-        currentBucket.items,
-        percentile
-      );
       buckets.push(currentBucket);
     }
 
-    // const skipped = (ctx, value) =>
-    //   ctx.p0.skip || ctx.p1.skip ? value : undefined;
+    const skipped = (ctx, value) =>
+      ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
     const healthColor = (ctx) =>
       getStateColor(buckets[ctx.p1DataIndex].state, false);
@@ -709,7 +704,7 @@
         datasets: [
           {
             label: "Response Time (ms)",
-            data: buckets.map((x) => x.elapsedMilliseconds),
+            data: buckets.map((x) => calculatePercentile(x.items, percentile)),
             borderColor: "rgba(75, 192, 192, 1)",
             backgroundColor: "rgba(75, 192, 192, 0.2)",
             fill: false,
@@ -718,9 +713,9 @@
               getStateColor(x.state, true)
             ),
             segment: {
-              //borderDash: (ctx) => skipped(ctx, [6, 6]),
+              borderDash: (ctx) => skipped(ctx, [6, 6]),
               borderColor: (ctx) =>
-                //skipped(ctx, getStateColor("Unknown", false)) ||
+                skipped(ctx, getStateColor("Unknown", false)) ||
                 healthColor(ctx),
             },
             spanGaps: true,
@@ -796,14 +791,17 @@
     if (!percentile) {
       return values.reduce((sum, value) => sum + value, 0) / values.length;
     }
-    
+
     values.sort((a, b) => a - b);
 
     if (percentile === 100) {
       return values[values.length - 1];
     }
 
-    const index = Math.max(0, Math.ceil((percentile / 100) * values.length) - 1);
+    const index = Math.max(
+      0,
+      Math.ceil((percentile / 100) * values.length) - 1
+    );
     return values[index];
   }
 
