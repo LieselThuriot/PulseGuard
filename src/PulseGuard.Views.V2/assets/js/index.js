@@ -177,7 +177,11 @@
           return "Degraded";
         }
 
-        return item.items[item.items.length - 1]?.state;
+        if (item.items && item.items.length > 0) {
+          return item.items[0].state;
+        }
+
+        return "Unknown";
       };
 
       const lastState = getLastState(item);
