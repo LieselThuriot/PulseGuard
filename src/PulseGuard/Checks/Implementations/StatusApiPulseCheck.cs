@@ -27,7 +27,7 @@ internal sealed class StatusApiPulseCheck(HttpClient client, PulseConfiguration 
                 return PulseReport.Fail(Options, "Pulse check failed due to deserialization error", pulseResponseString);
             }
 
-            pulseResponseString = PulseSerializerContext.Default.StatusApiResponse.Serialize(pulseResponse); // remove extra fields
+            pulseResponseString = PulseSerializerContext.Default.StatusApiResponse.Serialize(pulseResponse); // remove extra's
         }
         catch (Exception ex)
         {

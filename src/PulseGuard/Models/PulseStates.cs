@@ -32,17 +32,35 @@ internal static class PulseStatesFastString
         PulseStates.Healthy => nameof(PulseStates.Healthy),
         PulseStates.Degraded => nameof(PulseStates.Degraded),
         PulseStates.Unhealthy => nameof(PulseStates.Unhealthy),
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
-    public static PulseStates FromString(string state) => state?.ToLowerInvariant() switch
+    public static PulseStates FromString(string state)
+        => TryFromString(state, out PulseStates result)
+            ? result
+            : throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value");
+
+    public static bool TryFromString(string state, out PulseStates result)
     {
-        "unknown" => PulseStates.Unknown,
-        "healthy" => PulseStates.Healthy,
-        "degraded" => PulseStates.Degraded,
-        "unhealthy" => PulseStates.Unhealthy,
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-    };
+        switch (state?.ToLowerInvariant())
+        {
+            case "healthy":
+                result = PulseStates.Healthy;
+                return true;
+            case "unhealthy":
+                result = PulseStates.Unhealthy;
+                return true;
+            case "degraded":
+                result = PulseStates.Degraded;
+                return true;
+            case "unknown":
+                result = PulseStates.Unknown;
+                return true;
+            default:
+                result = PulseStates.Unknown;
+                return false;
+        }
+    }
 
     public static int Numberify(this PulseStates state) => state switch
     {
@@ -50,7 +68,7 @@ internal static class PulseStatesFastString
         PulseStates.Healthy => (int)PulseStates.Healthy,
         PulseStates.Degraded => (int)PulseStates.Degraded,
         PulseStates.Unhealthy => (int)PulseStates.Unhealthy,
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
     public static PulseStates FromNumber(int state) => state switch
@@ -59,15 +77,15 @@ internal static class PulseStatesFastString
         (int)PulseStates.Healthy => PulseStates.Healthy,
         (int)PulseStates.Degraded => PulseStates.Degraded,
         (int)PulseStates.Unhealthy => PulseStates.Unhealthy,
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
     public static PulseStates FromNumber(char state) => state switch
     {
-        '0' => PulseStates.Unknown,
-        '1' => PulseStates.Healthy,
-        '2' => PulseStates.Degraded,
-        '3' => PulseStates.Unhealthy,
-        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        (char)('0' + (int)PulseStates.Unknown) => PulseStates.Unknown,
+        (char)('0' + (int)PulseStates.Healthy) => PulseStates.Healthy,
+        (char)('0' + (int)PulseStates.Degraded) => PulseStates.Degraded,
+        (char)('0' + (int)PulseStates.Unhealthy) => PulseStates.Unhealthy,
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 }

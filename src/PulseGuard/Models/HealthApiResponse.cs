@@ -1,7 +1,18 @@
 ﻿namespace PulseGuard.Models;
 
-public sealed record HealthApiResponse(string Name, PulseStates State, long ElapsedTimeInMilliseconds)
-{
-    public string? Message { get; init; }
-    //public IEnumerable<PulseResponse>? Dependencies { get; init; }
-}
+public sealed record HealthApiResponse(
+    PulseStates State
+    //, string? Name
+    //, long? ElapsedTimeInMilliseconds
+    , string? Message
+    , IEnumerable<HealthApiResponseDetail>? Dependencies
+);
+
+public record HealthApiResponseDetail(
+      string Name
+    , PulseStates State
+    //, string ApplicationCode
+    //, int ElapsedTimeInMilliseconds
+    //, IEnumerable<HealthApiResponseDetail>? Dependencies
+    //, string[] FunctionalitiesSupported
+);
