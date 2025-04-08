@@ -16,7 +16,7 @@ public class HealthCheckPulseCheck(HttpClient client, PulseConfiguration options
             return PulseReport.Fail(Options, "Pulse check failed with null response", null);
         }
 
-        if (PulseStatesFastString.TryFromString(pulseResponse, out PulseStates pulseResponseState))
+        if (!PulseStatesFastString.TryFromString(pulseResponse, out PulseStates pulseResponseState))
         {
             _logger.LogWarning(PulseEventIds.HealthApiCheck, "Pulse check failed due to unknown health response");
             return PulseReport.Fail(Options, "Pulse check failed due to unknown health response", pulseResponse);
