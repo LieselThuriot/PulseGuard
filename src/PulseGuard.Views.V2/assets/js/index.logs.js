@@ -153,7 +153,8 @@
         const errorCell = document.createElement("td");
         if (item.error) {
           errorCell.textContent = "⚠️";
-          errorCell.setAttribute("data-toggle", "tooltip");
+          errorCell.setAttribute("data-bs-toggle", "tooltip");
+          errorCell.setAttribute("data-bs-custom-class", "pre-tooltip");
           errorCell.setAttribute("title", item.error);
           errorCell.style.verticalAlign = "middle";
           new bootstrap.Tooltip(errorCell);
