@@ -158,7 +158,7 @@
       textSpan.setAttribute("data-bs-toggle", "tooltip");
       textSpan.setAttribute("data-bs-placement", "right");
       textSpan.setAttribute("data-bs-custom-class", "d-lg-none");
-      textSpan.setAttribute("title", text);
+      textSpan.setAttribute("data-bs-title", text);
       new bootstrap.Tooltip(textSpan);
 
       const icon = document.createElement("i");
@@ -260,7 +260,7 @@
           startDate === endDate
             ? `${startDate} ${startTime} - ${endTime}`
             : `${startDate} ${startTime} - ${endDate} ${endTime}`;
-        bucketDiv.setAttribute("title", tooltipText);
+        bucketDiv.setAttribute("data-bs-title", tooltipText);
         new bootstrap.Tooltip(bucketDiv);
 
         if (bucket.state === "Healthy") {

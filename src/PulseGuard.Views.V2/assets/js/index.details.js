@@ -139,8 +139,11 @@
         const fromDate = new Date(toDate);
         fromDate.setDate(toDate.getDate() - (days - 1));
 
-        if (fromSelect) fromSelect.value = fromDate.toISOString().split("T")[0];
-        if (toSelect) toSelect.value = toDate.toISOString().split("T")[0];
+        toDate.setHours(23, 59 -toDate.getTimezoneOffset(), 59, 0);
+        fromDate.setHours(0, -fromDate.getTimezoneOffset(), 0, 0);
+
+        if (fromSelect) fromSelect.value = fromDate.toISOString().slice(0, 16);
+        if (toSelect) toSelect.value = toDate.toISOString().slice(0, 16);
       } else {
         if (fromSelect) fromSelect.value = "";
         if (toSelect) toSelect.value = "";
@@ -414,7 +417,6 @@
       );
     }
     if (toDate) {
-      toDate.setHours(23, 59, 59, 999);
       const toTimestamp = Math.floor(toDate.getTime() / 1000);
 
       filteredData = filteredData.filter(
@@ -917,7 +919,7 @@
         startDate === endDate
           ? `${startDate} ${startTime} - ${endTime}`
           : `${startDate} ${startTime} - ${endDate} ${endTime}`;
-      bucketDiv.setAttribute("title", tooltipText);
+      bucketDiv.setAttribute("data-bs-title", tooltipText);
       new bootstrap.Tooltip(bucketDiv);
 
       if (bucket.state === "Healthy") {
