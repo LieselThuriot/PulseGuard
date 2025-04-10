@@ -152,14 +152,14 @@
 
         const errorCell = document.createElement("td");
         if (item.error) {
-          errorCell.textContent = "⚠️";
-          errorCell.setAttribute("data-bs-toggle", "tooltip");
-          errorCell.setAttribute("data-bs-custom-class", "pre-tooltip");
-          errorCell.setAttribute("title", item.error);
-          errorCell.style.verticalAlign = "middle";
-          new bootstrap.Tooltip(errorCell);
-
-          errorCell.addEventListener("click", () => {
+          const icon = document.createElement("i");
+          icon.className = "bi bi-exclamation-triangle-fill";
+          icon.setAttribute("data-bs-toggle", "tooltip");
+          icon.setAttribute("data-bs-custom-class", "pre-tooltip");
+          icon.setAttribute("data-bs-title", item.error);
+          new bootstrap.Tooltip(icon);
+          icon.setAttribute("role", "button");
+          icon.addEventListener("click", () => {
             let toast = {
               header: "PulseGuard",
               headerSmall: "",
@@ -190,7 +190,8 @@
               });
           });
 
-          errorCell.style.cursor = "pointer";
+          errorCell.appendChild(icon);
+          errorCell.classList.add("align-middle");
         } else {
           errorCell.textContent = "";
         }
