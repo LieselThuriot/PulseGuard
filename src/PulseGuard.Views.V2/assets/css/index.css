@@ -57,6 +57,14 @@
   --bs-btn-font-size: 0.75rem;
 }
 
+.toast-success {
+  --bs-toast-header-bg: RGBA(var(--bs-success-rgb), 0.5);
+}
+
+.toast-danger {
+  --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
+}
+
 @media (max-width: 768px) {
   #pulse-container {
     height: 25vh;

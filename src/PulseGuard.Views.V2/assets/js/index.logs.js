@@ -178,13 +178,13 @@
               .then(() => {
                 toast.header = "✅ PulseGuard";
                 toast.body = "Error message copied to clipboard";
-                toast.toastClass = "text-bg-success";
+                toast.toastClass = "toast-success";
                 bootstrap.showToast(toast);
               })
               .catch((err) => {
                 toast.header = "❌ PulseGuard";
                 toast.body = "Failed to copy error message";
-                toast.toastClass = "text-bg-danger";
+                toast.toastClass = "toast-danger";
                 bootstrap.showToast(toast);
                 console.error("Failed to copy error message: ", err);
               });
