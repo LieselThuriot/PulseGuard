@@ -9,6 +9,7 @@ public static class PulseEventIds
     public static readonly EventId ContainsCheck = new(104, nameof(ContainsCheck));
 
     public static readonly EventId Webhooks = new(200, nameof(Webhooks));
+    public static readonly EventId Pulses = new(201, nameof(Pulses));
 
     public static readonly EventId Store = new(300, nameof(Store));
 }

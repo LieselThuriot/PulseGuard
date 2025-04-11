@@ -24,7 +24,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Webhooks, ex, "Error checking webhooks");
+                _logger.LogError(PulseEventIds.Pulses, ex, "Error checking pulses");
             }
         }
     }
@@ -44,7 +44,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Webhooks, ex, "Error handling webhook for message {id}", messageId);
+                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", messageId);
             }
         }
 
