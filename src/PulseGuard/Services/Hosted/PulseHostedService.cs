@@ -7,9 +7,10 @@ using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
 
-public sealed class PulseHostedService(IServiceProvider services, IOptions<PulseOptions> options, ILogger<PulseHostedService> logger) : BackgroundService
+public sealed class PulseHostedService(IServiceProvider services, SignalService signalService, IOptions<PulseOptions> options, ILogger<PulseHostedService> logger) : BackgroundService
 {
     private readonly IServiceProvider _services = services;
+    private readonly SignalService _signalService = signalService;
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger<PulseHostedService> _logger = logger;
 
@@ -22,19 +23,20 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         {
             try
             {
-                DateTime now = DateTime.UtcNow;
-                DateTime next = new(now.Year, now.Month, now.Day, now.Hour, 0, 0);
-                next = next.AddMinutes(((now.Minute / interval) + 1) * interval);
-                await Task.Delay(next - now, stoppingToken);
-
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                cts.CancelAfter(maxExecution);
-
+                using CancellationTokenSource cts = new(maxExecution);
                 await CheckPulseAsync(cts.Token);
+                _signalService.Signal();
             }
             catch (Exception ex)
             {
                 _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking pulse");
+            }
+            finally
+            {
+                DateTime now = DateTime.UtcNow;
+                DateTime next = new(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+                next = next.AddMinutes(((now.Minute / interval) + 1) * interval);
+                await Task.Delay(next - now, stoppingToken);
             }
         }
     }
@@ -46,7 +48,7 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
         var configurations = await context.Configurations.Where(c => c.Enabled).ToListAsync(token);
 
-        var store = scope.ServiceProvider.GetRequiredService<PulseStore>();
+        var store = scope.ServiceProvider.GetRequiredService<AsyncPulseStoreService>();
         var factory = scope.ServiceProvider.GetRequiredService<PulseCheckFactory>();
         var checks = new Task[configurations.Count];
 
@@ -59,11 +61,6 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         }
 
         await Task.WhenAll(checks);
-
-        if (DateTimeOffset.UtcNow.Minute % _options.CleaningInterval is 0)
-        {
-            await store.CleanRecent(token);
-        }
 
         async Task Check(PulseConfiguration config)
         {
@@ -85,7 +82,7 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
         }
     }
 
-    private async Task CheckPulseAsync(PulseCheck check, PulseStore store, CancellationToken token)
+    private async Task CheckPulseAsync(PulseCheck check, AsyncPulseStoreService store, CancellationToken token)
     {
         PulseReport? report = null;
 
@@ -131,7 +128,7 @@ public sealed class PulseHostedService(IServiceProvider services, IOptions<Pulse
             if (report is not null)
             {
                 long elapsedMilliseconds = success ? sw.ElapsedMilliseconds : check.Options.Timeout;
-                await store.StoreAsync(report, elapsedMilliseconds, token);
+                await store.PostAsync(report, elapsedMilliseconds, token);
             }
         }
     }

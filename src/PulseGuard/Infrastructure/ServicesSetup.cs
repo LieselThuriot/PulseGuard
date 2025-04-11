@@ -10,10 +10,15 @@ internal static class ServicesSetup
         services.AddMemoryCache();
 
         services.AddSingleton<IdService>();
-        services.AddSingleton<WebhookService>();
+        services.AddSingleton<SignalService>();
+
         services.AddScoped<PulseStore>();
+
+        services.AddSingleton<AsyncPulseStoreService>();
+        services.AddSingleton<WebhookService>();
 
         services.AddHostedService<Hosted.PulseHostedService>();
         services.AddHostedService<Hosted.WebhookHostedService>();
+        services.AddHostedService<Hosted.AsyncPulseStoreHostedService>();
     }
 }

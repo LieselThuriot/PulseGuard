@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
-using System.Diagnostics;
 using System.Net.Mime;
 using TableStorage;
 using TableStorage.Linq;

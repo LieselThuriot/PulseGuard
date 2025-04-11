@@ -16,11 +16,11 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
     private readonly QueueClient _queueClient = new(options.Value.Store, "webhooks");
 
-    public async IAsyncEnumerable<QueueMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<(string messageId, string popReceipt, WebhookEvent? webhookEvent)> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            QueueMessage[] result = await _queueClient.ReceiveMessagesAsync(maxMessages: 32, cancellationToken: token);
+            QueueMessage[] result = await _queueClient.ReceiveMessagesAsync(maxMessages: _queueClient.MaxPeekableMessages, cancellationToken: token);
 
             if (result.Length == 0)
             {
@@ -29,14 +29,18 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
             foreach (QueueMessage message in result)
             {
-                yield return message;
+                WebhookEvent? webhookEvent = PulseSerializerContext.Default.WebhookEvent.Deserialize(message.Body);
+                //if (Proto.TryDeserialize(message, out WebhookEvent? webhookEvent))
+                {
+                    yield return (message.MessageId, message.PopReceipt, webhookEvent);
+                }
             }
         }
     }
 
-    public async Task<bool> DeleteMessageAsync(string messageId, string popReceipt, CancellationToken token)
+    public async Task<bool> DeleteMessageAsync(string messageId, string popReceipt)
     {
-        Response result = await _queueClient.DeleteMessageAsync(messageId, popReceipt, token);
+        Response result = await _queueClient.DeleteMessageAsync(messageId, popReceipt, CancellationToken.None);
         return !result.IsError;
     }
 
@@ -59,10 +63,8 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
             }
         };
 
-        ReadOnlyMemory<byte> message = PulseSerializerContext.Default.WebhookEvent.SerializeToUtf8Bytes(webhookEvent);
-        BinaryData data = new(message);
-
-        //return _queueClient.SendMessageAsync(data, visibilityTimeout: _delayedWebhookInterval, cancellationToken: token);
+        BinaryData data = new(PulseSerializerContext.Default.WebhookEvent.SerializeToUtf8Bytes(webhookEvent));
+        //BinaryData data = Proto.Serialize(webhookEvent);
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }
