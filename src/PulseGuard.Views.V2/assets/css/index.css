@@ -65,6 +65,26 @@
   --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
 }
 
+#pulse-container .overview-card-filter-text-all {
+  display: inline !important;
+}
+
+#pulse-container .overview-card-filter-text-unhealthy {
+  display: none !important;
+}
+
+#pulse-container.filter-not-healthy a.healthy {
+  display: none !important;
+}
+
+#pulse-container.filter-not-healthy .overview-card-filter-text-all {
+  display: none !important;
+}
+
+#pulse-container.filter-not-healthy .overview-card-filter-text-unhealthy {
+  display: inline !important;
+}
+
 @media (max-width: 768px) {
   #pulse-container {
     height: 25vh;

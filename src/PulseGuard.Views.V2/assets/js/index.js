@@ -199,7 +199,12 @@
 
       a.appendChild(icon);
       a.appendChild(textSpan);
-      a.appendChild(createHealthBar(item));
+
+      const healthbar = createHealthBar(item);
+      if (healthbar.lastChild.classList.contains("text-bg-success")) {
+        a.classList.add("healthy");
+      }
+      a.appendChild(healthbar);
 
       list.appendChild(a);
     }
@@ -370,5 +375,30 @@
         });
       }
     }
+  }
+
+  const filterOnButton = document.querySelector("#overview-card-filter-on");
+  const filterOffButton = document.querySelector("#overview-card-filter-off");
+
+  if (filterOnButton && filterOffButton) {
+    filterOnButton.addEventListener("click", () => {
+      const pulseContainer = document.querySelector("#pulse-container");
+      if (pulseContainer) {
+        pulseContainer.classList.add("filter-not-healthy");
+      } else {
+        console.error("pulse-container was not found");
+      }
+    });
+
+    filterOffButton.addEventListener("click", () => {
+      const pulseContainer = document.querySelector("#pulse-container");
+      if (pulseContainer) {
+        pulseContainer.classList.remove("filter-not-healthy");
+      } else {
+        console.error("pulse-container was not found");
+      }
+    });
+  } else {
+    console.error("overview-card-filter-on or overview-card-filter-off not found.");
   }
 })();
