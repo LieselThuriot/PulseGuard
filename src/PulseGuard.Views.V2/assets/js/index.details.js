@@ -37,6 +37,7 @@
  * @property {HTMLElement|null} since - The element displaying the "since" timestamp.
  * @property {HTMLElement|null} averageResponse - The element displaying average response time.
  * @property {HTMLElement|null} errorRate - The element displaying the error rate.
+ * @property {HTMLElement|null} volatility - The element displaying the volitality.
  * @property {HTMLElement|null} badge - The badge element.
  * @property {HTMLElement|null} decimationSelect - The dropdown for chart decimation options.
  * @property {HTMLElement|null} percentileSelect - The dropdown for chart percentile options.
@@ -109,6 +110,7 @@
       since: document.querySelector("#detail-card-since"),
       averageResponse: document.querySelector("#detail-card-average-response"),
       errorRate: document.querySelector("#detail-card-error-rate"),
+      volatility: document.querySelector("#detail-card-volatility"),
       badge: document.querySelector("#detail-card-badge"),
       decimationSelect: document.querySelector("#detail-card-chart-decimation"),
       percentileSelect: document.querySelector("#detail-card-chart-percentile"),
@@ -139,7 +141,7 @@
         const fromDate = new Date(toDate);
         fromDate.setDate(toDate.getDate() - (days - 1));
 
-        toDate.setHours(23, 59 -toDate.getTimezoneOffset(), 59, 0);
+        toDate.setHours(23, 59 - toDate.getTimezoneOffset(), 59, 0);
         fromDate.setHours(0, -fromDate.getTimezoneOffset(), 0, 0);
 
         if (fromSelect) fromSelect.value = fromDate.toISOString().slice(0, 16);
@@ -222,9 +224,10 @@
     toggleElementVisibility(detailCardElements.chart, false);
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
+    resetTextContent(detailCardElements.errorRate, "...");
     resetTextContent(detailCardElements.since, "...");
     resetTextContent(detailCardElements.averageResponse, "...");
-    resetTextContent(detailCardElements.errorRate, "...");
+    resetTextContent(detailCardElements.volatility, "...");
     resetInnerHTML(detailCardElements.healthBar);
     resetInnerHTML(detailCardElements.healthBarMd);
     resetBadge(detailCardElements.badge);
@@ -397,12 +400,12 @@
   /**
    * Filters an array of items based on a date range specified by two HTML select elements.
    *
-   * @param {Array<Object>} items - The array of items to filter. Each item is expected to have a `timestamp` property.
+   * @param {Array<PulseDetailResult>} items - The array of items to filter. Each item is expected to have a `timestamp` property.
    * @param {HTMLSelectElement} fromSelect - The HTML select element representing the start date of the range.
    *                                         Its `value` should be a valid date string.
    * @param {HTMLSelectElement} toSelect - The HTML select element representing the end date of the range.
    *                                       Its `value` should be a valid date string.
-   * @returns {Array<Object>} The filtered array of items that fall within the specified date range.
+   * @returns {Array<PulseDetailResult>} The filtered array of items that fall within the specified date range.
    */
   function filterDataByDateRange(items, fromSelect, toSelect) {
     let filteredData = items;
@@ -431,8 +434,8 @@
    * Creates a Map where the keys are timestamps (rounded to the nearest minute)
    * and the values are the corresponding items from the input array.
    *
-   * @param {Array<Object>} items - An array of objects, each containing a `timestamp` property.
-   * @returns {Map<number, Object>} A Map with keys as rounded timestamps (in milliseconds since epoch)
+   * @param {Array<PulseDetailResult>} items - An array of objects, each containing a `timestamp` property.
+   * @returns {Map<number, PulseDetailResult>} A Map with keys as rounded timestamps (in milliseconds since epoch)
    * and values as the corresponding items.
    */
   function createTimeMap(items) {
@@ -451,7 +454,7 @@
    *
    * @param {HTMLElement} healthBar - The HTML element representing the primary health bar.
    * @param {HTMLElement} healthBarMd - The HTML element representing the medium health bar.
-   * @param {Object} timeMap - A mapping of time-related data used to create the health bars.
+   * @param {Map<number, PulseDetailResult>} timeMap - A mapping of time-related data used to create the health bars.
    * @param {number} minTimestamp - The minimum timestamp value for the health bar range.
    * @param {number} maxTimestamp - The maximum timestamp value for the health bar range.
    */
@@ -484,16 +487,12 @@
   /**
    * Updates the UI elements with uptime, error rate, average response time, and the earliest timestamp.
    *
-   * @param {Object} elements - The DOM elements to update.
-   * @param {HTMLElement} elements.uptime - The element to display the healthy uptime percentage.
-   * @param {HTMLElement} elements.since - The element to display the earliest timestamp.
-   * @param {HTMLElement} elements.averageResponse - The element to display the average response time.
-   * @param {HTMLElement} elements.errorRate - The element to display the unhealthy uptime percentage (error rate).
-   * @param {Object} uptimes - An object containing uptime percentages.
+   * @param {DetailDomElements} elements - The DOM elements to update.
+   * @param {UptimeResult} uptimes - An object containing uptime percentages.
    * @param {number} uptimes.Healthy - The percentage of healthy uptime.
    * @param {number} uptimes.Unhealthy - The percentage of unhealthy uptime (error rate).
    * @param {number} minTimestamp - The earliest timestamp in milliseconds.
-   * @param {Array<Object>} filteredData - The filtered data used to calculate the average response time.
+   * @param {Array<PulseDetailResult>} filteredData - The filtered data used to calculate the average response time.
    */
   function updateUptimeAndErrorRate(
     elements,
@@ -501,10 +500,11 @@
     minTimestamp,
     filteredData
   ) {
-    resetTextContent(
-      elements.uptime,
-      !isNaN(uptimes.Healthy) ? `${uptimes.Healthy.toFixed(2)}%` : "0.00%"
-    );
+    const formatPercentage = (value) =>
+      !isNaN(value) ? `${value.toFixed(2)}%` : "0.00%";
+
+    resetTextContent(elements.uptime, formatPercentage(uptimes.Healthy));
+    resetTextContent(elements.errorRate, formatPercentage(uptimes.Unhealthy));
 
     resetTextContent(
       elements.since,
@@ -519,16 +519,33 @@
       !isNaN(responseTime) ? `${responseTime.toFixed(2)}ms` : "..."
     );
 
-    resetTextContent(
-      elements.errorRate,
-      !isNaN(uptimes.Unhealthy) ? `${uptimes.Unhealthy.toFixed(2)}%` : "0.00%"
-    );
+    const volatility = calculateVolatility(filteredData);
+    resetTextContent(elements.volatility, formatPercentage(volatility));
+  }
+
+  /**
+   * Calculates the volatility of state changes in the provided data.
+   * Volatility is determined as the percentage of state changes relative to the total number of states.
+   *
+   * @param {Array<PulseDetailResult>} filteredData - An array of objects, each containing a `state` property.
+   * @returns {number} The volatility percentage, representing the frequency of state changes.
+   */
+  function calculateVolatility(filteredData) {
+    const states = filteredData.map((item) => item.state);
+    const stateChanges = states.reduce((count, state, index, array) => {
+      if (index > 0 && state !== array[index - 1]) {
+        count++;
+      }
+      return count;
+    }, 0);
+
+    return (stateChanges / states.length) * 100;
   }
 
   /**
    * Sets up event listeners for chart-related elements and updates the chart when changes occur.
    *
-   * @param {Object} elements - An object containing the DOM elements to attach listeners to.
+   * @param {DetailDomElements} elements - An object containing the DOM elements to attach listeners to.
    * @param {HTMLElement} elements.decimationSelect - The dropdown element for decimation selection.
    * @param {HTMLElement} elements.percentileSelect - The dropdown element for percentile selection.
    * @param {HTMLElement} elements.fromSelect - The dropdown element for the "from" selection.
@@ -604,7 +621,7 @@
    *
    * @param {number} decimation - The decimation factor to reduce the number of data points.
    * @param {number} percentile - The percentile to apply to the number of data points, being P90, P95 and P99.
-   * @param {Map<number, {timestamp: number, elapsedMilliseconds: number, state: string}>} timeMap - A map of timestamps to data points.
+   * @param {Map<number, PulseDetailResult>} timeMap - A map of timestamps to data points.
    * @param {number} minTimestamp - The minimum timestamp for the chart.
    * @param {number} maxTimestamp - The maximum timestamp for the chart.
    * @returns {Chart} The rendered Chart.js chart instance.
