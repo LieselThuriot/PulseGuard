@@ -33,6 +33,7 @@ internal static class PulseStatesFastString
         PulseStates.Healthy => nameof(PulseStates.Healthy),
         PulseStates.Degraded => nameof(PulseStates.Degraded),
         PulseStates.Unhealthy => nameof(PulseStates.Unhealthy),
+        PulseStates.TimedOut => nameof(PulseStates.TimedOut),
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
