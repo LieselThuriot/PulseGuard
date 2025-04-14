@@ -104,7 +104,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         catch (TaskCanceledException ex)
         {
             _logger.LogError(PulseEventIds.HealthChecks, ex, "Pulse timeout");
-            report = PulseReport.Fail(check.Options, "Pulse check failed due timeout", $"Pulse timed out after {check.Options.Timeout}ms");
+            report = PulseReport.TimedOut(check.Options);
         }
         catch (HttpRequestException ex)
         {

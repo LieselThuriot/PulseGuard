@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} LogItem
- * @property {string} state - The state of the pulse check (e.g., "Healthy", "Unhealthy", "Degraded" or "Unknown").
+ * @property {string} state - The state of the pulse check (e.g., "Healthy", "Unhealthy", "Degraded", "TimedOut" or "Unknown").
  * @property {string} message - The message associated with the pulse check.
  * @property {string} from - The start time of the pulse check period in ISO 8601 format.
  * @property {string} to - The end time of the pulse check period in ISO 8601 format.
@@ -135,6 +135,9 @@
             break;
           case "Unhealthy":
             stateCell.className = "fw-bolder fst-italic text-danger";
+            break;
+          case "TimedOut":
+            stateCell.className = "fw-bolder fst-italic text-pink";
             break;
           case "Degraded":
             stateCell.className = "fw-bold text-warning";

@@ -2,6 +2,16 @@
   min-height: 0;
 }
 
+.text-pink {
+  --bs-text-opacity: 1;
+  color: var(--bs-pink) !important;
+}
+
+.text-bg-pink {
+  color: #fff !important;
+  background-color: var(--bs-pink) !important;
+}
+
 .pre-tooltip > .tooltip-inner {
   white-space: pre-wrap;
   max-width: 25vw;

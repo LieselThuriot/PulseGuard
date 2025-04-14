@@ -29,7 +29,5 @@ public class PulseOptions
         set => _webhookDelay = Math.Max(0, value);
     }
 
-    public PulseStates TimeOutState { get; set; } = PulseStates.Unhealthy;
-
     public string Store { get; set; } = "";
 }

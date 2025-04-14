@@ -6,10 +6,11 @@ namespace PulseGuard.Models;
 [JsonConverter(typeof(PulseStatesJsonConverter))]
 public enum PulseStates
 {
-    Unknown,
-    Healthy,
-    Degraded,
-    Unhealthy
+    Unknown = 0,
+    Healthy = 1,
+    Degraded = 2,
+    Unhealthy = 3,
+    TimedOut = 4
 }
 
 public sealed class PulseStatesJsonConverter : JsonConverter<PulseStates>
@@ -53,6 +54,9 @@ internal static class PulseStatesFastString
             case "degraded":
                 result = PulseStates.Degraded;
                 return true;
+            case "timedout":
+                result = PulseStates.TimedOut;
+                return true;
             case "unknown":
                 result = PulseStates.Unknown;
                 return true;
@@ -68,6 +72,7 @@ internal static class PulseStatesFastString
         PulseStates.Healthy => (int)PulseStates.Healthy,
         PulseStates.Degraded => (int)PulseStates.Degraded,
         PulseStates.Unhealthy => (int)PulseStates.Unhealthy,
+        PulseStates.TimedOut => (int)PulseStates.TimedOut,
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
@@ -77,6 +82,7 @@ internal static class PulseStatesFastString
         (int)PulseStates.Healthy => PulseStates.Healthy,
         (int)PulseStates.Degraded => PulseStates.Degraded,
         (int)PulseStates.Unhealthy => PulseStates.Unhealthy,
+        (int)PulseStates.TimedOut => PulseStates.TimedOut,
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 
@@ -86,6 +92,7 @@ internal static class PulseStatesFastString
         (char)('0' + (int)PulseStates.Healthy) => PulseStates.Healthy,
         (char)('0' + (int)PulseStates.Degraded) => PulseStates.Degraded,
         (char)('0' + (int)PulseStates.Unhealthy) => PulseStates.Unhealthy,
+        (char)('0' + (int)PulseStates.TimedOut) => PulseStates.TimedOut,
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Invalid enum value")
     };
 }

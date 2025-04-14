@@ -11,7 +11,7 @@
 /**
  * Represents a single health check result
  * @typedef {Object} PulseDetailResult
- * @property {string} state - The status of the health check (e.g., "Healthy", "Degraded", "Unhealthy")
+ * @property {string} state - The status of the health check (e.g., "Healthy", "Degraded", "Unhealthy", "TimedOut")
  * @property {number} timestamp - unix time in seconds
  * @property {number} elapsedMilliseconds - The response time in milliseconds
  */
@@ -22,6 +22,7 @@
  * @property {number} Healthy
  * @property {number} Degraded
  * @property {number} Unhealthy
+ * @property {number} TimedOut
  * @property {number} Unknown
  */
 
@@ -37,6 +38,7 @@
  * @property {HTMLElement|null} since - The element displaying the "since" timestamp.
  * @property {HTMLElement|null} averageResponse - The element displaying average response time.
  * @property {HTMLElement|null} errorRate - The element displaying the error rate.
+ * @property {HTMLElement|null} timeOutRate - The element displaying the timeout rate.
  * @property {HTMLElement|null} volatility - The element displaying the volitality.
  * @property {HTMLElement|null} badge - The badge element.
  * @property {HTMLElement|null} decimationSelect - The dropdown for chart decimation options.
@@ -110,6 +112,7 @@
       since: document.querySelector("#detail-card-since"),
       averageResponse: document.querySelector("#detail-card-average-response"),
       errorRate: document.querySelector("#detail-card-error-rate"),
+      timeOutRate: document.querySelector("#detail-card-timeout-rate"),
       volatility: document.querySelector("#detail-card-volatility"),
       badge: document.querySelector("#detail-card-badge"),
       decimationSelect: document.querySelector("#detail-card-chart-decimation"),
@@ -225,6 +228,7 @@
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
     resetTextContent(detailCardElements.errorRate, "...");
+    resetTextContent(detailCardElements.timeOutRate, "...");
     resetTextContent(detailCardElements.since, "...");
     resetTextContent(detailCardElements.averageResponse, "...");
     resetTextContent(detailCardElements.volatility, "...");
@@ -294,12 +298,7 @@
       );
 
       const uptimes = calculateUptimes(filteredData);
-      updateUptimeAndErrorRate(
-        detailCardElements,
-        uptimes,
-        minTimestamp,
-        filteredData
-      );
+      updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
     };
 
     setupChartListeners(detailCardElements, updateChart);
@@ -491,20 +490,17 @@
    * @param {UptimeResult} uptimes - An object containing uptime percentages.
    * @param {number} uptimes.Healthy - The percentage of healthy uptime.
    * @param {number} uptimes.Unhealthy - The percentage of unhealthy uptime (error rate).
+   * @param {number} uptimes.TimedOut - The percentage of timeouts.
    * @param {number} minTimestamp - The earliest timestamp in milliseconds.
    * @param {Array<PulseDetailResult>} filteredData - The filtered data used to calculate the average response time.
    */
-  function updateUptimeAndErrorRate(
-    elements,
-    uptimes,
-    minTimestamp,
-    filteredData
-  ) {
+  function updateUptime(elements, uptimes, minTimestamp, filteredData) {
     const formatPercentage = (value) =>
       !isNaN(value) ? `${value.toFixed(2)}%` : "0.00%";
 
     resetTextContent(elements.uptime, formatPercentage(uptimes.Healthy));
     resetTextContent(elements.errorRate, formatPercentage(uptimes.Unhealthy));
+    resetTextContent(elements.timeOutRate, formatPercentage(uptimes.TimedOut));
 
     resetTextContent(
       elements.since,
@@ -589,7 +585,7 @@
 
     if (detailCardBadge) {
       detailCardBadge.textContent = lastItem.state;
-      detailCardBadge.className = `badge my-auto mx-2 text-bg-${getBadgeColor(
+      detailCardBadge.className = `badge my-auto mx-2 ${getBadgeColor(
         lastItem.state
       )}`;
     } else {
@@ -598,21 +594,23 @@
   }
 
   /**
-   * Returns the badge color based on the given state.
+   * Determines the appropriate badge color class based on the given state.
    *
-   * @param {string} state - The state of the system which can be "Healthy", "Degraded", or "Unhealthy".
-   * @returns {string} - The corresponding badge color: "success" for "Healthy", "warning" for "Degraded", "danger" for "Unhealthy", and "secondary" for any other state.
+   * @param {string} state - The state of the item (e.g., "Healthy", "Degraded", "Unhealthy", "TimedOut").
+   * @returns {string} - The corresponding CSS class for the badge color.
    */
   function getBadgeColor(state) {
     switch (state) {
       case "Healthy":
-        return "success";
+        return "text-bg-success";
       case "Degraded":
-        return "warning";
+        return "text-bg-warning";
       case "Unhealthy":
-        return "danger";
+        return "text-bg-danger";
+      case "TimedOut":
+        return "text-bg-pink";
       default:
-        return "secondary";
+        return "text-bg-secondary";
     }
   }
 
@@ -638,7 +636,13 @@
     const buckets = [];
     let currentBucket = null;
 
-    const healthStates = ["Healthy", "Degraded", "Unhealthy", "Unknown"];
+    const healthStates = [
+      "Healthy",
+      "Degraded",
+      "Unhealthy",
+      "TimedOut",
+      "Unknown",
+    ];
     for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
       const item = timeMap.get(time);
       const timestamp = new Date(time);
@@ -825,23 +829,25 @@
   }
 
   /**
-   * Returns the color associated with a given state.
+   * Returns a color code based on the given state and requested brightness level.
    *
-   * @param {string} state - The state for which to get the color.
-   *                         Possible values are "Healthy", "Degraded", "Unhealthy".
-   * @param {boolean} bright - If true, returns a brighter color variant; otherwise, returns a standard color variant.
-   * @returns {string} The color corresponding to the given state in rgba format.
+   * @param {string} state - The state for which the color is determined. 
+   *                         Possible values: "Healthy", "Degraded", "Unhealthy", "TimedOut", or others.
+   * @param {boolean} bright - If true, returns a brighter color; otherwise, returns a paler color.
+   * @returns {string} The corresponding color code in hexadecimal format.
    */
   function getStateColor(state, bright) {
     switch (state) {
       case "Healthy":
-        return bright ? "rgba(25, 135, 84, 1)" : "rgba(75, 192, 192, 1)";
+        return bright ? "#198754" : "#75b798";
       case "Degraded":
-        return bright ? "rgba(255, 193, 7, 1)" : "rgba(255, 206, 86, 1)";
+        return bright ? "#ffc107" : "#ffda6a";
       case "Unhealthy":
-        return bright ? "rgba(220, 53, 69, 1)" : "rgba(255, 99, 132, 1)";
+        return bright ? "#dc3545" : "#ea868f";
+      case "TimedOut":
+        return bright ? "#d63384" : "#e685b5";
       default:
-        return "rgba(201, 203, 207, 1)";
+        return bright ? "#6c757d" : "#a7acb1";
     }
   }
 
@@ -908,7 +914,7 @@
       state: "Unknown",
     }));
 
-    const healthStates = ["Healthy", "Degraded", "Unhealthy"];
+    const healthStates = ["Healthy", "Degraded", "Unhealthy", "TimedOut"];
     timeMap.forEach((pulse, time) => {
       buckets.forEach((bucket) => {
         if (time >= bucket.start.getTime() && time < bucket.end.getTime()) {
@@ -945,6 +951,8 @@
         bucketDiv.classList.add("text-bg-warning");
       } else if (bucket.state === "Unhealthy") {
         bucketDiv.classList.add("text-bg-danger");
+      } else if (bucket.state === "TimedOut") {
+        bucketDiv.classList.add("text-bg-pink");
       } else {
         bucketDiv.classList.add("text-bg-secondary");
       }

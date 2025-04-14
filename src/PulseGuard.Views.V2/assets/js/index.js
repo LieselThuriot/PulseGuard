@@ -191,6 +191,10 @@
         icon.classList.add("text-warning");
       } else if (lastState === "Unhealthy") {
         icon.classList.add("text-danger");
+      } else if (lastState === "TimedOut") {
+        icon.classList.add("text-pink");
+      } else {
+        icon.classList.add("text-secondary");
       }
 
       if (!!indentGroup) {
@@ -234,7 +238,7 @@
           ? item.items.flatMap((groupItem) => groupItem.items)
           : item.items;
 
-      const healthStates = ["Healthy", "Degraded", "Unhealthy"];
+      const healthStates = ["Healthy", "Degraded", "Unhealthy", "TimedOut"];
 
       pulses.forEach((pulse) => {
         const from = new Date(pulse.from);
@@ -274,6 +278,8 @@
           bucketDiv.classList.add("text-bg-warning");
         } else if (bucket.state === "Unhealthy") {
           bucketDiv.classList.add("text-bg-danger");
+        } else if (bucket.state === "TimedOut") {
+          bucketDiv.classList.add("text-bg-pink");
         } else {
           bucketDiv.classList.add("text-bg-secondary");
         }
