@@ -157,10 +157,6 @@
         if (item.error) {
           const icon = document.createElement("i");
           icon.className = "bi bi-exclamation-triangle-fill";
-          icon.setAttribute("data-bs-toggle", "tooltip");
-          icon.setAttribute("data-bs-custom-class", "pre-tooltip");
-          icon.setAttribute("data-bs-title", item.error);
-          new bootstrap.Tooltip(icon);
           icon.setAttribute("role", "button");
           icon.addEventListener("click", () => {
             let toast = {
@@ -192,6 +188,11 @@
                 console.error("Failed to copy error message: ", err);
               });
           });
+
+          icon.setAttribute("data-bs-toggle", "tooltip");
+          icon.setAttribute("data-bs-custom-class", "pre-tooltip");
+          icon.setAttribute("title", item.error);
+          new bootstrap.Tooltip(icon);
 
           errorCell.appendChild(icon);
           errorCell.classList.add("align-middle");
