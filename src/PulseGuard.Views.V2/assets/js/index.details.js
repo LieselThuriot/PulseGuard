@@ -577,17 +577,14 @@
   /**
    * Updates the badge element with the state of the last item in the provided list.
    *
-   * @param {HTMLElement|null} detailCardBadge - The badge element to update.
+   * @param {HTMLElement|null} badge - The badge element to update.
    * @param {Array<PulseDetailResult>} items - An array of items where each item contains a `state` property.
    */
-  function setBadge(detailCardBadge, items) {
-    const lastItem = items[items.length - 1];
-
-    if (detailCardBadge) {
-      detailCardBadge.textContent = lastItem.state;
-      detailCardBadge.className = `badge my-auto mx-2 ${getBadgeColor(
-        lastItem.state
-      )}`;
+  function setBadge(badge, items) {
+    if (badge) {
+      const state = items[items.length - 1].state;
+      badge.textContent = state.replace(/([a-z])([A-Z])/g, "$1 $2");
+      badge.className = `badge my-auto mx-2 ${getBadgeColor(state)}`;
     } else {
       console.error("Error getting detail-card-badge");
     }
@@ -831,7 +828,7 @@
   /**
    * Returns a color code based on the given state and requested brightness level.
    *
-   * @param {string} state - The state for which the color is determined. 
+   * @param {string} state - The state for which the color is determined.
    *                         Possible values: "Healthy", "Degraded", "Unhealthy", "TimedOut", or others.
    * @param {boolean} bright - If true, returns a brighter color; otherwise, returns a paler color.
    * @returns {string} The corresponding color code in hexadecimal format.
