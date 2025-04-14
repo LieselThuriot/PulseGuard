@@ -14,7 +14,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
-    public async Task StoreAsync(PulseReport report, long elapsedMilliseconds, CancellationToken token)
+    public async Task StoreAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
     {
         _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Name}", report.Options.Name);
 
@@ -24,8 +24,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             await GenerateSqid(report.Options, token);
         }
 
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        DateTimeOffset start = now.AddMinutes(_options.Interval * -3);
+        DateTimeOffset start = creation.AddMinutes(_options.Interval * -3);
 
         var pulse = await _context.Pulses.Where(x => x.Sqid == report.Options.Sqid).FirstOrDefaultAsync(token);
 
@@ -39,14 +38,14 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
         {
             _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name}", report.Options.Name);
-            pulse.LastUpdatedTimestamp = now;
+            pulse.LastUpdatedTimestamp = creation;
         }
         else // State, message or error has changed
         {
             var oldPulse = pulse;
 
             _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name} due to state change", report.Options.Name);
-            pulse.LastUpdatedTimestamp = now;
+            pulse.LastUpdatedTimestamp = creation;
 
             await _context.Pulses.UpdateEntityAsync(pulse, token);
             await _context.RecentPulses.UpdateEntityAsync(pulse, token);

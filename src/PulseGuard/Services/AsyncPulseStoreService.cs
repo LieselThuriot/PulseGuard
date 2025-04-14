@@ -11,7 +11,7 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 {
     private readonly QueueClient _queueClient = new(options.Value.Store, "pulses");
 
-    public async IAsyncEnumerable<(string messageId, string popReceipt, PulseEvent? pulseEvent)> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<(string messageId, string popReceipt, DateTimeOffset insertedOn, PulseEvent? pulseEvent)> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -27,7 +27,8 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
                 PulseEvent? pulseEvent = PulseSerializerContext.Default.PulseEvent.Deserialize(message.Body);
                 //if (Proto.TryDeserialize(message, out PulseEvent? pulseEvent))
                 {
-                    yield return (message.MessageId, message.PopReceipt, pulseEvent);
+                    DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
+                    yield return (message.MessageId, message.PopReceipt, creation, pulseEvent);
                 }
             }
         }

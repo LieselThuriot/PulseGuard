@@ -34,12 +34,12 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
         using IServiceScope scope = _services.CreateScope();
         PulseStore store = scope.ServiceProvider.GetRequiredService<PulseStore>();
 
-        await foreach ((string messageId, string popReceipt, PulseEvent? pulseEvent) in _storeClient.ReceiveMessagesAsync(cancellationToken))
+        await foreach ((string messageId, string popReceipt, DateTimeOffset creation, PulseEvent? pulseEvent) in _storeClient.ReceiveMessagesAsync(cancellationToken))
         {
             try
             {
                 Debug.Assert(pulseEvent is not null);
-                await store.StoreAsync(pulseEvent.Report, pulseEvent.ElapsedMilliseconds, cancellationToken);
+                await store.StoreAsync(pulseEvent.Report, creation, pulseEvent.ElapsedMilliseconds, cancellationToken);
                 await _storeClient.DeleteMessageAsync(messageId, popReceipt);
             }
             catch (Exception ex)
