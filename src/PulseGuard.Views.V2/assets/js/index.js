@@ -130,6 +130,7 @@
 
       if ("group" in item) {
         a.href = "#";
+        a.classList.add("pulse-grouping");
         a.addEventListener("click", (e) => {
           e.preventDefault();
           document
@@ -147,8 +148,11 @@
         });
 
         if (!!indentGroup) {
+          a.classList.add("pulse-child");
           a.classList.add("pulse-selection-" + toggleGroup);
           a.classList.add("d-none");
+        } else {
+          a.classList.add("pulse-parent");
         }
       }
 
@@ -399,7 +403,7 @@
       if (pulseContainer) {
         pulseContainer.classList.add("filter-not-healthy");
         pulseContainer
-          .querySelectorAll("a.list-group-item.d-none")
+          .querySelectorAll("a.pulse-child.d-none")
           .forEach((e) => {
             e.classList.remove("d-none");
           });
@@ -413,7 +417,7 @@
       if (pulseContainer) {
         pulseContainer.classList.remove("filter-not-healthy");
         pulseContainer
-          .querySelectorAll("a.list-group-item[href]:not([href='#'])")
+          .querySelectorAll("a.pulse-child:not(.d-none)")
           .forEach((e) => {
             e.classList.add("d-none");
           });
