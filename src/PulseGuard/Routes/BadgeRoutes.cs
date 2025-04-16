@@ -33,6 +33,7 @@ public static class BadgeRoutes
                 PulseStates.Healthy => "04AA6D",
                 PulseStates.Degraded => "FF9800",
                 PulseStates.Unhealthy => "E91E63",
+                PulseStates.TimedOut => "FF0057",
                 _ => UnknownColor
             }}?style=flat-square";
 
