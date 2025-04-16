@@ -26,6 +26,12 @@
   height: 100%;
 }
 
+#pulse-list-group {
+  --bs-list-group-active-bg: var(--bs-secondary-bg);
+  --bs-list-group-active-border-color: var(--bs-secondary-border-subtle);
+  --bs-list-group-active-color: var(--bs-secondary-text-emphasis);
+}
+
 .offcanvas {
   --bs-offcanvas-width: 75%;
 }

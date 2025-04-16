@@ -93,6 +93,7 @@
    */
   function createListGroup(groups) {
     const list = document.createElement("div");
+    list.id = "pulse-list-group";
     list.className =
       "list-group list-group-flush pulse-selection d-flex flex-grow-1 overflow-auto";
 
@@ -162,7 +163,13 @@
       new bootstrap.Tooltip(textSpan);
 
       const icon = document.createElement("i");
-      icon.className = "bi bi-activity me-2";
+      icon.className = "bi me-2";
+
+      if ("group" in item) {
+        icon.classList.add("bi-heart-pulse");
+      } else {
+        icon.classList.add("bi-activity");
+      }
 
       const getLastState = (item) => {
         if ("group" in item) {
@@ -391,6 +398,11 @@
       const pulseContainer = document.querySelector("#pulse-container");
       if (pulseContainer) {
         pulseContainer.classList.add("filter-not-healthy");
+        pulseContainer
+          .querySelectorAll("a.list-group-item.d-none")
+          .forEach((e) => {
+            e.classList.remove("d-none");
+          });
       } else {
         console.error("pulse-container was not found");
       }
@@ -400,11 +412,18 @@
       const pulseContainer = document.querySelector("#pulse-container");
       if (pulseContainer) {
         pulseContainer.classList.remove("filter-not-healthy");
+        pulseContainer
+          .querySelectorAll("a.list-group-item[href]:not([href='#'])")
+          .forEach((e) => {
+            e.classList.add("d-none");
+          });
       } else {
         console.error("pulse-container was not found");
       }
     });
   } else {
-    console.error("overview-card-filter-on or overview-card-filter-off not found.");
+    console.error(
+      "overview-card-filter-on or overview-card-filter-off not found."
+    );
   }
 })();
