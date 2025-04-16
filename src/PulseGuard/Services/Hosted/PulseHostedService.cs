@@ -3,6 +3,7 @@ using PulseGuard.Checks;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Diagnostics;
+using System.Net.Sockets;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
@@ -105,6 +106,11 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         {
             _logger.LogError(PulseEventIds.HealthChecks, ex, "Pulse timeout");
             report = PulseReport.TimedOut(check.Options);
+        }
+        catch (SocketException ex)
+        {
+            _logger.LogError(PulseEventIds.HealthChecks, ex, "Socket error checking pulse");
+            report = PulseReport.Fail(check.Options, "Pulse check failed due to socket exception", ex.Message);
         }
         catch (HttpRequestException ex)
         {
