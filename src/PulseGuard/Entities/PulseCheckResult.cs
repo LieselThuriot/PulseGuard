@@ -82,15 +82,7 @@ public sealed partial class PulseCheckResult
         return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
 
-    public static IEnumerable<string> GetPartitions(int days)
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        for (int i = 0; i > -days; i--)
-        {
-            yield return now.AddDays(i).ToString(PartitionKeyFormat);
-        }
-    }
+    public static string GetCurrentPartition() => DateTimeOffset.UtcNow.ToString(PartitionKeyFormat);
 }
 
 public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>

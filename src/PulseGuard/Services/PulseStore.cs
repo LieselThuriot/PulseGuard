@@ -89,7 +89,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
     private async Task CleanUpPulseChecks(CancellationToken token)
     {
-        await foreach (PulseCheckResult pulse in _context.PulseCheckResults.NotExistsIn(x => x.Day, PulseCheckResult.GetPartitions(1)).WithCancellation(token))
+        string today = PulseCheckResult.GetCurrentPartition();
+        await foreach (PulseCheckResult pulse in _context.PulseCheckResults.Where(x => x.Day != today).WithCancellation(token))
         {
             string year = pulse.Day[..4];
             string sqid = pulse.Sqid;

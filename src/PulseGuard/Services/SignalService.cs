@@ -1,10 +1,12 @@
 ﻿namespace PulseGuard.Services;
 
-public sealed class SignalService
+public sealed class SignalService : IDisposable
 {
     private const int ServicesToSignal = 2;
 
     private readonly SemaphoreSlim _semaphore = new(ServicesToSignal, ServicesToSignal);
+
+    public void Dispose() => _semaphore.Dispose();
 
     public void Signal()
     {

@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 
 namespace PulseGuard.Services;
 
+public readonly record struct WebhookEventMessage(string Id, string PopReceipt, WebhookEvent? WebhookEvent);
+
 public sealed class WebhookService(IOptions<PulseOptions> options)
 {
     //private readonly TimeSpan? _delayedWebhookInterval = options.Value.WebhookDelay is 0
@@ -16,7 +18,7 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
     private readonly QueueClient _queueClient = new(options.Value.Store, "webhooks");
 
-    public async IAsyncEnumerable<(string messageId, string popReceipt, WebhookEvent? webhookEvent)> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<WebhookEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -32,15 +34,15 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
                 WebhookEvent? webhookEvent = PulseSerializerContext.Default.WebhookEvent.Deserialize(message.Body);
                 //if (Proto.TryDeserialize(message, out WebhookEvent? webhookEvent))
                 {
-                    yield return (message.MessageId, message.PopReceipt, webhookEvent);
+                    yield return new(message.MessageId, message.PopReceipt, webhookEvent);
                 }
             }
         }
     }
 
-    public async Task<bool> DeleteMessageAsync(string messageId, string popReceipt)
+    public async Task<bool> DeleteMessageAsync(WebhookEventMessage message)
     {
-        Response result = await _queueClient.DeleteMessageAsync(messageId, popReceipt, CancellationToken.None);
+        Response result = await _queueClient.DeleteMessageAsync(message.Id, message.PopReceipt, CancellationToken.None);
         return !result.IsError;
     }
 

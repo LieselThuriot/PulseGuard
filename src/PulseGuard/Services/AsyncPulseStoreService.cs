@@ -7,11 +7,13 @@ using System.Runtime.CompilerServices;
 
 namespace PulseGuard.Services;
 
+public readonly record struct PulseEventMessage(string Id, string PopReceipt, DateTimeOffset Created, PulseEvent? PulseEvent);
+
 public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 {
     private readonly QueueClient _queueClient = new(options.Value.Store, "pulses");
 
-    public async IAsyncEnumerable<(string messageId, string popReceipt, DateTimeOffset insertedOn, PulseEvent? pulseEvent)> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<PulseEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -28,15 +30,15 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
                 //if (Proto.TryDeserialize(message, out PulseEvent? pulseEvent))
                 {
                     DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
-                    yield return (message.MessageId, message.PopReceipt, creation, pulseEvent);
+                    yield return new(message.MessageId, message.PopReceipt, creation, pulseEvent);
                 }
             }
         }
     }
 
-    public async Task<bool> DeleteMessageAsync(string messageId, string popReceipt)
+    public async Task<bool> DeleteMessageAsync(PulseEventMessage message)
     {
-        Response result = await _queueClient.DeleteMessageAsync(messageId, popReceipt, CancellationToken.None);
+        Response result = await _queueClient.DeleteMessageAsync(message.Id, message.PopReceipt, CancellationToken.None);
         return !result.IsError;
     }
 

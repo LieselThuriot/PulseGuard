@@ -8,7 +8,7 @@ public class PulseOptions
         get => _interval;
         set => _interval = Math.Max(1, value);
     }
-    private int _cleaningInterval = 5;
+    private int _cleaningInterval = 13;
     public int CleaningInterval
     {
         get => _cleaningInterval;

@@ -23,15 +23,20 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
 
                 Lazy<HttpClient> client = new(() => _httpClientFactory.CreateClient("Webhooks"));
 
-                await foreach ((string messageId, string popReceipt, WebhookEvent? webhookEvent) in _webhookClient.ReceiveMessagesAsync(stoppingToken))
+                await foreach (WebhookEventMessage message in _webhookClient.ReceiveMessagesAsync(stoppingToken))
                 {
                     try
                     {
-                        await Handle(client.Value, messageId, popReceipt, webhookEvent, stoppingToken);
+                        if (message.WebhookEvent is not null)
+                        {
+                            await Handle(client.Value, message.WebhookEvent, stoppingToken);
+                        }
+
+                        await _webhookClient.DeleteMessageAsync(message);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(PulseEventIds.Webhooks, ex, "Error handling webhook for message {id}", messageId);
+                        _logger.LogError(PulseEventIds.Webhooks, ex, "Error handling webhook for message {id}", message.Id);
                     }
                 }
             }
@@ -42,21 +47,19 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
         }
     }
 
-    private async Task Handle(HttpClient client, string messageId, string popReceipt, WebhookEvent? webhookEvent, CancellationToken cancellationToken)
+    private async Task Handle(HttpClient client, WebhookEvent webhookEvent, CancellationToken cancellationToken)
     {
-        if (webhookEvent is not null)
-        {
-            await foreach (Entities.Webhook webhook in _context.Webhooks.Where(x => x.Enabled &&
-                                                                                   (x.Group == "*" || x.Group == webhookEvent.Group) &&
-                                                                                   (x.Name == "*" || x.Name == webhookEvent.Name))
-                                                               .SelectFields(x => new { x.Secret, x.Location })
-                                                               .AsAsyncEnumerable().WithCancellation(cancellationToken))
-            {
-                await SendWebhook(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
-            }
-        }
+        string name = webhookEvent.Name;
+        string group = webhookEvent.Group;
 
-        await _webhookClient.DeleteMessageAsync(messageId, popReceipt);
+        await foreach (Entities.Webhook webhook in _context.Webhooks.Where(x => x.Enabled &&
+                                                                               (x.Group == "*" || x.Group == group) &&
+                                                                               (x.Name == "*" || x.Name == name))
+                                                           .SelectFields(x => new { x.Secret, x.Location })
+                                                           .AsAsyncEnumerable().WithCancellation(cancellationToken))
+        {
+            await SendWebhook(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
+        }
     }
 
     private async Task SendWebhook(HttpClient client, string secret, string location, WebhookEvent webhookEvent, CancellationToken cancellationToken)

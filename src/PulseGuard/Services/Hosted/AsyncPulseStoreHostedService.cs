@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
 using PulseGuard.Models;
-using System.Diagnostics;
 
 namespace PulseGuard.Services.Hosted;
 
@@ -34,26 +33,30 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
         using IServiceScope scope = _services.CreateScope();
         PulseStore store = scope.ServiceProvider.GetRequiredService<PulseStore>();
 
-        await foreach ((string messageId, string popReceipt, DateTimeOffset creation, PulseEvent? pulseEvent) in _storeClient.ReceiveMessagesAsync(cancellationToken))
+        if (count++ >= _cleaningInterval)
+        {
+            await store.CleanRecent(cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            count = 1;
+        }
+
+        await foreach (PulseEventMessage message in _storeClient.ReceiveMessagesAsync(cancellationToken))
         {
             try
             {
-                Debug.Assert(pulseEvent is not null);
-                await store.StoreAsync(pulseEvent.Report, creation, pulseEvent.ElapsedMilliseconds, cancellationToken);
-                await _storeClient.DeleteMessageAsync(messageId, popReceipt);
+                if (message.PulseEvent is not null)
+                {
+                    await store.StoreAsync(message.PulseEvent.Report, message.Created, message.PulseEvent.ElapsedMilliseconds, cancellationToken);
+                }
+
+                await _storeClient.DeleteMessageAsync(message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", messageId);
+                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", message.Id);
             }
         }
 
-        if (count < _cleaningInterval)
-        {
-            return count + 1;
-        }
-
-        await store.CleanRecent(cancellationToken);
-        return 1;
+        return count;
     }
 }

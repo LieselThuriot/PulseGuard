@@ -125,18 +125,17 @@ public static class PulseRoutes
         {
             var archivedItems = context.ArchivedPulseCheckResults.Where(x => x.Sqid == id).ToListAsync(token);
 
-            string day = PulseCheckResult.GetPartitions(1).First();
-            var results = await context.PulseCheckResults.Where(x => x.Day == day && x.Sqid == id).FirstAsync(token);
+            var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
 
-            if (results is null)
+            if (results.Count is 0)
             {
                 return TypedResults.NotFound();
             }
 
-            string group = results.Group;
-            string name = results.Name;
+            string group = results[0].Group;
+            string name = results[0].Name;
 
-            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.Items)
+            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items))
                                .Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
 
             return TypedResults.Ok(new PulseDetailResultGroup(group, name, items));

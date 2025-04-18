@@ -122,41 +122,61 @@
     };
   }
 
-  [
-    { id: "detail-card-filter-1", days: 1 },
-    { id: "detail-card-filter-7", days: 7 },
-    { id: "detail-card-filter-14", days: 14 },
-    { id: "detail-card-filter-30", days: 30 },
-    { id: "detail-card-filter-90", days: 90 },
-    { id: "detail-card-filter-all", days: null },
-  ].forEach(({ id, days }) => {
-    const button = document.getElementById(id);
-    if (!button) {
-      console.error(`Error getting button with id ${id}`);
-      return;
-    }
+  (function () {
+    const { fromSelect, toSelect } = getDetailCardElements();
 
-    button.addEventListener("click", () => {
-      const { fromSelect, toSelect } = getDetailCardElements();
-
-      if (days) {
-        const toDate = new Date();
-        const fromDate = new Date(toDate);
-        fromDate.setDate(toDate.getDate() - (days - 1));
-
-        toDate.setHours(23, 59 - toDate.getTimezoneOffset(), 59, 0);
-        fromDate.setHours(0, -fromDate.getTimezoneOffset(), 0, 0);
-
-        if (fromSelect) fromSelect.value = fromDate.toISOString().slice(0, 16);
-        if (toSelect) toSelect.value = toDate.toISOString().slice(0, 16);
-      } else {
-        if (fromSelect) fromSelect.value = "";
-        if (toSelect) toSelect.value = "";
+    [
+      { id: "detail-card-filter-1", days: 1 },
+      { id: "detail-card-filter-7", days: 7 },
+      { id: "detail-card-filter-14", days: 14 },
+      { id: "detail-card-filter-30", days: 30 },
+      { id: "detail-card-filter-90", days: 90 },
+      { id: "detail-card-filter-all", days: null },
+    ].forEach(({ id, days }) => {
+      const button = document.getElementById(id);
+      if (!button) {
+        console.error(`Error getting button with id ${id}`);
+        return;
       }
 
-      renderChartListener?.();
+      button.addEventListener("click", () => {
+        if (days) {
+          const toDate = new Date();
+          const fromDate = new Date(toDate);
+
+          fromDate.setDate(toDate.getDate() - days);
+          toDate.setHours(23, 59 - toDate.getTimezoneOffset(), 59, 0);
+
+          if (days !== 1) {
+            fromDate.setHours(0, 0, 0, 0);
+          }
+
+          fromDate.setMinutes(
+            fromDate.getMinutes() - fromDate.getTimezoneOffset()
+          );
+
+          if (fromSelect) {
+            fromSelect.value = fromDate.toISOString().slice(0, 16);
+          }
+
+          if (toSelect) {
+            toSelect.value = toDate.toISOString().slice(0, 16);
+          }
+        } else {
+          if (fromSelect) {
+            fromSelect.value = "";
+          }
+          if (toSelect) {
+            toSelect.value = "";
+          }
+        }
+
+        if (!!renderChartListener) {
+          renderChartListener();
+        }
+      });
     });
-  });
+  })();
 
   /**
    * Fetches pulse details data from the API and handles the response.
@@ -189,7 +209,7 @@
       })
       .catch((error) => {
         if (error && error.name === "AbortError") {
-          //console.log("Fetch aborted");
+          //console.debug("Fetch aborted");
         } else {
           console.error(
             "There has been a problem with your fetch operation:",
@@ -284,7 +304,7 @@
       detailCardChart = renderChart(
         newDecimation,
         newPercentile,
-        timeMap,
+        [timeMap],
         minTimestamp,
         maxTimestamp
       );
@@ -612,24 +632,142 @@
   }
 
   /**
-   * Renders a chart displaying response times over a specified time range.
+   * Renders a line chart using Chart.js with the provided data and configuration.
    *
-   * @param {number} decimation - The decimation factor to reduce the number of data points.
-   * @param {number} percentile - The percentile to apply to the number of data points, being P90, P95 and P99.
-   * @param {Map<number, PulseDetailResult>} timeMap - A map of timestamps to data points.
-   * @param {number} minTimestamp - The minimum timestamp for the chart.
-   * @param {number} maxTimestamp - The maximum timestamp for the chart.
-   * @returns {Chart} The rendered Chart.js chart instance.
+   * @param {boolean} decimation - Indicates whether data decimation is enabled.
+   * @param {number} percentile - The percentile value used for data processing.
+   * @param {Array<Map<number, PulseDetailResult>>} timeMaps - An array of time map objects containing data points.
+   * @param {number} minTimestamp - The minimum timestamp for the chart's x-axis.
+   * @param {number} maxTimestamp - The maximum timestamp for the chart's x-axis.
+   * @returns {Chart} A Chart.js instance representing the rendered chart.
    */
   function renderChart(
     decimation,
     percentile,
-    timeMap,
+    timeMaps,
     minTimestamp,
     maxTimestamp
   ) {
     const interval = 60000;
-    const timestampDecimation = decimation * interval;
+
+    const labels = [];
+    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
+      labels.push(new Date(time));
+    }
+
+    const datasets = timeMaps.map((timeMap, index) =>
+      generateDataSet(interval, decimation, labels, timeMap, percentile, index)
+    );
+
+    const ctx = document.getElementById("detail-card-chart").getContext("2d");
+    return new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              unit: getTimeUnit(maxTimestamp, minTimestamp),
+            },
+            title: {
+              display: true,
+              text: "Time",
+            },
+          },
+          y: {
+            suggestedMin: 0,
+            title: {
+              display: true,
+              text: "Response Time (ms)",
+            },
+          },
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              footer: (tooltipItems) => `State: ${tooltipItems[0].raw.state}`,
+            },
+          },
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+                modifierKey: "ctrl",
+              },
+              drag: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: "x",
+            },
+            pan: {
+              enabled: true,
+              mode: "x",
+              modifierKey: "ctrl",
+            },
+            limits: {
+              x: {
+                min: "original",
+                max: "original",
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Determines the appropriate time unit based on the difference between two timestamps.
+   *
+   * @param {number} maxTimestamp - The maximum timestamp in milliseconds.
+   * @param {number} minTimestamp - The minimum timestamp in milliseconds.
+   * @returns {string} The time unit as a string: "minute" if the difference is less than or equal to 1 hour,
+   *                   "hour" if the difference is less than or equal to 1 day, or "day" otherwise.
+   */
+  function getTimeUnit(maxTimestamp, minTimestamp) {
+    const timeDiff = maxTimestamp - minTimestamp;
+
+    if (timeDiff <= 3600000) {
+      // less than or equal to 1 hour
+      return "minute";
+    }
+
+    if (timeDiff <= 86400000) {
+      // less than or equal to 1 day
+      return "hour";
+    }
+
+    return "day";
+  }
+
+  /**
+   * Generates a dataset for visualizing response times and health states over time.
+   *
+   * @param {number} interval - The interval in milliseconds between data points.
+   * @param {number} decimation - The decimation factor to reduce the number of data points.
+   * @param {Date[]} timestamps - An array of timestamps representing the time series.
+   * @param {Map<number, {elapsedMilliseconds: number, state: string}>} timeMap - A map where the key is the timestamp (in milliseconds) and the value is an object containing the elapsed time and health state.
+   * @param {number} percentile - The percentile value to calculate for the response times in each bucket.
+   * @returns {object} - A dataset object compatible with charting libraries, including response times, health states, and visual properties.
+   */
+  function generateDataSet(
+    interval,
+    decimation,
+    timestamps,
+    timeMap,
+    percentile,
+    graphIndex
+  ) {
+    const timestampDecimation = interval * decimation;
     const buckets = [];
     let currentBucket = null;
 
@@ -640,9 +778,10 @@
       "TimedOut",
       "Unknown",
     ];
-    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
+
+    for (const timestamp of timestamps) {
+      const time = timestamp.getTime();
       const item = timeMap.get(time);
-      const timestamp = new Date(time);
 
       const [elapsedMilliseconds, state] = item
         ? [item.elapsedMilliseconds, item.state]
@@ -702,98 +841,61 @@
     const skipped = (ctx, value) =>
       ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
-    const healthColor = (ctx) =>
-      getStateColor(buckets[ctx.p1DataIndex].state, false);
+    const healthColor = (ctx) => getStateColor(ctx.p0.raw.state, false) + "80";
 
-    const ctx = document.getElementById("detail-card-chart").getContext("2d");
-
-    const timeDiff = maxTimestamp - minTimestamp;
-    let timeUnit = "day";
-    if (timeDiff <= 3600000) {
-      // less than or equal to 1 hour
-      timeUnit = "minute";
-    } else if (timeDiff <= 86400000) {
-      // less than or equal to 1 day
-      timeUnit = "hour";
-    }
-
-    return new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: buckets.map((x) => x.timestamp),
-        datasets: [
-          {
-            label: "Response Time (ms)",
-            data: buckets.map((x) => calculatePercentile(x.items, percentile)),
-            borderColor: "rgba(75, 192, 192, 1)",
-            backgroundColor: "rgba(75, 192, 192, 0.2)",
-            fill: false,
-            tension: 0.1,
-            pointBackgroundColor: buckets.map((x) =>
-              getStateColor(x.state, true)
-            ),
-            segment: {
-              borderDash: (ctx) => skipped(ctx, [6, 6]),
-              borderColor: (ctx) =>
-                skipped(ctx, getStateColor("Unknown", false)) ||
-                healthColor(ctx),
-            },
-            spanGaps: true,
-          },
-        ],
+    const graphColor = getGraphColor(graphIndex);
+    const dataset = {
+      label: "Response Time (ms)",
+      data: buckets.map((x) => {
+        return {
+          x: x.timestamp,
+          y: calculatePercentile(x.items, percentile),
+          state: x.state
+        };
+      }),
+      borderColor: graphColor,
+      backgroundColor: "rgba(75, 192, 192, 0.2)",
+      fill: false,
+      tension: 0.2,
+      pointBackgroundColor: buckets.map((x) => getStateColor(x.state, true)),
+      pointBorderColor: graphColor,
+      segment: {
+        borderDash: (ctx) => skipped(ctx, [6, 6]),
+        borderColor: (ctx) =>
+          skipped(ctx, getStateColor("Unknown", false)) || healthColor(ctx),
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            type: "time",
-            time: {
-              unit: timeUnit,
-            },
-            title: {
-              display: true,
-              text: "Time",
-            },
-          },
-          y: {
-            suggestedMin: 0,
-            title: {
-              display: true,
-              text: "Response Time (ms)",
-            },
-          },
-        },
-        plugins: {
-          zoom: {
-            zoom: {
-              wheel: {
-                enabled: true,
-                modifierKey: "ctrl",
-              },
-              drag: {
-                enabled: true,
-              },
-              pinch: {
-                enabled: true,
-              },
-              mode: "x",
-            },
-            pan: {
-              enabled: true,
-              mode: "x",
-              modifierKey: "ctrl",
-            },
-            limits: {
-              x: {
-                min: "original",
-                max: "original",
-              },
-            },
-          },
-        },
-      },
-    });
+      spanGaps: true,
+    };
+
+    return dataset;
+  }
+  /**
+   * Generates a color based on the given index.
+   * The function cycles through a predefined array of colors.
+   *
+   * @param {number} index - The index used to select a color from the array.
+   * @returns {string} A color in the format rgb(r, g, b).
+   */
+  function getGraphColor(index) {
+    const colors = [
+      "rgb(75, 192, 192)", // Teal
+      "rgb(54, 162, 235)", // Blue
+      "rgb(153, 102, 255)", // Purple
+      "rgb(102, 204, 255)", // Light Blue
+      "rgb(0, 128, 128)", // Dark Teal
+      "rgb(0, 102, 204)", // Medium Blue
+      "rgb(51, 153, 255)", // Sky Blue
+      "rgb(102, 153, 204)", // Steel Blue
+      "rgb(0, 153, 153)", // Aqua
+      "rgb(51, 102, 153)", // Slate Blue
+      "rgb(0, 76, 153)", // Navy Blue
+      "rgb(102, 178, 255)", // Light Sky Blue
+      "rgb(0, 102, 102)", // Deep Aqua
+      "rgb(51, 153, 204)", // Cerulean
+      "rgb(0, 51, 102)", // Midnight Blue
+      "rgb(102, 204, 255)", // Pale Blue
+    ];
+    return colors[index % colors.length];
   }
 
   /**
@@ -888,7 +990,7 @@
    * Creates a health bar element representing the health status over time.
    *
    * @param {number} bucketCount - The number of buckets to divide the time range into.
-   * @param {Array<{time: number, state: string}>} timeMap - An array of objects representing the time and state of each pulse.
+   * @param {Array<PulseDetailResult>} timeMap - An array of objects representing the time and state of each pulse.
    * @param {number} minTimestamp - The minimum timestamp of the time range.
    * @param {number} maxTimestamp - The maximum timestamp of the time range.
    * @returns {HTMLDivElement} The health bar element.

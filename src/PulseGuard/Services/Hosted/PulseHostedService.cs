@@ -8,22 +8,27 @@ using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
 
-public sealed class PulseHostedService(IServiceProvider services, SignalService signalService, IOptions<PulseOptions> options, ILogger<PulseHostedService> logger) : BackgroundService
+public sealed class PulseHostedService(IServiceProvider services, SignalService signalService, IOptionsMonitor<PulseOptions> options, ILogger<PulseHostedService> logger) : BackgroundService
 {
     private readonly IServiceProvider _services = services;
     private readonly SignalService _signalService = signalService;
-    private readonly PulseOptions _options = options.Value;
+    private readonly IOptionsMonitor<PulseOptions> _options = options;
     private readonly ILogger<PulseHostedService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        int interval = _options.Interval;
-        TimeSpan maxExecution = TimeSpan.FromMinutes(interval) - TimeSpan.FromSeconds(5);
-
         while (!stoppingToken.IsCancellationRequested)
         {
+            int interval = _options.CurrentValue.Interval;
+
+            DateTime now = DateTime.UtcNow;
+            DateTime next = new(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+            next = next.AddMinutes(((now.Minute / interval) + 1) * interval);
+            await Task.Delay(next - now, stoppingToken);
+
             try
             {
+                TimeSpan maxExecution = TimeSpan.FromMinutes(interval) - TimeSpan.FromSeconds(5);
                 using CancellationTokenSource cts = new(maxExecution);
                 await CheckPulseAsync(cts.Token);
                 _signalService.Signal();
@@ -31,13 +36,6 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             catch (Exception ex)
             {
                 _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking pulse");
-            }
-            finally
-            {
-                DateTime now = DateTime.UtcNow;
-                DateTime next = new(now.Year, now.Month, now.Day, now.Hour, 0, 0);
-                next = next.AddMinutes(((now.Minute / interval) + 1) * interval);
-                await Task.Delay(next - now, stoppingToken);
             }
         }
     }
@@ -53,7 +51,8 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         var factory = scope.ServiceProvider.GetRequiredService<PulseCheckFactory>();
         var checks = new Task[configurations.Count];
 
-        using SemaphoreSlim semaphore = new(_options.SimultaneousPulses, _options.SimultaneousPulses); // rate gate
+        int simultaneousPulses = _options.CurrentValue.SimultaneousPulses;
+        using SemaphoreSlim semaphore = new(simultaneousPulses, simultaneousPulses); // rate gate
 
         for (int i = 0; i < checks.Length; i++)
         {
