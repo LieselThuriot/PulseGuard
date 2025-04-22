@@ -42,33 +42,40 @@
       <div id="pulse-container" class="d-flex flex-grow-1 overflow-hidden col-12 col-md-4 mb-2 mb-md-0">
         <div class="card shadow-sm d-flex flex-grow-1 overflow-hidden h-100">
           <div class="card-header">
-            <div class="d-flex flex-row justify-content-between">
+            <div class="d-flex flex-row justify-content-between pulse-container-header">
               <div>
                 <i class="bi bi-layers"></i> Overview
               </div>
 
-              <button id="overview-card-filter" class="btn btn-sm btn-outline-secondary py-0" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false">
-                <div class="overview-card-filter-text-all">
-                  <i class="bi bi-list-check me-2"></i>All
+              <div class="d-flex flex-row">
+                <div class="d-none d-md-inline me-3" id="pulse-overlay-clear" data-bs-toggle="tooltip"
+                  data-bs-title="Clear Overlay">
+                  <i class="bi bi-x-square"></i>
                 </div>
-                <div class="overview-card-filter-text-unhealthy">
-                  <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
-                </div>
-              </button>
 
-              <ul class="dropdown-menu">
-                <li>
-                  <a id="overview-card-filter-off" class="dropdown-item" href="#">
+                <button id="overview-card-filter" class="btn btn-sm btn-outline-secondary py-0" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+                  <div class="overview-card-filter-text-all">
                     <i class="bi bi-list-check me-2"></i>All
-                  </a>
-                </li>
-                <li>
-                  <a id="overview-card-filter-on" class="dropdown-item" href="#">
+                  </div>
+                  <div class="overview-card-filter-text-unhealthy">
                     <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
-                  </a>
-                </li>
-              </ul>
+                  </div>
+                </button>
+
+                <ul class="dropdown-menu">
+                  <li>
+                    <a id="overview-card-filter-off" class="dropdown-item" href="#">
+                      <i class="bi bi-list-check me-2"></i>All
+                    </a>
+                  </li>
+                  <li>
+                    <a id="overview-card-filter-on" class="dropdown-item" href="#">
+                      <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
           <div id="overview-card" class="card-body d-flex flex-grow-1 overflow-hidden"></div>

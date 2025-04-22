@@ -215,6 +215,43 @@
       a.appendChild(icon);
       a.appendChild(textSpan);
 
+      const overlayDiv = document.createElement("div");
+      overlayDiv.className = "me-4 d-none d-md-inline pulse-overlay-toggle";
+
+      if (!("group" in item)) {
+        const overlayIcon = document.createElement("i");
+        overlayIcon.className = "bi bi-stack";
+        overlayIcon.setAttribute("data-bs-toggle", "tooltip");
+        overlayIcon.setAttribute("data-bs-placement", "top");
+        overlayIcon.setAttribute("data-bs-title", "Toggle Overlay");
+        new bootstrap.Tooltip(overlayIcon);
+
+        overlayDiv.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const url = new URL(window.location);
+          const overlayParams = url.searchParams.getAll("overlay");
+          if (overlayParams.includes(id)) {
+            url.searchParams.delete("overlay");
+            overlayParams
+              .filter((param) => param !== id)
+              .forEach((param) => url.searchParams.append("overlay", param));
+          } else {
+            url.searchParams.append("overlay", id);
+          }
+          window.history.pushState({}, "", url);
+
+          // Trigger a custom event
+          const eventPushState = new Event("pushstate");
+          window.dispatchEvent(eventPushState);
+        });
+
+        overlayDiv.appendChild(overlayIcon);
+      }
+
+      a.appendChild(overlayDiv);
+
       const healthbar = createHealthBar(item);
       if (healthbar.lastChild.classList.contains("text-bg-success")) {
         a.classList.add("healthy");
@@ -402,11 +439,9 @@
       const pulseContainer = document.querySelector("#pulse-container");
       if (pulseContainer) {
         pulseContainer.classList.add("filter-not-healthy");
-        pulseContainer
-          .querySelectorAll("a.pulse-child.d-none")
-          .forEach((e) => {
-            e.classList.remove("d-none");
-          });
+        pulseContainer.querySelectorAll("a.pulse-child.d-none").forEach((e) => {
+          e.classList.remove("d-none");
+        });
       } else {
         console.error("pulse-container was not found");
       }
@@ -429,5 +464,22 @@
     console.error(
       "overview-card-filter-on or overview-card-filter-off not found."
     );
+  }
+
+  const overlayClearButton = document.querySelector("#pulse-overlay-clear");
+  if (overlayClearButton) {
+    overlayClearButton.addEventListener("click", () => {
+      const url = new URL(window.location);
+      url.searchParams.delete("overlay");
+      window.history.pushState({}, "", url);
+
+      // Trigger a custom event
+      const eventPushState = new Event("pushstate");
+      window.dispatchEvent(eventPushState);
+    });
+
+    new bootstrap.Tooltip(overlayClearButton);
+  } else {
+    console.error("pulse-overlay-clear not found.");
   }
 })();

@@ -101,6 +101,27 @@
   display: inline !important;
 }
 
+.list-group-item .pulse-overlay-toggle {
+  visibility: hidden;
+}
+
+.list-group-item:hover .pulse-overlay-toggle {
+  visibility: visible;
+}
+
+.list-group-item.active:hover .pulse-overlay-toggle {
+  visibility: hidden;
+}
+
+.pulse-container-header #pulse-overlay-clear {
+  visibility: hidden;
+  cursor: pointer;
+}
+
+.pulse-container-header:hover #pulse-overlay-clear {
+  visibility: visible;
+}
+
 @media (max-width: 768px) {
   #pulse-container {
     height: 25vh;

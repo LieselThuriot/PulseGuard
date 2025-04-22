@@ -55,6 +55,9 @@
   /** @type {string} */
   let currentSqid = null;
 
+  /** @type {string[]} */
+  let overlaySqids = [];
+
   /** @type {AbortController} */
   let fetchAbortController;
 
@@ -66,14 +69,18 @@
   function handleQueryParamChange() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqid = urlParams.get("details");
+    const overlays = urlParams.getAll("overlay");
+
     const detailCardContainer = document.querySelector(
       "#detail-card-container"
     );
 
     if (sqid) {
-      if (currentSqid !== sqid) {
+      const stringifiedOverlays = JSON.stringify([...overlays].sort());
+      if (currentSqid !== sqid || overlaySqids !== stringifiedOverlays) {
         currentSqid = sqid;
-        refreshData(sqid);
+        overlaySqids = stringifiedOverlays;
+        refreshData(sqid, overlays);
       }
       if (detailCardContainer) {
         detailCardContainer.classList.remove("d-none");
@@ -181,9 +188,10 @@
   /**
    * Fetches pulse details data from the API and handles the response.
    * @param {string} sqid - The unique identifier for the pulse details.
+   * @param {string[]} sqidOverlays - The unique identifier for the pulse details used as overlays.
    * @returns {Promise<void>} A promise that resolves when the data has been fetched and handled.
    */
-  function refreshData(sqid) {
+  function refreshData(sqid, sqidOverlays) {
     resetDetails();
 
     if (fetchAbortController) {
@@ -192,11 +200,14 @@
 
     fetchAbortController = new AbortController();
 
-    fetch(`../api/1.0/pulses/details/${sqid}`, {
-      method: "get",
-      signal: fetchAbortController.signal,
-    })
-      .then((response) => {
+    const uniqueSqidOverlays = new Set(sqidOverlays || []);
+    uniqueSqidOverlays.delete(sqid);
+
+    const promises = [sqid, ...uniqueSqidOverlays].map((id) =>
+      fetch(`../api/1.0/pulses/details/${id}`, {
+        method: "get",
+        signal: fetchAbortController.signal,
+      }).then((response) => {
         if (!response.ok) {
           throw new Error("Network response was not ok " + response.statusText);
         }
@@ -204,8 +215,11 @@
         const data = response.json();
         return data;
       })
-      .then((data) => {
-        handleData(data);
+    );
+
+    Promise.all(promises)
+      .then(([data, ...overlays]) => {
+        handleData(data, overlays || []);
       })
       .catch((error) => {
         if (error && error.name === "AbortError") {
@@ -266,8 +280,9 @@
   /**
    * Handles the data by sorting, formatting, and displaying it.
    * @param {PulseDetailResultGroup} data - The data to handle.
+   * @param {PulseDetailResultGroup[]} overlays - The data to handle.
    */
-  function handleData(data) {
+  function handleData(data, overlays) {
     destroyChart();
 
     const detailCardElements = getDetailCardElements();
@@ -298,13 +313,33 @@
         : 0;
 
       const timeMap = createTimeMap(filteredData);
+      const overlayTimeMaps = overlays.map((o) => {
+        const group = data.group === o.group ? "" : o.group;
+        return {
+          graphLabel: !!group ? `${group} > ${o.name}` : o.name,
+          map: createTimeMap(
+            filterDataByDateRange(
+              o.items,
+              detailCardElements.fromSelect,
+              detailCardElements.toSelect
+            )
+          ),
+        };
+      });
+
       const minTimestamp = Math.min(...timeMap.keys());
       const maxTimestamp = Math.max(...timeMap.keys());
 
       detailCardChart = renderChart(
         newDecimation,
         newPercentile,
-        [timeMap],
+        [
+          {
+            graphLabel: "Response times (ms)",
+            map: timeMap,
+          },
+          ...overlayTimeMaps,
+        ],
         minTimestamp,
         maxTimestamp
       );
@@ -636,7 +671,7 @@
    *
    * @param {boolean} decimation - Indicates whether data decimation is enabled.
    * @param {number} percentile - The percentile value used for data processing.
-   * @param {Array<Map<number, PulseDetailResult>>} timeMaps - An array of time map objects containing data points.
+   * @param {{graphLabel:string, map:Array<Map<number, PulseDetailResult>>}[]} timeMaps - An array of time map objects containing data points.
    * @param {number} minTimestamp - The minimum timestamp for the chart's x-axis.
    * @param {number} maxTimestamp - The maximum timestamp for the chart's x-axis.
    * @returns {Chart} A Chart.js instance representing the rendered chart.
@@ -656,7 +691,16 @@
     }
 
     const datasets = timeMaps.map((timeMap, index) =>
-      generateDataSet(interval, decimation, labels, timeMap, percentile, index)
+      generateDataSet(
+        interval,
+        decimation,
+        labels,
+        timeMap.map,
+        percentile,
+        index,
+        timeMap.graphLabel,
+        timeMaps.length > 1
+      )
     );
 
     const ctx = document.getElementById("detail-card-chart").getContext("2d");
@@ -684,7 +728,7 @@
             suggestedMin: 0,
             title: {
               display: true,
-              text: "Response Time (ms)",
+              text: "Response times (ms)",
             },
           },
         },
@@ -750,14 +794,17 @@
   }
 
   /**
-   * Generates a dataset for visualizing response times and health states over time.
+   * Generates a dataset for a graph based on provided timestamps, state mappings, and other parameters.
    *
-   * @param {number} interval - The interval in milliseconds between data points.
+   * @param {number} interval - The interval between data points in milliseconds.
    * @param {number} decimation - The decimation factor to reduce the number of data points.
-   * @param {Date[]} timestamps - An array of timestamps representing the time series.
-   * @param {Map<number, {elapsedMilliseconds: number, state: string}>} timeMap - A map where the key is the timestamp (in milliseconds) and the value is an object containing the elapsed time and health state.
-   * @param {number} percentile - The percentile value to calculate for the response times in each bucket.
-   * @returns {object} - A dataset object compatible with charting libraries, including response times, health states, and visual properties.
+   * @param {Date[]} timestamps - An array of timestamps representing the data points.
+   * @param {Map<number, PulseDetailResult>} timeMap - A map of timestamp values to their corresponding elapsed time and state.
+   * @param {number} percentile - The percentile to calculate for the response times in each bucket.
+   * @param {number} graphIndex - The index of the graph for determining its color.
+   * @param {string} graphLabel - The label to use for the graph dataset
+   * @param {boolean} multiDataset - Whether the dataset is part of a multi-dataset graph.
+   * @returns {Object} A dataset object formatted for use in a charting library, including calculated response times, states, and styling information.
    */
   function generateDataSet(
     interval,
@@ -765,7 +812,9 @@
     timestamps,
     timeMap,
     percentile,
-    graphIndex
+    graphIndex,
+    graphLabel,
+    multiDataset
   ) {
     const timestampDecimation = interval * decimation;
     const buckets = [];
@@ -845,12 +894,12 @@
 
     const graphColor = getGraphColor(graphIndex);
     const dataset = {
-      label: "Response Time (ms)",
+      label: graphLabel,
       data: buckets.map((x) => {
         return {
           x: x.timestamp,
           y: calculatePercentile(x.items, percentile),
-          state: x.state
+          state: x.state,
         };
       }),
       borderColor: graphColor,
@@ -861,8 +910,10 @@
       pointBorderColor: graphColor,
       segment: {
         borderDash: (ctx) => skipped(ctx, [6, 6]),
-        borderColor: (ctx) =>
-          skipped(ctx, getStateColor("Unknown", false)) || healthColor(ctx),
+        borderColor: multiDataset
+          ? undefined
+          : (ctx) =>
+              skipped(ctx, getStateColor("Unknown", false)) || healthColor(ctx),
       },
       spanGaps: true,
     };
