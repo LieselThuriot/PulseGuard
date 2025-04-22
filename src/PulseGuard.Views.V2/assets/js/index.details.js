@@ -48,17 +48,19 @@
  */
 
 (async function () {
-  /** @type {Chart} */
+  /** @type {Chart|null} */
   let detailCardChart = null;
+
+  /** @type {Function|null} */
   let renderChartListener = null;
 
-  /** @type {string} */
+  /** @type {string|null} */
   let currentSqid = null;
 
   /** @type {string[]} */
   let overlaySqids = [];
 
-  /** @type {AbortController} */
+  /** @type {AbortController|null} */
   let fetchAbortController;
 
   /**
@@ -162,13 +164,24 @@
             fromDate.getMinutes() - fromDate.getTimezoneOffset()
           );
 
+          const urlParams = new URLSearchParams(window.location.search);
+
           if (fromSelect) {
             fromSelect.value = fromDate.toISOString().slice(0, 16);
+            urlParams.set("from", fromSelect.value);
+          } else {
+            urlParams.delete("from");
           }
 
           if (toSelect) {
             toSelect.value = toDate.toISOString().slice(0, 16);
+            urlParams.set("to", toSelect.value);
+          } else {
+            urlParams.delete("to");
           }
+
+          const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+          window.history.pushState({}, "", newUrl);
         } else {
           if (fromSelect) {
             fromSelect.value = "";
@@ -176,6 +189,12 @@
           if (toSelect) {
             toSelect.value = "";
           }
+
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.delete("from");
+          urlParams.delete("to");
+          const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+          window.history.pushState({}, "", newUrl);
         }
 
         if (!!renderChartListener) {
@@ -298,12 +317,6 @@
     resetInnerHTML(detailCardElements.healthBar);
     resetInnerHTML(detailCardElements.healthBarMd);
     resetBadge(detailCardElements.badge);
-    disableSelectElements([
-      detailCardElements.decimationSelect,
-      detailCardElements.percentileSelect,
-      detailCardElements.fromSelect,
-      detailCardElements.toSelect,
-    ]);
   }
 
   /**
@@ -385,8 +398,7 @@
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
     };
 
-    setupChartListeners(detailCardElements, updateChart);
-
+    renderChartListener = updateChart;
     updateChart();
 
     setBadge(detailCardElements.badge, data.items);
@@ -463,21 +475,6 @@
     } else {
       console.error("Error resetting badge");
     }
-  }
-
-  /**
-   * Disables a list of <select> elements by setting the "disabled" attribute.
-   *
-   * @param {HTMLSelectElement[]} selectElements - An array of <select> elements to disable.
-   */
-  function disableSelectElements(selectElements) {
-    selectElements.forEach((select) => {
-      if (select) {
-        select.setAttribute("disabled", "");
-      } else {
-        console.error("Error disabling select element");
-      }
-    });
   }
 
   /**
@@ -624,39 +621,48 @@
 
   /**
    * Sets up event listeners for chart-related elements and updates the chart when changes occur.
-   *
-   * @param {DetailDomElements} elements - An object containing the DOM elements to attach listeners to.
-   * @param {HTMLElement} elements.decimationSelect - The dropdown element for decimation selection.
-   * @param {HTMLElement} elements.percentileSelect - The dropdown element for percentile selection.
-   * @param {HTMLElement} elements.fromSelect - The dropdown element for the "from" selection.
-   * @param {HTMLElement} elements.toSelect - The dropdown element for the "to" selection.
-   * @param {Function} updateChart - The callback function to update the chart when an event occurs.
    */
-  function setupChartListeners(elements, updateChart) {
+  (function setupChartListeners() {
+    const elements = getDetailCardElements();
     const selectElements = [
-      elements.decimationSelect,
-      elements.percentileSelect,
-      elements.fromSelect,
-      elements.toSelect,
+      { select: elements.decimationSelect, id: "decimation" },
+      { select: elements.percentileSelect, id: "percentile" },
+      { select: elements.fromSelect, id: "from" },
+      { select: elements.toSelect, id: "to" },
     ];
 
-    if (renderChartListener) {
-      selectElements.forEach((select) => {
-        if (select) {
-          select.removeEventListener("change", renderChartListener);
-        }
-      });
-    }
-
-    renderChartListener = updateChart;
-
-    selectElements.forEach((select) => {
+    selectElements.forEach((item) => {
+      const select = item.select;
       if (select) {
-        select.addEventListener("change", renderChartListener);
         select.removeAttribute("disabled");
+        // Set initial state based on URL query params
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const id = item.id;
+        if (urlParams.has(id)) {
+          select.value = urlParams.get(id);
+        }
+
+        select.addEventListener("change", () => {
+          const urlParams = new URLSearchParams(window.location.search);
+
+          if (!!select.value) {
+            urlParams.set(id, select.value);
+          } else {
+            urlParams.delete(id);
+          }
+
+          const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+          window.history.pushState({}, "", newUrl);
+          if (renderChartListener) {
+            renderChartListener();
+          }
+        });
+      } else {
+        console.error("Could not find " + item.id);
       }
     });
-  }
+  })();
 
   /**
    * Updates the badge element with the state of the last item in the provided list.
