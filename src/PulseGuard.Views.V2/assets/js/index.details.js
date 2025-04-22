@@ -207,29 +207,58 @@
       fetch(`../api/1.0/pulses/details/${id}`, {
         method: "get",
         signal: fetchAbortController.signal,
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok " + response.statusText);
-        }
-        /** @type {PulseDetailResultGroup} */
-        const data = response.json();
-        return data;
       })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(
+              "Network response was not ok " + response.statusText
+            );
+          }
+          /** @type {PulseDetailResultGroup} */
+          const data = response.json();
+          return data;
+        })
+        .catch((error) => {
+          // if (error && error.name === "AbortError") {
+          //   //console.debug("Fetch aborted");
+          // } else {
+          //   console.error(
+          //     "There has been a problem with your fetch operation:",
+          //     error
+          //   );
+          // }
+
+          return null;
+        })
     );
 
     Promise.all(promises)
       .then(([data, ...overlays]) => {
-        handleData(data, overlays || []);
-      })
-      .catch((error) => {
-        if (error && error.name === "AbortError") {
-          //console.debug("Fetch aborted");
-        } else {
-          console.error(
-            "There has been a problem with your fetch operation:",
-            error
-          );
+        if (!data) {
+          let toast = {
+            header: "PulseGuard",
+            headerSmall: "",
+            closeButton: true,
+            closeButtonLabel: "close",
+            closeButtonClass: "",
+            animation: true,
+            delay: 5000,
+            position: "bottom-0 end-0",
+            direction: "append",
+            ariaLive: "assertive",
+          };
+
+          toast.header = "❌ PulseGuard";
+          toast.body = "Failed to resolve details for the selected pulse.";
+          toast.toastClass = "toast-danger";
+          bootstrap.showToast(toast);
+
+          resetDetails(false);
+          return;
         }
+
+        const overlayData = (overlays || []).filter((o) => o !== null);
+        handleData(data, overlayData);
       })
       .finally(() => {
         fetchAbortController = null;
@@ -252,12 +281,12 @@
    * Resets the details card by destroying the chart, showing the spinner,
    * and resetting the content of various elements to their default states.
    */
-  function resetDetails() {
+  function resetDetails(spinning = true) {
     destroyChart();
 
     const detailCardElements = getDetailCardElements();
 
-    toggleSpinner(detailCardElements.spinner, true);
+    toggleSpinner(detailCardElements.spinner, spinning);
     toggleElementVisibility(detailCardElements.chart, false);
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
@@ -928,25 +957,42 @@
    * @returns {string} A color in the format rgb(r, g, b).
    */
   function getGraphColor(index) {
-    const colors = [
-      "rgb(75, 192, 192)", // Teal
-      "rgb(54, 162, 235)", // Blue
-      "rgb(153, 102, 255)", // Purple
-      "rgb(102, 204, 255)", // Light Blue
-      "rgb(0, 128, 128)", // Dark Teal
-      "rgb(0, 102, 204)", // Medium Blue
-      "rgb(51, 153, 255)", // Sky Blue
-      "rgb(102, 153, 204)", // Steel Blue
-      "rgb(0, 153, 153)", // Aqua
-      "rgb(51, 102, 153)", // Slate Blue
-      "rgb(0, 76, 153)", // Navy Blue
-      "rgb(102, 178, 255)", // Light Sky Blue
-      "rgb(0, 102, 102)", // Deep Aqua
-      "rgb(51, 153, 204)", // Cerulean
-      "rgb(0, 51, 102)", // Midnight Blue
-      "rgb(102, 204, 255)", // Pale Blue
-    ];
-    return colors[index % colors.length];
+    switch (index) {
+      case 0:
+        return "rgb(75, 192, 192)"; // Teal
+      case 1:
+        return "rgb(54, 163, 235)"; // Blue
+      case 2:
+        return "rgb(153, 102, 255)"; // Purple
+      case 3:
+        return "rgb(102, 204, 255)"; // Light Blue
+      case 4:
+        return "rgb(0, 128, 128)"; // Dark Teal
+      case 5:
+        return "rgb(0, 102, 204)"; // Medium Blue
+      case 6:
+        return "rgb(51, 153, 255)"; // Sky Blue
+      case 7:
+        return "rgb(102, 153, 204)"; // Steel Blue
+      case 8:
+        return "rgb(0, 153, 153)"; // Aqua
+      case 9:
+        return "rgb(51, 102, 153)"; // Slate Blue
+      case 10:
+        return "rgb(0, 76, 153)"; // Navy Blue
+      case 11:
+        return "rgb(102, 178, 255)"; // Light Sky Blue
+      case 12:
+        return "rgb(0, 102, 102)"; // Deep Aqua
+      case 13:
+        return "rgb(51, 153, 204)"; // Cerulean
+      case 14:
+        return "rgb(0, 51, 102)"; // Midnight Blue
+      case 15:
+        return "rgb(102, 204, 255)"; // Pale Blue
+      default:
+        return "rgb(128, 128, 128)"; // Default to Gray for all the rest
+    }
   }
 
   /**
