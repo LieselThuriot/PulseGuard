@@ -877,7 +877,7 @@
         ((!percentile ||
           [state, currentBucket.state].indexOf("Unknown") >= 0) &&
           state !== currentBucket.state) ||
-        time - currentBucket.timestamp >= timestampDecimation
+        time - currentBucket.timestamps[0] >= timestampDecimation
       ) {
         if (currentBucket) {
           buckets.push(currentBucket);
@@ -891,7 +891,7 @@
             const lastItem = timeMap.get(time - interval);
             if (lastItem) {
               buckets.push({
-                timestamp: new Date(time - interval),
+                timestamps: [new Date(time - interval)],
                 state: lastItem.state,
                 items: [lastItem.elapsedMilliseconds],
               });
@@ -900,11 +900,12 @@
         }
 
         currentBucket = {
-          timestamp: timestamp,
+          timestamps: [timestamp],
           state: state,
           items: [elapsedMilliseconds],
         };
       } else {
+        currentBucket.timestamps.push(timestamp);
         currentBucket.items.push(elapsedMilliseconds);
 
         const worstStateIndex = Math.max(
@@ -931,8 +932,19 @@
     const dataset = {
       label: graphLabel,
       data: buckets.map((x) => {
+        const centerTimestamp =
+          x.timestamps.length === 1
+            ? x.timestamps[0]
+            : new Date(
+                (x.timestamps[0].getTime() +
+                  x.timestamps[x.timestamps.length - 1].getTime()) /
+                  2
+              );
+
+        centerTimestamp.setSeconds(0, 0);
+
         return {
-          x: x.timestamp,
+          x: centerTimestamp,
           y: calculatePercentile(x.items, percentile),
           state: x.state,
         };
