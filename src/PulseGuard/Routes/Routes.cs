@@ -1,9 +1,27 @@
-﻿namespace PulseGuard.Routes;
+﻿using Scalar.AspNetCore;
+
+namespace PulseGuard.Routes;
 
 public static class Routes
 {
-    public static void MapRoutes(this WebApplication app)
+    public static void MapRoutes(this WebApplication app, bool authorized)
     {
+        app.UseHttpsRedirection();
+
+        IEndpointRouteBuilder routes = app;
+
+        if (authorized)
+        {
+            app.UseAuthorization();
+            routes = routes.MapGroup("").RequireAuthorization();
+        }
+
+        //if (app.Environment.IsDevelopment())
+        {
+            routes.MapOpenApi();
+            routes.MapScalarApiReference();
+        }
+
         app.Use((context, next) =>
         {
             context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
@@ -20,12 +38,12 @@ public static class Routes
             }
         });
 
-        app.MapPulses();
-        app.MapBadges();
+        routes.MapPulses();
+        routes.MapBadges();
 
-        Views.Routes.MapViews(app.MapGroup("").WithTags("Views").ExcludeFromDescription());
-        Views.V2.Routes.MapViews(app.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
+        Views.Routes.MapViews(routes.MapGroup("").WithTags("Views").ExcludeFromDescription());
+        Views.V2.Routes.MapViews(routes.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
 
-        app.MapHealth();
+        app.MapHealth(authorized);
     }
 }

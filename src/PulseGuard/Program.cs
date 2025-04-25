@@ -3,7 +3,6 @@ using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
-using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +37,8 @@ builder.Services.ConfigurePulseServices();
 
 builder.Services.AddOpenApi();
 
+bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
+
 var app = builder.Build();
 
 string? pathBase = app.Configuration["PathBase"];
@@ -47,16 +48,6 @@ if (!string.IsNullOrEmpty(pathBase))
     app.UseRouting();
 }
 
-//if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
-
-app.UseHttpsRedirection();
-
-//app.UseAuthorization();
-
-app.MapRoutes();
+app.MapRoutes(authorized);
 
 app.Run();

@@ -8,7 +8,7 @@ public static class BadgeRoutes
 {
     private const string UnknownColor = "2196F3";
 
-    public static void MapBadges(this WebApplication app)
+    public static void MapBadges(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/1.0/badges").WithTags("Badges");
 
@@ -44,6 +44,7 @@ public static class BadgeRoutes
                 HttpRequestMessage request = new(HttpMethod.Get, url);
 
                 request.Headers.UserAgent.TryParseAdd(httpContext.Request.Headers.UserAgent);
+                request.Headers.Accept.TryParseAdd(httpContext.Request.Headers.Accept);
                 request.Headers.AcceptEncoding.TryParseAdd(httpContext.Request.Headers.AcceptEncoding);
                 request.Headers.AcceptLanguage.TryParseAdd(httpContext.Request.Headers.AcceptLanguage);
 

@@ -11,7 +11,7 @@ namespace PulseGuard.Routes;
 
 public static class PulseRoutes
 {
-    public static void MapPulses(this WebApplication app)
+    public static void MapPulses(this IEndpointRouteBuilder app)
     {
         RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses").WithTags("Pulses");
 

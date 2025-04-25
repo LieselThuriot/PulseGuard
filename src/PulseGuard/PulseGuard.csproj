@@ -12,6 +12,7 @@
 		<PackageReference Include="Azure.Storage.Queues" />
 		<PackageReference Include="FastExpressionCompiler" />
 		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Microsoft.Extensions.Http.Polly" />
 		<PackageReference Include="Newtonsoft.Json" />

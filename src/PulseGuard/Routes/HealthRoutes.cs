@@ -11,7 +11,7 @@ namespace PulseGuard.Routes;
 
 public static class HealthRoutes
 {
-    public static void MapHealth(this WebApplication app)
+    public static void MapHealth(this IEndpointRouteBuilder app, bool authorized)
     {
         var healthGroup = app.MapGroup("/health").WithTags("Health");
 
@@ -50,7 +50,7 @@ public static class HealthRoutes
             return TypedResults.Text(state.Stringify(), MediaTypeNames.Text.Plain, Encoding.Default, statusCode);
         });
 
-        healthGroup.MapGet("applications", (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
+        var detailedHealth = healthGroup.MapGet("applications", (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
         {
             DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
             return context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
@@ -60,5 +60,10 @@ public static class HealthRoutes
                           .OrderBy(x => x.Name)
                           .ToDictionaryAsync(x => x.Name, x => x.State, token);
         });
+
+        if (authorized)
+        {
+            detailedHealth.RequireAuthorization();
+        }
     }
 }
