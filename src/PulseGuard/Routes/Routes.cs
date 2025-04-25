@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.HttpOverrides;
-using Scalar.AspNetCore;
+﻿using Scalar.AspNetCore;
 
 namespace PulseGuard.Routes;
 
@@ -13,11 +12,6 @@ public static class Routes
 
         if (authorized)
         {
-            app.UseForwardedHeaders(new()
-            {
-                ForwardedHeaders = ForwardedHeaders.All
-            });
-
             app.UseAuthorization();
             routes = routes.MapGroup("").RequireAuthorization();
         }
@@ -50,6 +44,6 @@ public static class Routes
         Views.Routes.MapViews(routes.MapGroup("").WithTags("Views").ExcludeFromDescription());
         Views.V2.Routes.MapViews(routes.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
 
-        app.MapHealth(authorized);
+        routes.MapHealth();
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using PulseGuard.Entities;
 using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
@@ -37,12 +38,18 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new()
+{
+    ForwardedHeaders = ForwardedHeaders.All
+});
+
 string? pathBase = app.Configuration["PathBase"];
 if (!string.IsNullOrEmpty(pathBase))
 {
     app.UsePathBase(pathBase);
-    app.UseRouting();
 }
+
+app.UseRouting();
 
 app.MapRoutes(authorized);
 
