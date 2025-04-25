@@ -13,11 +13,9 @@ string storeConnectionString = builder.Configuration.GetConnectionString("PulseS
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
 
-builder.Services.AddApplicationInsightsTelemetry(x =>
-{
-    x.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-    x.EnableDependencyTrackingTelemetryModule = bool.TryParse(builder.Configuration["APPLICATIONINSIGHTS_DEPENDENCY_TRACKING"], out bool track) && track;
-});
+bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
+
+builder.Services.ConfigurePulseTelemetry(builder.Configuration, authorized);
 
 builder.Services.ConfigureHttpJsonOptions(x =>
 {
@@ -36,8 +34,6 @@ x =>
 builder.Services.ConfigurePulseServices();
 
 builder.Services.AddOpenApi();
-
-bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
