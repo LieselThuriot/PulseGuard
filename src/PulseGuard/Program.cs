@@ -43,6 +43,8 @@ app.UseForwardedHeaders(new()
     ForwardedHeaders = ForwardedHeaders.All
 });
 
+app.UseHttpsRedirection();
+
 string? pathBase = app.Configuration["PathBase"];
 if (!string.IsNullOrEmpty(pathBase))
 {

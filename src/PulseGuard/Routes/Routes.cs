@@ -6,8 +6,6 @@ public static class Routes
 {
     public static void MapRoutes(this WebApplication app, bool authorized)
     {
-        app.UseHttpsRedirection();
-
         IEndpointRouteBuilder routes = app;
 
         if (authorized)
