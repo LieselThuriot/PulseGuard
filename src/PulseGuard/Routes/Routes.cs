@@ -1,4 +1,5 @@
 ﻿using Scalar.AspNetCore;
+using System.Text;
 
 namespace PulseGuard.Routes;
 
@@ -43,5 +44,17 @@ public static class Routes
         Views.V2.Routes.MapViews(routes.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
 
         routes.MapHealth();
+
+        app.MapGet("/test/headers", (HttpRequest request) =>
+        {
+            StringBuilder builder = new();
+
+            foreach (var (key, header) in request.Headers)
+            {
+                builder.AppendLine($"{key}: {header}");
+            }
+
+            return TypedResults.Text(builder.ToString());
+        }).WithName("TestHeaders").WithTags("Test").ExcludeFromDescription();
     }
 }
