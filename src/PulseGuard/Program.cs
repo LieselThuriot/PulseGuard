@@ -36,12 +36,16 @@ builder.Services.ConfigurePulseServices();
 
 builder.Services.AddOpenApi();
 
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.All;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
-app.UseForwardedHeaders(new()
-{
-    ForwardedHeaders = ForwardedHeaders.All
-});
+app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 
