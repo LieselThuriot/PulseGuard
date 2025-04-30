@@ -34,15 +34,15 @@ internal static class AuthSetup
                     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
                 })
-                .AddCookie(o =>
+                .AddCookie(options =>
                 {
-                    o.Cookie.SameSite = SameSiteMode.Strict;
-                    o.Cookie.HttpOnly = true;
-                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Cookie.SameSite = SameSiteMode.Strict;
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 
                     if (!string.IsNullOrEmpty(pathBase))
                     {
-                        o.Cookie.Path = pathBase;
+                        options.Cookie.Path = pathBase;
                     }
                 })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
