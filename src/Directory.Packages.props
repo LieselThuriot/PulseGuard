@@ -9,7 +9,7 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.22.0" />
     <PackageVersion Include="FastExpressionCompiler" Version="5.1.1" />
-    <PackageVersion Include="MagicConstants" Version="1.0.0-preview-03" />
+    <PackageVersion Include="MagicConstants" Version="1.0.0-preview-05" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.4" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
@@ -24,7 +24,7 @@
     <PackageVersion Include="protobuf-net.BuildTools" Version="3.2.52" />
     <PackageVersion Include="roslynator.analyzers" Version="4.13.1" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.13.1" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.2.1" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.2.3" />
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.0-preview-02" />
     <PackageVersion Include="Sqids" Version="3.1.0" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
