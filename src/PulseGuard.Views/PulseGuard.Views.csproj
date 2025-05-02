@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<AdditionalFiles Include="**\*.html" MagicClass="Pages" MagicRemoveRouteExtension="true" MagicCacheControl="no-cache, no-store, must-revalidate" />
+		<AdditionalFiles Include="**\*.html" MagicClass="Pages" MagicRemoveRouteExtension="true" MagicCacheControl="public, max-age=1200" />
 		<AdditionalFiles Include="**\*.svg" MagicClass="Images" />
 		<AdditionalFiles Include="**\*.png" MagicClass="Images" />
 		<AdditionalFiles Include="**\*.ico" MagicClass="Images" />
