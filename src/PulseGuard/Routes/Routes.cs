@@ -26,7 +26,7 @@ public static class Routes
             context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
             return context.Request.Path.Value switch
             {
-                null or "" or "/v-next" => DoRedirect(),
+                null or "" or "/v1" => DoRedirect(),
                 _ => next()
             };
 
@@ -40,21 +40,9 @@ public static class Routes
         routes.MapPulses();
         routes.MapBadges();
 
-        Views.Routes.MapViews(routes.MapGroup("").WithTags("Views").ExcludeFromDescription());
-        Views.V2.Routes.MapViews(routes.MapGroup("v-next").WithTags("V-Next").ExcludeFromDescription());
+        Views.V2.Routes.MapViews(routes.MapGroup("").WithTags("Views V2").ExcludeFromDescription());
+        Views.Routes.MapViews(routes.MapGroup("v1").WithTags("Views V1").ExcludeFromDescription());
 
         routes.MapHealth();
-
-        app.MapGet("/test/headers", (HttpRequest request) =>
-        {
-            StringBuilder builder = new();
-
-            foreach (var (key, header) in request.Headers)
-            {
-                builder.AppendLine($"{key}: {header}");
-            }
-
-            return TypedResults.Text(builder.ToString());
-        }).WithName("TestHeaders").WithTags("Test").ExcludeFromDescription();
     }
 }
