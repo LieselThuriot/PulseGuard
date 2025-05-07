@@ -165,7 +165,7 @@
 
         let myChart;
 
-        fetch(`../../api/1.0/pulses/application/${sqid}/states?days=${days}`)
+        fetch(`../../../api/1.0/pulses/application/${sqid}/states?days=${days}`)
             .then(response => response.json())
             .then(data => {
 

@@ -737,7 +737,7 @@
                 parent.appendChild(card);
             }
 
-            fetch(`api/1.0/pulses?minutes=${totalMinutes}${(!!groupFilter ? '&f=' + groupFilter : '')}`)
+            fetch(`../api/1.0/pulses?minutes=${totalMinutes}${(!!groupFilter ? '&f=' + groupFilter : '')}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data || data.length === 0) {

@@ -223,7 +223,7 @@
     uniqueSqidOverlays.delete(sqid);
 
     const promises = [sqid, ...uniqueSqidOverlays].map((id) =>
-      fetch(`../api/1.0/pulses/details/${id}`, {
+      fetch(`api/1.0/pulses/details/${id}`, {
         method: "get",
         signal: fetchAbortController.signal,
       })

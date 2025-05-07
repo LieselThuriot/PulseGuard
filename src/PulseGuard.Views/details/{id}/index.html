@@ -375,7 +375,7 @@
                             const fetchNext = function () {
                                 navigation.innerHTML = '';
 
-                                fetch(`../api/1.0/pulses/application/${sqid}?continuationToken=${continuationToken}`)
+                                fetch(`../../api/1.0/pulses/application/${sqid}?continuationToken=${continuationToken}`)
                                     .then(response => response.json())
                                     .then(data => {
                                         continuationToken = data.continuationToken;
@@ -418,7 +418,7 @@
                 }
             }
 
-            fetch(`../api/1.0/pulses/application/${sqid}`)
+            fetch(`../../api/1.0/pulses/application/${sqid}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data) {
