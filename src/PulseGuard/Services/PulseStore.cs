@@ -66,7 +66,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogError(PulseEventIds.Store, e, "Failed to append pulse check result for {Name} -- Creating a new one.", report.Options.Name);
+            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Name} -- Creating a new one.", report.Options.Name);
             await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, elapsedMilliseconds), token);
         }
 

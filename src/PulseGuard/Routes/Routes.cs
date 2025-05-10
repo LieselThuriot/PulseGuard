@@ -1,5 +1,4 @@
 ﻿using Scalar.AspNetCore;
-using System.Text;
 
 namespace PulseGuard.Routes;
 
