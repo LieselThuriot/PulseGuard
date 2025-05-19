@@ -73,28 +73,26 @@
     const sqid = urlParams.get("details");
     const overlays = urlParams.getAll("overlay");
 
-    const detailCardContainer = document.querySelector(
-      "#detail-card-container"
-    );
+    const detailCardContainer = document.querySelector("#detail-card-container");
+    const detailCardPlaceholder = document.querySelector("#pulse-detail-placeholder");
+
+    function showElement(el, show) {
+      if (!el) return;
+      el.classList.toggle("d-none", !show);
+    }
 
     if (sqid) {
-      const stringifiedOverlays = JSON.stringify([...overlays].sort());
-      if (currentSqid !== sqid || overlaySqids !== stringifiedOverlays) {
+      const overlaysKey = JSON.stringify([...overlays].sort());
+      if (currentSqid !== sqid || overlaySqids !== overlaysKey) {
         currentSqid = sqid;
-        overlaySqids = stringifiedOverlays;
+        overlaySqids = overlaysKey;
         refreshData(sqid, overlays);
       }
-      if (detailCardContainer) {
-        detailCardContainer.classList.remove("d-none");
-      } else {
-        console.error("Error getting detail-card-container");
-      }
+      showElement(detailCardContainer, true);
+      showElement(detailCardPlaceholder, false);
     } else {
-      if (detailCardContainer) {
-        detailCardContainer.classList.add("d-none");
-      } else {
-        console.error("Error getting detail-card-container");
-      }
+      showElement(detailCardContainer, false);
+      showElement(detailCardPlaceholder, true);
     }
   }
 
@@ -548,7 +546,7 @@
     if (healthBar) {
       healthBar.innerHTML = "";
       healthBar.appendChild(
-        createHealthBar(100, timeMap, minTimestamp, maxTimestamp)
+        createHealthBar(144, timeMap, minTimestamp, maxTimestamp)
       );
     } else {
       console.error("Error updating health bar");
@@ -557,7 +555,7 @@
     if (healthBarMd) {
       healthBarMd.innerHTML = "";
       healthBarMd.appendChild(
-        createHealthBar(50, timeMap, minTimestamp, maxTimestamp)
+        createHealthBar(72, timeMap, minTimestamp, maxTimestamp)
       );
     } else {
       console.error("Error updating medium health bar");

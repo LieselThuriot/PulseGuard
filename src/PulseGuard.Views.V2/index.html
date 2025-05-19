@@ -15,74 +15,97 @@
   <link href="assets/css/index.css?{MAGIC_HASH}" rel="stylesheet" />
 </head>
 
-<body class="d-flex vh-100 m-0 p-0 overflow-hidden flex-column">
-  <nav class="navbar sticky-top bg-body-tertiary">
+<body class="d-flex flex-column vh-100 m-0 p-0">
+  <nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
         <img src="assets/img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
         PulseGuard
       </a>
+      <div class="d-flex flex-row align-items-center">
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="theme-picker"
+            data-bs-toggle="dropdown">
+            <i id="theme-picker-icon" class="bi bi-moon-stars-fill"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end mode-switch">
+            <li><a class="dropdown-item" id="dark" href="#"><i class="bi bi-moon-stars-fill"></i> Dark</a></li>
+            <li><a class="dropdown-item" id="light" href="#"><i class="bi bi-brightness-high-fill"></i> Light</a></li>
+            <li><a class="dropdown-item" id="auto" href="#"><i class="bi bi-circle-half"></i> Auto</a></li>
+          </ul>
+        </div>
 
-      <div class="dropdown">
-        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="theme-picker"
-          data-bs-toggle="dropdown">
-          <i id="theme-picker-icon" class="bi bi-moon-stars-fill"></i>
+        <button class="navbar-toggler ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarOffcanvasLg"
+          aria-controls="navbarOffcanvasLg" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end mode-switch">
-          <li><a class="dropdown-item" id="dark" href="#"><i class="bi bi-moon-stars-fill"></i> Dark</a></li>
-          <li><a class="dropdown-item" id="light" href="#"><i class="bi bi-brightness-high-fill"></i> Light</a></li>
-          <li><a class="dropdown-item" id="auto" href="#"><i class="bi bi-circle-half"></i> Auto</a></li>
-        </ul>
       </div>
     </div>
   </nav>
 
-  <div class="container-fluid my-3 d-flex flex-grow-1 overflow-hidden">
-    <div class="row d-flex flex-grow-1 overflow-hidden">
-      <div id="pulse-container" class="d-flex flex-grow-1 overflow-hidden col-12 col-md-4 mb-2 mb-md-0">
-        <div class="card shadow-sm d-flex flex-grow-1 overflow-hidden h-100">
-          <div class="card-header">
-            <div class="d-flex flex-row justify-content-between pulse-container-header">
-              <div>
-                <i class="bi bi-layers"></i> Overview
-              </div>
+  <div class="container-fluid my-3">
+    <div class="row">
+      <div id="pulse-container" class="col-12 col-lg-4">
 
-              <div class="d-flex flex-row">
-                <div class="d-none d-md-inline me-3" id="pulse-overlay-clear" data-bs-toggle="tooltip"
-                  data-bs-title="Clear Overlay">
-                  <i class="bi bi-x-square"></i>
+        <nav class="navbar navbar-expand-lg p-0">
+          <div class="offcanvas offcanvas-end p-2 p-lg-0" tabindex="-1" id="navbarOffcanvasLg"
+            aria-labelledby="navbarOffcanvasLgLabel">
+
+            <div class="offcanvas-header">
+              <h5 class="offcanvas-title" id="offcanvasNavbarLabel"><i class="bi bi-layers"></i> Overview</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+
+            <div class="card shadow-sm">
+              <div class="card-header d-none d-lg-block">
+                <div class="d-flex flex-row justify-content-between pulse-container-header">
+                  <div class="d-inline-block d-lg-inline-block">
+                    <i class="bi bi-layers"></i> Overview
+                  </div>
+
+                  <div class="d-flex flex-row">
+                    <div class="me-3" id="pulse-overlay-clear" data-bs-toggle="tooltip" data-bs-title="Clear Overlay">
+                      <i class="bi bi-x-square"></i>
+                    </div>
+
+                    <button id="overview-card-filter" class="btn btn-sm btn-outline-secondary py-0" type="button"
+                      data-bs-toggle="dropdown" aria-expanded="false">
+                      <div class="overview-card-filter-text-all">
+                        <i class="bi bi-list-check me-2"></i>All
+                      </div>
+                      <div class="overview-card-filter-text-unhealthy">
+                        <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
+                      </div>
+                    </button>
+
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a id="overview-card-filter-off" class="dropdown-item" href="#">
+                          <i class="bi bi-list-check me-2"></i>All
+                        </a>
+                      </li>
+                      <li>
+                        <a id="overview-card-filter-on" class="dropdown-item" href="#">
+                          <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-
-                <button id="overview-card-filter" class="btn btn-sm btn-outline-secondary py-0" type="button"
-                  data-bs-toggle="dropdown" aria-expanded="false">
-                  <div class="overview-card-filter-text-all">
-                    <i class="bi bi-list-check me-2"></i>All
-                  </div>
-                  <div class="overview-card-filter-text-unhealthy">
-                    <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
-                  </div>
-                </button>
-
-                <ul class="dropdown-menu">
-                  <li>
-                    <a id="overview-card-filter-off" class="dropdown-item" href="#">
-                      <i class="bi bi-list-check me-2"></i>All
-                    </a>
-                  </li>
-                  <li>
-                    <a id="overview-card-filter-on" class="dropdown-item" href="#">
-                      <i class="bi bi-exclamation-diamond me-2"></i>Unhealthy
-                    </a>
-                  </li>
-                </ul>
               </div>
+              <div id="overview-card" class="card-body"></div>
             </div>
           </div>
-          <div id="overview-card" class="card-body d-flex flex-grow-1 overflow-hidden"></div>
-        </div>
+        </nav>
       </div>
-      <div id="pulse-detail-container" class="d-flex flex-grow-1 overflow-hidden col-12 col-md-8">
-        <div class="card shadow-sm d-flex flex-grow-1 overflow-hidden d-none" id="detail-card-container">
+      <div id="pulse-detail-container" class="col-12 col-lg-8">
+
+        <div id="pulse-detail-placeholder" class="alert border d-flex flex-column align-items-center">
+          <!-- <img src="assets/img/pulseguard.png" alt="PulseGuard" width="100" height="100" class="d-inline-block mb-2"> -->
+          <span>« Select a pulse to view its details »</span>
+        </div>
+
+        <div class="card shadow-sm d-none" id="detail-card-container">
           <div class="card-header d-flex justify-content-between">
             <span id="detail-card-header">...</span>
             <div class="d-flex flex-nowrap my-auto">
@@ -96,8 +119,8 @@
           </div>
           <div id="detail-card" class="card-body d-flex flex-column">
             <div class="row mb-2">
-              <div class="col-12 col-md-6">
-                <div class="input-group mb-2 mb-md-0">
+              <div class="col-12 col-lg-6">
+                <div class="input-group mb-2 mb-lg-0">
                   <input id="detail-card-chart-from" class="form-control" type="datetime-local" disabled />
 
                   <button id="detail-card-filter" class="btn btn-outline-secondary" type="button"
@@ -122,8 +145,8 @@
                 </div>
               </div>
 
-              <div class="col-6 col-md-3">
-                <div class="input-group mb-2 mb-md-0">
+              <div class="col-6 col-lg-3">
+                <div class="input-group mb-2 mb-lg-0">
                   <label class="input-group-text" for="detail-card-chart-decimation">M</label>
                   <select class="form-select disabled" id="detail-card-chart-decimation" disabled>
                     <option value="5">5 minutes</option>
@@ -138,8 +161,8 @@
                 </div>
               </div>
 
-              <div class="col-6 col-md-3">
-                <div class="input-group mb-2 mb-md-0">
+              <div class="col-6 col-lg-3">
+                <div class="input-group mb-2 mb-lg-0">
                   <label class="input-group-text" for="detail-card-chart-percentile">
                     <i class="bi bi-percent"></i>
                   </label>
@@ -157,16 +180,16 @@
             </div>
 
             <div class="row mb-2 healthbar-container">
-              <div class="col-12 d-none d-md-block" id="detail-card-healthbar">
+              <div class="col-12 d-none d-lg-block" id="detail-card-healthbar">
                 ...
               </div>
-              <div class="col-12 d-md-none" id="detail-card-healthbar-md">
+              <div class="col-12 d-lg-none" id="detail-card-healthbar-md">
                 ...
               </div>
             </div>
 
             <div class="row mb-2">
-              <div class="col-12 col-md-2 mb-2 mb-md-0">
+              <div class="col-12 col-lg-2 mb-2 mb-lg-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-play-fill me-2"></i>Since</div>
                   <div class="card-body">
@@ -175,7 +198,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-2 mb-2 mb-md-0">
+              <div class="col-12 col-lg-2 mb-2 mb-lg-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-stopwatch me-2"></i>Average</div>
                   <div class="card-body">
@@ -186,7 +209,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-2 mb-2 mb-md-0">
+              <div class="col-12 col-lg-2 mb-2 mb-lg-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-check-all me-2"></i>Uptime</div>
                   <div class="card-body">
@@ -197,7 +220,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-2 mb-2 mb-md-0">
+              <div class="col-12 col-lg-2 mb-2 mb-lg-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-bug me-2"></i>Error Rate</div>
                   <div class="card-body">
@@ -208,7 +231,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-2 mb-2 mb-md-0">
+              <div class="col-12 col-lg-2 mb-2 mb-lg-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-clock-history me-2"></i>Time-out Rate</div>
                   <div class="card-body">
@@ -219,7 +242,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-2 mb-0">
+              <div class="col-12 col-lg-2 mb-0">
                 <div class="card h-100">
                   <div class="card-header"><i class="bi bi-arrow-down-up me-2"></i>Volatility</div>
                   <div class="card-body">

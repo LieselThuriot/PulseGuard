@@ -147,6 +147,8 @@
           showDetails(item, indentGroup);
         });
 
+        a.setAttribute("data-bs-dismiss", "offcanvas");
+
         if (!!indentGroup) {
           a.classList.add("pulse-child");
           a.classList.add("pulse-selection-" + toggleGroup);

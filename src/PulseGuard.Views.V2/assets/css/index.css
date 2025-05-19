@@ -81,6 +81,12 @@
   --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
 }
 
+#overview-card,
+#detail-card {
+  overflow: auto;
+  max-height: calc(100vh - 8rem);
+}
+
 #pulse-container .overview-card-filter-text-all {
   display: inline !important;
 }
@@ -123,20 +129,6 @@
 }
 
 @media (max-width: 768px) {
-  #pulse-container {
-    height: 25vh;
-  }
-
-  #pulse-detail-container {
-    max-height: calc(75vh - 7rem);
-    height: 100%;
-  }
-
-  #detail-card {
-    height: 48vh; /** TODO: This is dirty */
-    overflow: auto;
-  }
-
   .offcanvas {
     --bs-offcanvas-width: 100%;
   }

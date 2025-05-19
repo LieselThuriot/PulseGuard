@@ -42,7 +42,6 @@ internal static class TelemetrySetup
                 return;
             }
 
-            telemetry.Context.User.Id = userId;
             telemetry.Context.User.AuthenticatedUserId = userId;
         }
     }
