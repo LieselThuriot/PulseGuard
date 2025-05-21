@@ -19,6 +19,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(StatusApiResponse))]
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(PulseEvent))]
+[JsonSerializable(typeof(PulseEventInfo))]
 [JsonSerializable(typeof(PulseDetailResultGroup))]
 [JsonSerializable(typeof(PulseDetailResult))]
 [JsonSerializable(typeof(Entities.Pulse))]
@@ -32,6 +33,7 @@ public partial class PulseSerializerContext : JsonSerializerContext;
 internal static class SerializerExtensions
 {
     public static string Serialize<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.Serialize(value, typeInfo);
+    public static Task SerializeAsync<T>(this JsonTypeInfo<T> typeInfo, Stream stream, T value, CancellationToken token) => JsonSerializer.SerializeAsync(stream, value, typeInfo, token);
     public static byte[] SerializeToUtf8Bytes<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
     public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, string value) => JsonSerializer.Deserialize(value, typeInfo);
     public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, ReadOnlySpan<byte> value) => JsonSerializer.Deserialize(value, typeInfo);
