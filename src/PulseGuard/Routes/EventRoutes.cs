@@ -1,8 +1,11 @@
-﻿using Microsoft.Net.Http.Headers;
+﻿using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
+using PulseGuard.Entities;
 using PulseGuard.Models;
 using PulseGuard.Services;
 using System.Collections.Concurrent;
 using System.Net.Mime;
+using TableStorage.Linq;
 
 namespace PulseGuard.Routes;
 
@@ -12,41 +15,85 @@ public static class EventRoutes
     {
         RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses/events").WithTags("Events");
 
-        group.MapGet("", async (HttpContext ctx, IPulseRegistrationService pulseEventService) =>
+        group.MapGet("", async (HttpResponse response, IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
         {
+            response.SetEventingHeader();
+
+            await ProcessLastEvents(response, options, context, token);
+
             using PulseEventListener listener = new();
-            await ListenAndProcess(ctx, pulseEventService, listener);
+            await listener.ListenAndProcess(pulseEventService, response, token);
         })
         .Produces<IAsyncEnumerable<PulseEventInfo>>(contentType: MediaTypeNames.Text.EventStream);
 
-        group.MapGet("application/{application}", async (HttpContext ctx, IPulseRegistrationService pulseEventService, string application) =>
+        group.MapGet("application/{application}", async (HttpResponse response, IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string application, CancellationToken token) =>
         {
+            response.SetEventingHeader();
+
+            await ProcessLastEvents(response, options, context, token);
+
             using FilteredPulseEventListener listener = new(x => x.Id == application);
-            await ListenAndProcess(ctx, pulseEventService, listener);
+            await listener.ListenAndProcess(pulseEventService, response, token);
         })
         .Produces<IAsyncEnumerable<PulseEventInfo>>(contentType: MediaTypeNames.Text.EventStream);
 
-        group.MapGet("group/{group}", async (HttpContext ctx, IPulseRegistrationService pulseEventService, string group) =>
+        group.MapGet("group/{group}", async (HttpResponse response, IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string group, CancellationToken token) =>
         {
+            response.SetEventingHeader();
+
+            await ProcessLastEvents(response, options, context, token);
+
             using FilteredPulseEventListener listener = new(x => x.Group == group);
-            await ListenAndProcess(ctx, pulseEventService, listener);
+            await listener.ListenAndProcess(pulseEventService, response, token);
         })
         .Produces<IAsyncEnumerable<PulseEventInfo>>(contentType: MediaTypeNames.Text.EventStream);
     }
 
-    private static async Task ListenAndProcess(HttpContext ctx, IPulseRegistrationService pulseEventService, PulseEventListener listener)
+    private static async Task ProcessLastEvents(HttpResponse response, IOptions<PulseOptions> options, PulseContext context, CancellationToken token)
+    {
+        DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
+        var query = context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
+                      .SelectFields(x => new { x.Sqid, x.Group, x.Name, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
+                      .GroupBy(x => new { x.Group, x.Sqid })
+                      .SelectAwait(x => x.OrderByDescending(y => y.LastUpdatedTimestamp)
+                                         .Select(x => new PulseEventInfo()
+                                         {
+                                             Id = x.Sqid,
+                                             Group = x.Group,
+                                             Name = x.Name,
+                                             State = x.State,
+                                             Creation = x.LastUpdatedTimestamp,
+                                             ElapsedMilliseconds = x.LastElapsedMilliseconds.GetValueOrDefault()
+                                         })
+                                         .FirstAsync(token));
+
+        await foreach (PulseEventInfo pulseEventInfo in query.WithCancellation(token))
+        {
+            await WriteEvent(response, pulseEventInfo, token);
+        }
+    }
+
+    private static void SetEventingHeader(this HttpResponse response)
+    {
+        response.Headers.Append(HeaderNames.ContentType, MediaTypeNames.Text.EventStream);
+    }
+
+    private static async Task ListenAndProcess(this PulseEventListener listener, IPulseRegistrationService pulseEventService, HttpResponse response, CancellationToken cancellationToken)
     {
         using IDisposable registration = pulseEventService.Listen(listener);
 
-        ctx.Response.Headers.Append(HeaderNames.ContentType, MediaTypeNames.Text.EventStream);
-
-        await foreach (PulseEventInfo pulseEventInfo in listener.WithCancellation(ctx.RequestAborted))
+        await foreach (PulseEventInfo pulseEventInfo in listener.WithCancellation(cancellationToken))
         {
-            await ctx.Response.WriteAsync("data: ", ctx.RequestAborted);
-            await PulseSerializerContext.Default.PulseEventInfo.SerializeAsync(ctx.Response.Body, pulseEventInfo, ctx.RequestAborted);
-            await ctx.Response.WriteAsync("\n\n", ctx.RequestAborted);
-            await ctx.Response.Body.FlushAsync(ctx.RequestAborted);
+            await WriteEvent(response, pulseEventInfo, cancellationToken);
         }
+    }
+
+    private static async Task WriteEvent(HttpResponse response, PulseEventInfo pulseEventInfo, CancellationToken cancellationToken)
+    {
+        await response.WriteAsync("data: ", cancellationToken);
+        await PulseSerializerContext.Default.PulseEventInfo.SerializeAsync(response.Body, pulseEventInfo, cancellationToken);
+        await response.WriteAsync("\n\n", cancellationToken);
+        await response.Body.FlushAsync(cancellationToken);
     }
 
     private sealed class FilteredPulseEventListener(Func<PulseEventInfo, bool> filter) : PulseEventListener

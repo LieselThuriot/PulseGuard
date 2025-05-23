@@ -15,6 +15,7 @@ public sealed partial class Pulse
     public partial PulseStates State { get; set; }
     public partial DateTimeOffset CreationTimestamp { get; set; }
     public partial DateTimeOffset LastUpdatedTimestamp { get; set; }
+    public partial long? LastElapsedMilliseconds { get; set; }
 
     public string GetFullName()
     {

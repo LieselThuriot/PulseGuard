@@ -8,7 +8,7 @@ namespace PulseGuard.Models;
     JsonSerializerDefaults.Web,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     UseStringEnumConverter = true,
-    WriteIndented = true)]
+    WriteIndented = false)]
 [JsonSerializable(typeof(IAsyncEnumerable<PulseOverviewGroup>))]
 [JsonSerializable(typeof(Dictionary<string, PulseStates>))]
 [JsonSerializable(typeof(PulseOverviewStateGroup))]

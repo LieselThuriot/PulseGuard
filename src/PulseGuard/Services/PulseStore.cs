@@ -57,6 +57,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             webhookTask = _webhookService.PostAsync(oldPulse, pulse, token);
         }
 
+        pulse.LastElapsedMilliseconds = elapsedMilliseconds;
+
         await _context.Pulses.UpsertEntityAsync(pulse, token);
         await _context.RecentPulses.UpsertEntityAsync(pulse, token);
 
