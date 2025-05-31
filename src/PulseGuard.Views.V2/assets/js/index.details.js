@@ -73,8 +73,12 @@
     const sqid = urlParams.get("details");
     const overlays = urlParams.getAll("overlay");
 
-    const detailCardContainer = document.querySelector("#detail-card-container");
-    const detailCardPlaceholder = document.querySelector("#pulse-detail-placeholder");
+    const detailCardContainer = document.querySelector(
+      "#detail-card-container"
+    );
+    const detailCardPlaceholder = document.querySelector(
+      "#pulse-detail-placeholder"
+    );
 
     function showElement(el, show) {
       if (!el) return;
@@ -394,6 +398,8 @@
 
       const uptimes = calculateUptimes(filteredData);
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
+
+      renderHeatMap(data.items);
     };
 
     renderChartListener = updateChart;
@@ -403,6 +409,174 @@
 
     toggleSpinner(detailCardElements.spinner, false);
     toggleElementVisibility(detailCardElements.chart, true);
+  }
+  function renderHeatMap(data) {
+    const heatmapContainer = document.getElementById("detail-card-heatmap");
+    if (!heatmapContainer) return;
+    heatmapContainer.innerHTML = "";
+
+    // Group data by day
+    const dayBuckets = {};
+    data.forEach((item) => {
+      const date = new Date(item.timestamp * 1000);
+      const dayKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
+      if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
+      dayBuckets[dayKey].push(item);
+    });
+
+    // Get the range of days (last 52 weeks, like GitHub), weeks start on Monday
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find the most recent Monday (today if today is Monday)
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
+    const lastMonday = new Date(today);
+    lastMonday.setDate(today.getDate() - daysSinceMonday);
+
+    // Start date is 52 weeks ago, on a Monday
+    const startDate = new Date(lastMonday);
+    startDate.setDate(lastMonday.getDate() - 7 * 52 + 1);
+
+    const days = [];
+    for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
+    }
+
+    // Build a 2D array: columns = weeks, rows = days (Mon-Sun)
+    const weeks = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
+    }
+
+    // Helper to determine state for a day
+    function getDayState(items) {
+      if (!items || items.length === 0) return "Unknown";
+      const counts = items.reduce((acc, x) => {
+        acc[x.state] = (acc[x.state] || 0) + 1;
+        return acc;
+      }, {});
+      const total = items.length;
+      if ((counts["TimedOut"] || 0) / total >= 0.05) return "TimedOut";
+      if ((counts["Unhealthy"] || 0) / total >= 0.05) return "Unhealthy";
+      if ((counts["Healthy"] || 0) / total >= 0.95) return "Healthy";
+      return "Degraded";
+    }
+
+    // Helper to build stats string for tooltip
+    function getDayStats(items) {
+      if (!items || items.length === 0) return "No data";
+      const counts = items.reduce((acc, x) => {
+        acc[x.state] = (acc[x.state] || 0) + 1;
+        return acc;
+      }, {});
+      const total = items.length;
+      const avg =
+        items.reduce((sum, x) => sum + (x.elapsedMilliseconds || 0), 0) / total;
+      const states = ["Healthy", "Degraded", "Unhealthy", "TimedOut"];
+      const lines = [];
+      states.forEach((state) => {
+        if (counts[state]) {
+          lines.push(
+            `${state}: ${counts[state]} (${(
+              (counts[state] / total) *
+              100
+            ).toFixed(1)}%)`
+          );
+        }
+      });
+      if (counts["Unknown"]) {
+        lines.push(
+          `Unknown: ${counts["Unknown"]} (${(
+            (counts["Unknown"] / total) *
+            100
+          ).toFixed(1)}%)`
+        );
+      }
+      lines.push(`Avg: ${isNaN(avg) ? "?" : avg.toFixed(1)}ms`);
+      return lines.join("<br>");
+    }
+
+    // Create heatmap grid with axis labels
+    const gridWrapper = document.createElement("div");
+    gridWrapper.className = "d-flex flex-row";
+
+    // Y-axis (days of week, Mon-Sun)
+    const yAxis = document.createElement("div");
+    yAxis.className =
+      "d-flex flex-column justify-content-start me-1 text-secondary heatmap-y-axis";
+    const dayNames = [" ", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    for (let i = 0; i < 8; i++) {
+      const label = document.createElement("div");
+      label.textContent = dayNames[i];
+      yAxis.appendChild(label);
+    }
+    gridWrapper.appendChild(yAxis);
+
+    // Main grid
+    const grid = document.createElement("div");
+    grid.className = "d-flex flex-row heatmap-year";
+
+    let lastMonth = null;
+    let lastMonthLabel = null;
+
+    weeks.forEach((week) => {
+      const col = document.createElement("div");
+      col.className = "d-flex flex-column heatmap-week";
+
+      const firstDay = week[0];
+      const month = firstDay.getMonth();
+      const monthLabel = document.createElement("div");
+      if (month !== lastMonth) {
+        monthLabel.textContent = firstDay.toLocaleString("default", {
+          month: "short",
+        });
+        monthLabel.setAttribute("data-bs-toggle", "tooltip");
+        monthLabel.setAttribute(
+          "data-bs-title",
+          firstDay.toLocaleString("default", { month: "long", year: "numeric" })
+        );
+        new bootstrap.Tooltip(monthLabel);
+        lastMonth = month;
+        if (lastMonthLabel) {
+          lastMonthLabel.style.overflow = "hidden";
+          lastMonthLabel.style.textOverflow = "ellipsis";
+        }
+      } else {
+        monthLabel.textContent = "";
+      }
+      lastMonthLabel = monthLabel;
+      col.appendChild(monthLabel);
+
+      week.forEach((day) => {
+        const dayKey = day.toISOString().slice(0, 10);
+        const items = dayBuckets[dayKey] || [];
+        const state = getDayState(items);
+        const cell = document.createElement("div");
+        // Bootstrap tooltip with stats
+        const stats = getDayStats(items);
+        cell.setAttribute("data-bs-toggle", "tooltip");
+        cell.setAttribute("data-bs-html", "true");
+        cell.setAttribute(
+          "data-bs-title",
+          `<strong>${dayKey}: ${state}</strong><br>${stats}`
+        );
+        cell.classList.add(`day-${state.toLowerCase()}`);
+        col.appendChild(cell);
+      });
+      grid.appendChild(col);
+    });
+
+    gridWrapper.appendChild(grid);
+    heatmapContainer.appendChild(gridWrapper);
+
+    // Initialize all tooltips in the heatmap
+    const tooltipTriggerList = [].slice.call(
+      heatmapContainer.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
   }
 
   /**
@@ -486,26 +660,18 @@
    * @returns {Array<PulseDetailResult>} The filtered array of items that fall within the specified date range.
    */
   function filterDataByDateRange(items, fromSelect, toSelect) {
-    let filteredData = items;
-    const fromDate =
-      fromSelect && fromSelect.value ? new Date(fromSelect.value) : null;
-    const toDate = toSelect && toSelect.value ? new Date(toSelect.value) : null;
+    const from = fromSelect?.value ? Date.parse(fromSelect.value) / 1000 : null;
+    const to = toSelect?.value ? Date.parse(toSelect.value) / 1000 : null;
 
-    if (fromDate) {
-      const fromTimestamp = Math.floor(fromDate.getTime() / 1000);
-      filteredData = filteredData.filter(
-        (item) => item.timestamp >= fromTimestamp
-      );
-    }
-    if (toDate) {
-      const toTimestamp = Math.floor(toDate.getTime() / 1000);
-
-      filteredData = filteredData.filter(
-        (item) => item.timestamp <= toTimestamp
-      );
+    if (from === null && to === null) {
+      return items;
     }
 
-    return filteredData;
+    return items.filter(
+      (item) =>
+        (from === null || item.timestamp >= from) &&
+        (to === null || item.timestamp <= to)
+    );
   }
 
   /**

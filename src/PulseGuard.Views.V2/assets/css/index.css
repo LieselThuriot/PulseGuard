@@ -127,6 +127,54 @@
 .pulse-container-header:hover #pulse-overlay-clear {
   visibility: visible;
 }
+.heatmap-y-axis {
+  gap: 2px;
+}
+
+.heatmap-y-axis div {
+  font-size: 10px;
+  height: 12px;
+  width: 22px;
+  text-align: right;
+}
+
+.heatmap-year,
+.heatmap-week {
+  gap: 2px;
+}
+
+.heatmap-week div {
+  height: 12px;
+  width: 12px;
+  border: var(--bs-border-width) var(--bs-border-style)
+    var(--bs-secondary-border-subtle);
+  font-size: 10px;
+  white-space: nowrap;
+  color: rgba(var(--bs-secondary-rgb), 1);
+  background-color: var(--bs-gray-800);
+  border-radius: var(--bs-border-radius-sm);
+}
+
+.heatmap-week div:first-child {
+  --bs-gray-800: transparent;
+  --bs-secondary-border-subtle: transparent;
+}
+
+.heatmap-week .day-healthy {
+  background-color: var(--bs-success);
+}
+
+.heatmap-week .day-degraded {
+  background-color: var(--bs-warning);
+}
+
+.heatmap-week .day-unhealthy {
+  background-color: var(--bs-danger);
+}
+
+.heatmap-week .day-timedout {
+  background-color: var(--bs-pink);
+}
 
 @media (max-width: 768px) {
   .offcanvas {
