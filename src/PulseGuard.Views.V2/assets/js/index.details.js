@@ -411,6 +411,20 @@
     toggleElementVisibility(detailCardElements.chart, true);
   }
 
+  /**
+   * Renders a GitHub-style heatmap visualization into the specified container using the provided data.
+   *
+   * @param {HTMLElement} heatmapContainer - The DOM element where the heatmap will be rendered.
+   * @param {Array<PulseDetailResult>} data - Array of data points
+   *
+   * @description
+   * - Groups data by day and computes state statistics for each day.
+   * - Displays a 52-week heatmap (weeks as columns, days as rows, Monday as first day).
+   * - Colors cells based on state and intensity.
+   * - Shows tooltips with detailed stats on hover.
+   * - Allows clicking a cell to update date range selectors and URL parameters.
+   * - Uses Bootstrap tooltips for interactivity.
+   */
   function renderHeatMap(heatmapContainer, data) {
     heatmapContainer.innerHTML = "";
 
@@ -452,7 +466,7 @@
     // Combined function to determine state and stats for a day
     function getDayStateAndStats(items) {
       if (!items || items.length === 0) {
-        return { state: "Unknown", stats: "No data" };
+        return { state: "Unknown", stats: "No data", intensity: 1 };
       }
 
       // Fast single-pass: count states and sum elapsedMilliseconds
@@ -513,115 +527,289 @@
         intensity,
       };
     }
+    // Canvas dimensions and layout
+    const weekCount = weeks.length;
+    const dayCount = 7;
+    const cellSize = 12;
+    const cellGap = 2;
+    const cellRadius = 5;
+    const leftAxisWidth = 36;
+    const topAxisHeight = 18;
+    const font = "10px sans-serif";
+    const canvasWidth =
+      leftAxisWidth + weekCount * (cellSize + cellGap) + cellGap;
+    const canvasHeight =
+      topAxisHeight + dayCount * (cellSize + cellGap) + cellGap;
 
-    // Create heatmap grid with axis labels
-    const gridWrapper = document.createElement("div");
-    gridWrapper.className = "d-flex flex-row overflow-hidden";
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+    canvas.style.background = "transparent";
+    canvas.style.display = "block";
+    canvas.style.cursor = "pointer";
+    heatmapContainer.appendChild(canvas);
 
-    // Y-axis (days of week, Mon-Sun)
-    const yAxis = document.createElement("div");
-    yAxis.className =
-      "d-flex flex-column justify-content-start me-1 text-secondary heatmap-y-axis";
-    const dayNames = [" ", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    for (let i = 0; i < dayNames.length; i++) {
-      const label = document.createElement("div");
-      label.textContent = dayNames[i];
-      yAxis.appendChild(label);
+    // Precompute cell info for hit detection
+    const cellInfo = [];
+
+    // Draw
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Y axis (days)
+    ctx.save();
+    ctx.font = font;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#888";
+    for (let d = 0; d < dayCount; d++) {
+      // Use a reference Monday to get the day name
+      const refDate = new Date(2025, 0, 6 + d); // 2025-01-06 is a Monday
+      ctx.fillText(
+        refDate.toLocaleDateString(undefined, { weekday: "short" }),
+        leftAxisWidth - 6,
+        topAxisHeight + d * (cellSize + cellGap) + cellSize / 2
+      );
     }
-    gridWrapper.appendChild(yAxis);
+    ctx.restore();
 
-    // Main grid
-    const grid = document.createElement("div");
-    grid.className = "d-flex flex-row heatmap-year overflow-x-auto";
-
+    // Draw X axis (months)
+    ctx.save();
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#888";
     let lastMonth = null;
-    let lastMonthLabel = null;
-
-    weeks.forEach((week) => {
-      const col = document.createElement("div");
-      col.className = "d-flex flex-column heatmap-week";
-
-      const firstDay = week[0];
-      const month = firstDay.getMonth();
-      const monthLabel = document.createElement("div");
+    for (let w = 0; w < weekCount; w++) {
+      const week = weeks[w];
+      if (!week[0]) continue;
+      const month = week[0].getMonth();
       if (month !== lastMonth) {
-        monthLabel.textContent = firstDay.toLocaleString("default", {
-          month: "short",
-        });
-        monthLabel.setAttribute("data-bs-toggle", "tooltip");
-        monthLabel.setAttribute(
-          "data-bs-title",
-          firstDay.toLocaleString("default", { month: "long", year: "numeric" })
+        ctx.fillText(
+          week[0].toLocaleDateString(undefined, { month: "short" }),
+          leftAxisWidth + w * (cellSize + cellGap) + cellSize,
+          2
         );
-        new bootstrap.Tooltip(monthLabel);
         lastMonth = month;
-        if (lastMonthLabel) {
-          lastMonthLabel.style.overflow = "hidden";
-          lastMonthLabel.style.textOverflow = "ellipsis";
-        }
-      } else {
-        monthLabel.textContent = "";
       }
-      lastMonthLabel = monthLabel;
-      col.appendChild(monthLabel);
+    }
+    ctx.restore();
 
-      week.forEach((day) => {
+    const computedStyle = getComputedStyle(document.body);
+    const strokeStyle =
+      computedStyle.getPropertyValue("--bs-secondary-border-subtle").trim() ||
+      "#dee2e6";
+
+    // Draw cells
+    for (let w = 0; w < weekCount; w++) {
+      const week = weeks[w];
+      for (let d = 0; d < dayCount; d++) {
+        const day = week[d];
+        if (!day) continue;
         const dayKey = day.toISOString().slice(0, 10);
         const { state, stats, intensity } = getDayStateAndStats(
           dayBuckets[dayKey]
         );
-        const cell = document.createElement("div");
-        // Bootstrap tooltip with stats
-        cell.setAttribute("data-bs-toggle", "tooltip");
-        cell.setAttribute("data-bs-html", "true");
-        cell.setAttribute(
-          "data-bs-title",
-          `<strong>${dayKey}: ${state}</strong><br>${stats}`
+        const x = leftAxisWidth + w * (cellSize + cellGap) + cellGap;
+        const y = topAxisHeight + d * (cellSize + cellGap) + cellGap;
+
+        // Color
+        // Use -rgb CSS variables for color, fallback to hardcoded if not available
+        // Map state to CSS variable and fallback RGB
+        const stateColorVars = {
+          Healthy: ["--bs-success-rgb", "25,135,84"],
+          Degraded: ["--bs-warning-rgb", "255,193,7"],
+          Unhealthy: ["--bs-danger-rgb", "220,53,69"],
+          TimedOut: ["--bs-pink-rgb", "214,51,132"],
+          Unknown: ["--bs-secondary-rgb", "167,172,177"],
+        };
+        const [cssVar, fallback] =
+          stateColorVars[state] || stateColorVars.Unknown;
+        const rgb =
+          computedStyle.getPropertyValue(cssVar).replaceAll(/\s+/g, "") ||
+          fallback;
+        const color = `rgba(${rgb},${intensity})`;
+
+        // Adjust size to account for 1px border inside the cell
+        const borderWidth = 1;
+        const innerSize = cellSize - borderWidth;
+        const innerRadius = Math.max(0, cellRadius - borderWidth / 2);
+        const offset = borderWidth / 2;
+
+        // Draw rounded rect with border
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x + offset + innerRadius, y + offset);
+        ctx.lineTo(x + offset + innerSize - innerRadius, y + offset);
+        ctx.quadraticCurveTo(
+          x + offset + innerSize,
+          y + offset,
+          x + offset + innerSize,
+          y + offset + innerRadius
         );
-        cell.classList.add(`day-${state.toLowerCase()}`);
-        if (intensity) {
-          cell.style.opacity = intensity;
-        }
+        ctx.lineTo(
+          x + offset + innerSize,
+          y + offset + innerSize - innerRadius
+        );
+        ctx.quadraticCurveTo(
+          x + offset + innerSize,
+          y + offset + innerSize,
+          x + offset + innerSize - innerRadius,
+          y + offset + innerSize
+        );
+        ctx.lineTo(x + offset + innerRadius, y + offset + innerSize);
+        ctx.quadraticCurveTo(
+          x + offset,
+          y + offset + innerSize,
+          x + offset,
+          y + offset + innerSize - innerRadius
+        );
+        ctx.lineTo(x + offset, y + offset + innerRadius);
+        ctx.quadraticCurveTo(
+          x + offset,
+          y + offset,
+          x + offset + innerRadius,
+          y + offset
+        );
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
 
-        const cellTooltip = new bootstrap.Tooltip(cell);
-        cell.style.cursor = "pointer";
-        cell.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
+        ctx.lineWidth = borderWidth;
+        ctx.strokeStyle = strokeStyle;
+        ctx.setLineDash([]); // solid
+        ctx.stroke();
+        ctx.restore();
 
-          const { fromSelect, toSelect, decimationSelect } =
-            getDetailCardElements();
-          const fromIso = `${dayKey}T00:00`;
-          const toIsoStr = `${dayKey}T23:59`;
-
-          if (fromSelect) fromSelect.value = fromIso;
-          if (toSelect) toSelect.value = toIsoStr;
-          if (decimationSelect) decimationSelect.value = "5";
-
-          const urlParams = new URLSearchParams(window.location.search);
-          urlParams.set("from", fromIso);
-          urlParams.set("to", toIsoStr);
-          urlParams.set("decimation", "5");
-          window.history.pushState(
-            {},
-            "",
-            `${window.location.pathname}?${urlParams}`
-          );
-
-          if (renderChartListener) {
-            renderChartListener();
-          }
-
-          cellTooltip.hide();
+        // Store for hit detection
+        cellInfo.push({
+          x,
+          y,
+          w: cellSize,
+          h: cellSize,
+          dayKey,
+          state,
+          stats,
+          week: w,
+          day: d,
         });
+      }
+    }
 
-        col.appendChild(cell);
-      });
-      grid.appendChild(col);
+    const tooltipDiv = document.createElement("div");
+    tooltipDiv.className = "heatmap-tooltip";
+    tooltipDiv.setAttribute("data-bs-toggle", "tooltip");
+    tooltipDiv.setAttribute("data-bs-html", "true");
+    tooltipDiv.setAttribute("data-bs-delay", '{"show": 250,"hide": 500}');
+    tooltipDiv.setAttribute("data-bs-title", "Heatmap");
+    heatmapContainer.appendChild(tooltipDiv);
+
+    const tooltip = bootstrap.Tooltip.getOrCreateInstance(tooltipDiv);
+
+    let lastCellFound = null;
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      let found = null;
+      for (const cell of cellInfo) {
+        if (
+          mouseX >= cell.x &&
+          mouseX <= cell.x + cell.w &&
+          mouseY >= cell.y &&
+          mouseY <= cell.y + cell.h
+        ) {
+          found = cell;
+          break;
+        }
+      }
+
+      if (found && lastCellFound != found) {
+        const content = `<strong>${found.dayKey}: ${found.state}</strong><br>${found.stats}`;
+
+        tooltipDiv.setAttribute("data-bs-title", content);
+        tooltipDiv.setAttribute("data-pulse-day", found.dayKey);
+
+        const parentRect = heatmapContainer.getBoundingClientRect();
+
+        const x =
+          rect.left -
+          parentRect.left +
+          found.x +
+          found.w / 2 -
+          tooltipDiv.offsetWidth / 2;
+
+        const y =
+          rect.top -
+          parentRect.top +
+          found.y +
+          found.h -
+          tooltipDiv.offsetHeight;
+
+        tooltipDiv.style.left = `${x}px`;
+        tooltipDiv.style.top = `${Math.max(y, 0)}px`;
+
+        lastCellFound = found;
+
+        tooltip.setContent({ ".tooltip-inner": content });
+        tooltip.update();
+      }
     });
 
-    gridWrapper.appendChild(grid);
-    heatmapContainer.appendChild(gridWrapper);
+    tooltipDiv.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const currentDayKey = tooltipDiv.getAttribute("data-pulse-day");
+      if (!currentDayKey) return;
+      const { fromSelect, toSelect, decimationSelect } =
+        getDetailCardElements();
+      const fromIso = `${currentDayKey}T00:00`;
+      const toIsoStr = `${currentDayKey}T23:59`;
+
+      if (fromSelect) fromSelect.value = fromIso;
+      if (toSelect) toSelect.value = toIsoStr;
+      if (decimationSelect) decimationSelect.value = "5";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.set("from", fromIso);
+      urlParams.set("to", toIsoStr);
+      urlParams.set("decimation", "5");
+      window.history.pushState(
+        {},
+        "",
+        `${window.location.pathname}?${urlParams}`
+      );
+
+      if (renderChartListener) {
+        renderChartListener();
+      }
+    });
+
+    // Also observe theme changes in the current window (for Bootstrap 5 theme toggler)
+    const html = document.documentElement;
+    if (window._pulseguardHeatmapMutationObserver) {
+      window._pulseguardHeatmapMutationObserver.disconnect();
+    }
+    window._pulseguardHeatmapMutationObserver = new MutationObserver(
+      (mutations) => {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "data-bs-theme"
+          ) {
+            renderHeatMap(heatmapContainer, data);
+          }
+        }
+      }
+    );
+    window._pulseguardHeatmapMutationObserver.observe(html, {
+      attributes: true,
+    });
   }
 
   /**
