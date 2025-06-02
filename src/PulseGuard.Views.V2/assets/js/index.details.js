@@ -130,6 +130,7 @@
       percentileSelect: document.querySelector("#detail-card-chart-percentile"),
       fromSelect: document.querySelector("#detail-card-chart-from"),
       toSelect: document.querySelector("#detail-card-chart-to"),
+      heatmap: document.querySelector("#detail-card-heatmap"),
     };
   }
 
@@ -398,27 +399,26 @@
 
       const uptimes = calculateUptimes(filteredData);
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
-
-      renderHeatMap(data.items);
     };
 
     renderChartListener = updateChart;
     updateChart();
 
     setBadge(detailCardElements.badge, data.items);
+    renderHeatMap(detailCardElements.heatmap, data.items);
 
     toggleSpinner(detailCardElements.spinner, false);
     toggleElementVisibility(detailCardElements.chart, true);
   }
-  function renderHeatMap(data) {
-    const heatmapContainer = document.getElementById("detail-card-heatmap");
-    if (!heatmapContainer) return;
+
+  function renderHeatMap(heatmapContainer, data) {
     heatmapContainer.innerHTML = "";
 
     // Group data by day
     const dayBuckets = {};
     data.forEach((item) => {
       const date = new Date(item.timestamp * 1000);
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
       const dayKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
       if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
       dayBuckets[dayKey].push(item);
@@ -449,64 +449,81 @@
       weeks.push(days.slice(i, i + 7));
     }
 
-    // Helper to determine state for a day
-    function getDayState(items) {
-      if (!items || items.length === 0) return "Unknown";
-      const counts = items.reduce((acc, x) => {
-        acc[x.state] = (acc[x.state] || 0) + 1;
-        return acc;
-      }, {});
-      const total = items.length;
-      if ((counts["TimedOut"] || 0) / total >= 0.05) return "TimedOut";
-      if ((counts["Unhealthy"] || 0) / total >= 0.05) return "Unhealthy";
-      if ((counts["Healthy"] || 0) / total >= 0.95) return "Healthy";
-      return "Degraded";
-    }
+    // Combined function to determine state and stats for a day
+    function getDayStateAndStats(items) {
+      if (!items || items.length === 0) {
+        return { state: "Unknown", stats: "No data" };
+      }
 
-    // Helper to build stats string for tooltip
-    function getDayStats(items) {
-      if (!items || items.length === 0) return "No data";
-      const counts = items.reduce((acc, x) => {
-        acc[x.state] = (acc[x.state] || 0) + 1;
-        return acc;
-      }, {});
+      // Fast single-pass: count states and sum elapsedMilliseconds
+      const counts = {
+        Healthy: 0,
+        Degraded: 0,
+        Unhealthy: 0,
+        TimedOut: 0,
+        Unknown: 0,
+      };
+      let sum = 0;
+      for (const x of items) {
+        counts[x.state] = (counts[x.state] || 0) + 1;
+        sum += x.elapsedMilliseconds || 0;
+      }
       const total = items.length;
-      const avg =
-        items.reduce((sum, x) => sum + (x.elapsedMilliseconds || 0), 0) / total;
-      const states = ["Healthy", "Degraded", "Unhealthy", "TimedOut"];
+
+      let state = "Degraded";
+      let intensity = 0.5;
+      const timedOutPct = (counts["TimedOut"] || 0) / total;
+      const unhealthyPct = (counts["Unhealthy"] || 0) / total;
+      const healthyPct = (counts["Healthy"] || 0) / total;
+      if (unhealthyPct >= timedOutPct && unhealthyPct >= 0.02) {
+        state = "Unhealthy";
+        intensity = 0.33 + 0.67 * ((unhealthyPct - 0.02) / 0.13);
+      } else if (timedOutPct >= 0.02) {
+        state = "TimedOut";
+        intensity = 0.33 + 0.67 * ((timedOutPct - 0.02) / 0.13);
+      } else if (healthyPct >= 0.98) {
+        state = "Healthy";
+        intensity = 0.33 + 0.67 * ((healthyPct - 0.98) / 0.02);
+      } else {
+        intensity = 0.33 + 0.67 * ((counts[state] || 0) / total);
+      }
+
+      intensity = Math.max(0.33, Math.min(1, intensity));
+
+      // Build stats string
       const lines = [];
-      states.forEach((state) => {
-        if (counts[state]) {
+      for (const s of [
+        "Healthy",
+        "Degraded",
+        "Unhealthy",
+        "TimedOut",
+        "Unknown",
+      ]) {
+        if (counts[s]) {
           lines.push(
-            `${state}: ${counts[state]} (${(
-              (counts[state] / total) *
-              100
-            ).toFixed(1)}%)`
+            `${s}: ${counts[s]} (${((counts[s] / total) * 100).toFixed(2)}%)`
           );
         }
-      });
-      if (counts["Unknown"]) {
-        lines.push(
-          `Unknown: ${counts["Unknown"]} (${(
-            (counts["Unknown"] / total) *
-            100
-          ).toFixed(1)}%)`
-        );
       }
-      lines.push(`Avg: ${isNaN(avg) ? "?" : avg.toFixed(1)}ms`);
-      return lines.join("<br>");
+      lines.push(`Avg: ${total ? (sum / total).toFixed(2) : "?"}ms`);
+
+      return {
+        state,
+        stats: lines.join("<br>"),
+        intensity,
+      };
     }
 
     // Create heatmap grid with axis labels
     const gridWrapper = document.createElement("div");
-    gridWrapper.className = "d-flex flex-row";
+    gridWrapper.className = "d-flex flex-row overflow-hidden";
 
     // Y-axis (days of week, Mon-Sun)
     const yAxis = document.createElement("div");
     yAxis.className =
       "d-flex flex-column justify-content-start me-1 text-secondary heatmap-y-axis";
     const dayNames = [" ", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < dayNames.length; i++) {
       const label = document.createElement("div");
       label.textContent = dayNames[i];
       yAxis.appendChild(label);
@@ -515,7 +532,7 @@
 
     // Main grid
     const grid = document.createElement("div");
-    grid.className = "d-flex flex-row heatmap-year";
+    grid.className = "d-flex flex-row heatmap-year overflow-x-auto";
 
     let lastMonth = null;
     let lastMonthLabel = null;
@@ -550,11 +567,11 @@
 
       week.forEach((day) => {
         const dayKey = day.toISOString().slice(0, 10);
-        const items = dayBuckets[dayKey] || [];
-        const state = getDayState(items);
+        const { state, stats, intensity } = getDayStateAndStats(
+          dayBuckets[dayKey]
+        );
         const cell = document.createElement("div");
         // Bootstrap tooltip with stats
-        const stats = getDayStats(items);
         cell.setAttribute("data-bs-toggle", "tooltip");
         cell.setAttribute("data-bs-html", "true");
         cell.setAttribute(
@@ -562,6 +579,42 @@
           `<strong>${dayKey}: ${state}</strong><br>${stats}`
         );
         cell.classList.add(`day-${state.toLowerCase()}`);
+        if (intensity) {
+          cell.style.opacity = intensity;
+        }
+
+        const cellTooltip = new bootstrap.Tooltip(cell);
+        cell.style.cursor = "pointer";
+        cell.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const { fromSelect, toSelect, decimationSelect } =
+            getDetailCardElements();
+          const fromIso = `${dayKey}T00:00`;
+          const toIsoStr = `${dayKey}T23:59`;
+
+          if (fromSelect) fromSelect.value = fromIso;
+          if (toSelect) toSelect.value = toIsoStr;
+          if (decimationSelect) decimationSelect.value = "5";
+
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.set("from", fromIso);
+          urlParams.set("to", toIsoStr);
+          urlParams.set("decimation", "5");
+          window.history.pushState(
+            {},
+            "",
+            `${window.location.pathname}?${urlParams}`
+          );
+
+          if (renderChartListener) {
+            renderChartListener();
+          }
+
+          cellTooltip.hide();
+        });
+
         col.appendChild(cell);
       });
       grid.appendChild(col);
@@ -569,14 +622,6 @@
 
     gridWrapper.appendChild(grid);
     heatmapContainer.appendChild(gridWrapper);
-
-    // Initialize all tooltips in the heatmap
-    const tooltipTriggerList = [].slice.call(
-      heatmapContainer.querySelectorAll('[data-bs-toggle="tooltip"]')
-    );
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-      new bootstrap.Tooltip(tooltipTriggerEl);
-    });
   }
 
   /**

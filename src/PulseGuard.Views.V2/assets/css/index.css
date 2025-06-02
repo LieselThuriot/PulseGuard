@@ -127,6 +127,13 @@
 .pulse-container-header:hover #pulse-overlay-clear {
   visibility: visible;
 }
+
+#detail-card-heatmap::before,
+#detail-card-heatmap::after {
+  content: "";
+  flex-grow: 1;
+}
+
 .heatmap-y-axis {
   gap: 2px;
 }
@@ -151,12 +158,12 @@
   font-size: 10px;
   white-space: nowrap;
   color: rgba(var(--bs-secondary-rgb), 1);
-  background-color: var(--bs-gray-800);
+  background-color: var(--bs-light-border-subtle);
   border-radius: var(--bs-border-radius-sm);
 }
 
 .heatmap-week div:first-child {
-  --bs-gray-800: transparent;
+  --bs-light-border-subtle: transparent;
   --bs-secondary-border-subtle: transparent;
 }
 
