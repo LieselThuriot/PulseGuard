@@ -741,14 +741,16 @@
           parentRect.left +
           found.x +
           found.w / 2 -
-          tooltipDiv.offsetWidth / 2;
+          tooltipDiv.offsetWidth / 2 +
+          heatmapContainer.scrollLeft;
 
         const y =
           rect.top -
           parentRect.top +
           found.y +
           found.h -
-          tooltipDiv.offsetHeight;
+          tooltipDiv.offsetHeight +
+          heatmapContainer.scrollTop;
 
         tooltipDiv.style.left = `${x}px`;
         tooltipDiv.style.top = `${Math.max(y, 0)}px`;
