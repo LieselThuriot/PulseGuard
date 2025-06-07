@@ -432,28 +432,30 @@
     const dayBuckets = {};
     data.forEach((item) => {
       const date = new Date(item.timestamp * 1000);
-      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      date.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+      date.setUTCHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
       const dayKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
       if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
       dayBuckets[dayKey].push(item);
     });
 
-    // Get the range of days (last 52 weeks, like GitHub), weeks start on Monday
+    // Get the range of days (last 52 weeks, like GitHub), weeks start on Monday (UTC)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Set to UTC midnight
+    today.setUTCHours(0, 0, 0, 0);
 
-    // Find the most recent Monday (today if today is Monday)
-    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    // Find the most recent Monday (today if today is Monday, UTC)
+    const dayOfWeek = today.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const daysSinceMonday = (dayOfWeek + 6) % 7;
     const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - daysSinceMonday);
+    lastMonday.setUTCDate(today.getUTCDate() - daysSinceMonday);
 
-    // Start date is 52 weeks ago, on a Monday
+    // Start date is 52 weeks ago, on a Monday (UTC)
     const startDate = new Date(lastMonday);
-    startDate.setDate(lastMonday.getDate() - 7 * 52 + 1);
+    startDate.setUTCDate(lastMonday.getUTCDate() - 7 * 52);
 
     const days = [];
-    for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(startDate); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
       days.push(new Date(d));
     }
 
