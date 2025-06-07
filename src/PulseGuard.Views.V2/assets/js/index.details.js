@@ -30,6 +30,7 @@
  * Represents the DOM elements we use
  * @typedef {Object} DetailDomElements
  * @property {HTMLElement|null} spinner - The spinner element for loading state.
+ * @property {HTMLElement|null} heatmapSpinner - The spinner element for loading state.
  * @property {HTMLElement|null} chart - The chart element displaying data.
  * @property {HTMLElement|null} header - The header element of the detail card.
  * @property {HTMLElement|null} healthBar - The health bar element.
@@ -45,6 +46,7 @@
  * @property {HTMLElement|null} percentileSelect - The dropdown for chart percentile options.
  * @property {HTMLElement|null} fromSelect - The dropdown for selecting the start date/time.
  * @property {HTMLElement|null} toSelect - The dropdown for selecting the end date/time.
+ * @property {HTMLElement|null} heatmap - The heatmap element.
  */
 
 (async function () {
@@ -115,6 +117,7 @@
   function getDetailCardElements() {
     return {
       spinner: document.querySelector("#detail-card-spinner"),
+      heatmapSpinner: document.querySelector("#detail-heatmap-spinner"),
       chart: document.querySelector("#detail-card-chart"),
       header: document.querySelector("#detail-card-header"),
       healthBar: document.querySelector("#detail-card-healthbar"),
@@ -309,6 +312,7 @@
     const detailCardElements = getDetailCardElements();
 
     toggleSpinner(detailCardElements.spinner, spinning);
+    toggleSpinner(detailCardElements.heatmapSpinner, spinning);
     toggleElementVisibility(detailCardElements.chart, false);
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
@@ -319,6 +323,7 @@
     resetTextContent(detailCardElements.volatility, "...");
     resetInnerHTML(detailCardElements.healthBar);
     resetInnerHTML(detailCardElements.healthBarMd);
+    resetInnerHTML(detailCardElements.heatmap);
     resetBadge(detailCardElements.badge);
   }
 
@@ -408,6 +413,7 @@
     renderHeatMap(detailCardElements.heatmap, data.items);
 
     toggleSpinner(detailCardElements.spinner, false);
+    toggleSpinner(detailCardElements.heatmapSpinner, false);
     toggleElementVisibility(detailCardElements.chart, true);
   }
 
