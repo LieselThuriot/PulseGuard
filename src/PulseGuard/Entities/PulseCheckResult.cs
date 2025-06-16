@@ -1,4 +1,5 @@
-﻿using PulseGuard.Models;
+﻿using ProtoBuf;
+using PulseGuard.Models;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -107,11 +108,12 @@ public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
     }
 }
 
-public sealed record PulseCheckResultDetail(PulseStates State, long CreationTimestamp, long? ElapsedMilliseconds)
+[ProtoContract(SkipConstructor = true)]
+public sealed record PulseCheckResultDetail([property: ProtoMember(1)] PulseStates State, [property: ProtoMember(2)] long Timestamp, [property: ProtoMember(3)] long? ElapsedMilliseconds)
 {
     public const char Separator = ';';
 
-    public string Serialize() => Serialize(State, CreationTimestamp, ElapsedMilliseconds);
+    public string Serialize() => Serialize(State, Timestamp, ElapsedMilliseconds);
 
     public static PulseCheckResultDetail Deserialize(ReadOnlySpan<char> value)
     {
@@ -125,8 +127,6 @@ public sealed record PulseCheckResultDetail(PulseStates State, long CreationTime
         return new(state, creationTimestamp, elapsedMilliseconds);
     }
 
-    public static string Serialize(PulseStates state, long executionTime, long? elapsedMilliseconds)
-    {
-        return string.Join(Separator, state.Numberify(), executionTime, elapsedMilliseconds);
-    }
+    public static string Serialize(PulseStates state, long timestamp, long? elapsedMilliseconds)
+        => string.Join(Separator, state.Numberify(), timestamp, elapsedMilliseconds);
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using ProtoBuf;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
@@ -55,7 +56,7 @@ public static class PulseRoutes
             return TypedResults.Ok(new PulseOverviewStateGroup(group, entries.ToAsyncEnumerable()));
         });
 
-        group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>>  (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
+        group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
         {
             var query = context.Pulses.Where(x => x.Sqid == id);
 
@@ -121,10 +122,9 @@ public static class PulseRoutes
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
         });
 
-        group.MapGet("details/{id}", async Task<Results<Ok<PulseDetailResultGroup>, NotFound>> (string id, PulseContext context, CancellationToken token) =>
+        group.MapGet("details/{id}", async Task<Results<FileContentHttpResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
             var archivedItems = context.ArchivedPulseCheckResults.Where(x => x.Sqid == id).ToListAsync(token);
-
             var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
 
             if (results.Count is 0)
@@ -132,13 +132,16 @@ public static class PulseRoutes
                 return TypedResults.NotFound();
             }
 
-            string group = results[0].Group;
-            string name = results[0].Name;
+            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items));
 
-            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items))
-                               .Select(x => new PulseDetailResult(x.State, x.CreationTimestamp, x.ElapsedMilliseconds));
+            PulseCheckResult pulseCheckResult = results[^1];
+            PulseDetailResultGroup result = new(pulseCheckResult.Group, pulseCheckResult.Name, items);
 
-            return TypedResults.Ok(new PulseDetailResultGroup(group, name, items));
+            await using MemoryStream stream = new();
+            Serializer.Serialize(stream, result);
+            Memory<byte> memory = stream.GetBuffer().AsMemory(0, (int)stream.Position);
+
+            return TypedResults.Bytes(memory, contentType: "application/protobuf");
         });
     }
 

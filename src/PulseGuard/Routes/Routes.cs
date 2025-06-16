@@ -1,4 +1,6 @@
 ﻿using Scalar.AspNetCore;
+using System.Net.Mime;
+using System.Text;
 
 namespace PulseGuard.Routes;
 
@@ -11,6 +13,12 @@ public static class Routes
         if (authorized)
         {
             app.UseAuthorization();
+
+            routes.MapGet("AccessDenied", () => Results.Content("You do not have permission to access this resource.", MediaTypeNames.Text.Plain, Encoding.UTF8, 403))
+                  .WithTags("Authorization")
+                  .ExcludeFromDescription()
+                  .AllowAnonymous();
+
             routes = routes.MapGroup("").RequireAuthorization();
         }
 

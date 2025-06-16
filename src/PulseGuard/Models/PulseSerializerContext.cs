@@ -19,8 +19,6 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(StatusApiResponse))]
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(PulseEvent))]
-[JsonSerializable(typeof(PulseDetailResultGroup))]
-[JsonSerializable(typeof(PulseDetailResult))]
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]
 [JsonSerializable(typeof(Entities.PulseConfiguration))]

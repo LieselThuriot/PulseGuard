@@ -1,4 +1,7 @@
-﻿namespace PulseGuard.Models;
+﻿using ProtoBuf;
+using PulseGuard.Entities;
+
+namespace PulseGuard.Models;
 
 public sealed record PulseOverviewGroup(string Group, IAsyncEnumerable<PulseOverviewGroupItem> Items);
 public sealed record PulseOverviewGroupItem(string Id, string Name, IAsyncEnumerable<PulseOverviewItem> Items);
@@ -10,5 +13,5 @@ public sealed record PulseOverviewStateGroupItem(string Id, string Name, IAsyncE
 public sealed record PulseStateGroupItem(string Id, string Name, IAsyncEnumerable<PulseStateItem> Items);
 public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 
-public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerable<PulseDetailResult> Items);
-public sealed record PulseDetailResult(PulseStates State, long Timestamp, long? ElapsedMilliseconds);
+[ProtoContract(SkipConstructor = true)]
+public sealed record PulseDetailResultGroup([property: ProtoMember(1)] string Group, [property: ProtoMember(2)] string Name, [property: ProtoMember(3)] IEnumerable<PulseCheckResultDetail> Items);

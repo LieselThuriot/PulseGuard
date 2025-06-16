@@ -1,22 +1,6 @@
 "use strict";
 
 /**
- * Represents a health check group with monitoring data
- * @typedef {Object} PulseDetailResultGroup
- * @property {string} group - The category or provider name of the health check group
- * @property {string} name - The specific name or identifier of the health check endpoint
- * @property {Array<PulseDetailResult>} items - Collection of health check results
- */
-
-/**
- * Represents a single health check result
- * @typedef {Object} PulseDetailResult
- * @property {string} state - The status of the health check (e.g., "Healthy", "Degraded", "Unhealthy", "TimedOut")
- * @property {number} timestamp - unix time in seconds
- * @property {number} elapsedMilliseconds - The response time in milliseconds
- */
-
-/**
  * Represents a single health check result
  * @typedef {Object} UptimeResult
  * @property {number} Healthy
@@ -50,6 +34,102 @@
  */
 
 (async function () {
+  /**
+   * PulseDetailResult message: Represents a single health check result
+   * @typedef {Object} PulseDetailResult
+   * @property {string} state
+   * @property {number|Long} timestamp
+   * @property {number|Long} elapsedMilliseconds
+   */
+  class PulseDetailResult {
+    constructor() {
+      this.state = "Unknown";
+      this.timestamp = 0;
+      this.elapsedMilliseconds = 0;
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseDetailResult();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            switch (reader.int32()) {
+              case 1:
+                message.state = "Healthy";
+                break;
+              case 2:
+                message.state = "Degraded";
+                break;
+              case 3:
+                message.state = "Unhealthy";
+                break;
+              case 4:
+                message.state = "TimedOut";
+                break;
+              default:
+                message.state = "Unknown";
+                break;
+            }
+            break;
+          case 2:
+            message.timestamp = reader.int64();
+            break;
+          case 3:
+            message.elapsedMilliseconds = reader.int64();
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
+
+  /**
+   * PulseDetailResultGroup message: Represents a health check group with monitoring data
+   * @typedef {Object} PulseDetailResultGroup
+   * @property {string} group
+   * @property {string} name
+   * @property {PulseDetailResult[]} items
+   */
+  class PulseDetailResultGroup {
+    constructor() {
+      this.group = "";
+      this.name = "";
+      this.items = [];
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseDetailResultGroup();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.group = reader.string();
+            break;
+          case 2:
+            message.name = reader.string();
+            break;
+          case 3:
+            message.items.push(PulseDetailResult.decode(reader, reader.uint32()));
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
+
   /** @type {Chart|null} */
   let detailCardChart = null;
 
@@ -233,15 +313,18 @@
         method: "get",
         signal: fetchAbortController.signal,
       })
-        .then((response) => {
+        .then(async (response) => {
           if (!response.ok) {
             throw new Error(
               "Network response was not ok " + response.statusText
             );
           }
+
+          const buffer = await response.arrayBuffer();
+          const view = new Uint8Array(buffer);
+
           /** @type {PulseDetailResultGroup} */
-          const data = response.json();
-          return data;
+          return PulseDetailResultGroup.decode(view);
         })
         .catch((error) => {
           // if (error && error.name === "AbortError") {
@@ -252,7 +335,6 @@
           //     error
           //   );
           // }
-
           return null;
         })
     );

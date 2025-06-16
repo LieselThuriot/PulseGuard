@@ -47,10 +47,14 @@ internal static class AuthSetup
                 })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
+                    string accessDenied = "/AccessDenied";
                     if (!string.IsNullOrEmpty(pathBase))
                     {
                         options.CallbackPath = pathBase + options.CallbackPath;
+                        accessDenied = pathBase + accessDenied;
                     }
+
+                    options.AccessDeniedPath = accessDenied;
 
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.Authority = settings.Authority;
@@ -76,6 +80,16 @@ internal static class AuthSetup
                             options.Scope.Add(scope);
                         }
                     }
+
+                    options.Events = new()
+                    {
+                        OnRemoteFailure = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.Redirect(options.AccessDeniedPath);
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
 
         return true;
