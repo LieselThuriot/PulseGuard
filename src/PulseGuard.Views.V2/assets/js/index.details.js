@@ -377,24 +377,17 @@
         };
       });
 
-      const getMinTimestamp = (map) => {
-        let min = Infinity;
-        for (const key of map.keys()) {
-          if (key < min) min = key;
+      function calculateMinMaxTimestamps() {
+        let minTimestamp = Infinity;
+        let maxTimestamp = -Infinity;
+        for (const key of timeMap.keys()) {
+          if (key < minTimestamp) minTimestamp = key;
+          if (key > maxTimestamp) maxTimestamp = key;
         }
-        return min;
-      };
-      
-      const getMaxTimestamp = (map) => {
-        let max = -Infinity;
-        for (const key of map.keys()) {
-          if (key > max) max = key;
-        }
-        return max;
-      };
+        return { minTimestamp, maxTimestamp };
+      }
 
-      const minTimestamp = getMinTimestamp(timeMap);
-      const maxTimestamp = getMaxTimestamp(timeMap);
+      const { minTimestamp, maxTimestamp } = calculateMinMaxTimestamps();
 
       detailCardChart = renderChart(
         newDecimation,
