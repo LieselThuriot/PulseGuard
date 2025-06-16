@@ -377,8 +377,24 @@
         };
       });
 
-      const minTimestamp = Math.min(...timeMap.keys());
-      const maxTimestamp = Math.max(...timeMap.keys());
+      const getMinTimestamp = (map) => {
+        let min = Infinity;
+        for (const key of map.keys()) {
+          if (key < min) min = key;
+        }
+        return min;
+      };
+      
+      const getMaxTimestamp = (map) => {
+        let max = -Infinity;
+        for (const key of map.keys()) {
+          if (key > max) max = key;
+        }
+        return max;
+      };
+
+      const minTimestamp = getMinTimestamp(timeMap);
+      const maxTimestamp = getMaxTimestamp(timeMap);
 
       detailCardChart = renderChart(
         newDecimation,
@@ -418,66 +434,114 @@
   }
 
   /**
-   * Renders a GitHub-style heatmap visualization into the specified container using the provided data.
+   * Renders a calendar-style heatmap visualization into the specified container element.
+   * The heatmap displays daily aggregated states (e.g., Healthy, Degraded, Unhealthy, TimedOut, Unknown)
+   * over the past year, grouped by week and day, with color intensity reflecting the proportion of each state.
+   * Tooltips and click events allow users to inspect and filter data for specific days.
    *
    * @param {HTMLElement} heatmapContainer - The DOM element where the heatmap will be rendered.
-   * @param {Array<PulseDetailResult>} data - Array of data points
-   *
-   * @description
-   * - Groups data by day and computes state statistics for each day.
-   * - Displays a 52-week heatmap (weeks as columns, days as rows, Monday as first day).
-   * - Colors cells based on state and intensity.
-   * - Shows tooltips with detailed stats on hover.
-   * - Allows clicking a cell to update date range selectors and URL parameters.
-   * - Uses Bootstrap tooltips for interactivity.
+   * @param {Array<PulseDetailResult>} data - Array of PulseDetailResult objects, each representing a measurement or event.
    */
   function renderHeatMap(heatmapContainer, data) {
     heatmapContainer.innerHTML = "";
 
-    // Group data by day
-    const dayBuckets = {};
-    data.forEach((item) => {
-      const date = new Date(item.timestamp * 1000);
-      date.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-      date.setUTCHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
-      const dayKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
-      if (!dayBuckets[dayKey]) dayBuckets[dayKey] = [];
-      dayBuckets[dayKey].push(item);
-    });
-
-    // Get the range of days (last 52 weeks, like GitHub), weeks start on Monday (UTC)
-    const today = new Date();
-    // Set to UTC midnight
-    today.setUTCHours(0, 0, 0, 0);
-
-    // Find the most recent Monday (today if today is Monday, UTC)
-    const dayOfWeek = today.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const daysSinceMonday = (dayOfWeek + 6) % 7;
-    const lastMonday = new Date(today);
-    lastMonday.setUTCDate(today.getUTCDate() - daysSinceMonday);
-
-    // Start date is 52 weeks ago, on a Monday (UTC)
-    const startDate = new Date(lastMonday);
-    startDate.setUTCDate(lastMonday.getUTCDate() - 7 * 52);
-
-    const days = [];
-    for (let d = new Date(startDate); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
-      days.push(new Date(d));
+    // --- Helpers ---
+    /**
+     * Returns a string representing the given date in UTC, formatted as 'YYYY-MM-DD'.
+     *
+     * @param {Date} date - The date object to format.
+     * @returns {string} The formatted date string in 'YYYY-MM-DD' format (UTC).
+     */
+    function getDayKey(date) {
+      return date.toISOString().slice(0, 10);
     }
 
-    // Build a 2D array: columns = weeks, rows = days (Mon-Sun)
-    const weeks = [];
-    for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
+    /**
+     * Groups an array of data objects by day based on their Unix timestamp.
+     *
+     * @param {Array<PulseDetailResult>} data - The array of data objects, each containing a `timestamp` property (in seconds).
+     * @returns {Object} An object where each key is a day identifier (as returned by `getDayKey(date)`), and the value is an array of data objects for that day.
+     */
+    function groupDataByDay(data) {
+      const buckets = {};
+      data.forEach((item) => {
+        const date = new Date(item.timestamp * 1000);
+        date.setUTCFullYear(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate()
+        );
+        date.setUTCHours(0, 0, 0, 0);
+        const key = getDayKey(date);
+        if (!buckets[key]) buckets[key] = [];
+        buckets[key].push(item);
+      });
+      return buckets;
     }
 
-    // Combined function to determine state and stats for a day
+    /**
+     * Calculates the date range for a heatmap visualization.
+     * The range starts from the Monday 52 weeks before the current week and ends at today (UTC, start of day).
+     *
+     * @returns {{ startDate: Date, today: Date }} An object containing:
+     *   - startDate: The Date object representing the Monday 52 weeks ago (UTC, start of day).
+     *   - today: The Date object representing today (UTC, start of day).
+     */
+    function getHeatmapRange() {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      const dayOfWeek = today.getUTCDay();
+      const daysSinceMonday = (dayOfWeek + 6) % 7;
+      const lastMonday = new Date(today);
+      lastMonday.setUTCDate(today.getUTCDate() - daysSinceMonday);
+      const startDate = new Date(lastMonday);
+      startDate.setUTCDate(lastMonday.getUTCDate() - 7 * 52);
+      return { startDate, today };
+    }
+
+    /**
+     * Generates an array of Date objects representing each day between the given start and end dates (inclusive).
+     *
+     * @param {Date} startDate - The start date of the range.
+     * @param {Date} endDate - The end date of the range.
+     * @returns {Date[]} An array of Date objects for each day in the range.
+     */
+    function buildDaysArray(startDate, endDate) {
+      const days = [];
+      for (
+        let d = new Date(startDate);
+        d <= endDate;
+        d.setUTCDate(d.getUTCDate() + 1)
+      ) {
+        days.push(new Date(d));
+      }
+      return days;
+    }
+
+    /**
+     * Splits an array of days into an array of weeks, where each week contains up to 7 days.
+     *
+     * @param {Array} days - The array of day items to be grouped into weeks.
+     * @returns {Array<Array>} An array of weeks, each week being an array of up to 7 days.
+     */
+    function buildWeeks(days) {
+      const weeks = [];
+      for (let i = 0; i < days.length; i += 7) {
+        weeks.push(days.slice(i, i + 7));
+      }
+      return weeks;
+    }
+
+    /**
+     * Calculates the overall state, statistics, and intensity for a given array of items representing day states.
+     *
+     * @param {Array<PulseDetailResult>} items - The array of items, each with a `state` property (one of "Healthy", "Degraded", "Unhealthy", "TimedOut", "Unknown") and an optional `elapsedMilliseconds` property.
+     * @returns {PulseDetailResult} A PulseDetailResult
+     */
     function getDayStateAndStats(items) {
       if (!items || items.length === 0) {
         return { state: "Unknown", stats: "No data", intensity: 1 };
       }
-
-      // Fast single-pass: count states and sum elapsedMilliseconds
       const counts = {
         Healthy: 0,
         Degraded: 0,
@@ -491,7 +555,6 @@
         sum += x.elapsedMilliseconds || 0;
       }
       const total = items.length;
-
       let state = "Degraded";
       let intensity = 0.5;
       const timedOutPct = (counts["TimedOut"] || 0) / total;
@@ -509,10 +572,7 @@
       } else {
         intensity = 0.33 + 0.67 * ((counts[state] || 0) / total);
       }
-
       intensity = Math.max(0.33, Math.min(1, intensity));
-
-      // Build stats string
       const lines = [];
       for (const s of [
         "Healthy",
@@ -528,14 +588,37 @@
         }
       }
       lines.push(`Avg: ${total ? (sum / total).toFixed(2) : "?"}ms`);
-
-      return {
-        state,
-        stats: lines.join("<br>"),
-        intensity,
-      };
+      return { state, stats: lines.join("<br>"), intensity };
     }
-    // Canvas dimensions and layout
+
+    /**
+     * Returns the CSS variable name and RGB value associated with a given state.
+     *
+     * @param {string} state - The state to get the color variables for. Possible values: "Healthy", "Degraded", "Unhealthy", "TimedOut", or any other string for default.
+     * @returns {[string, string]} An array where the first element is the CSS variable name (e.g., "--bs-success-rgb") and the second element is the corresponding RGB value as a string (e.g., "25,135,84").
+     */
+    function getStateColorVars(state) {
+      switch (state) {
+        case "Healthy":
+          return ["--bs-success-rgb", "25,135,84"];
+        case "Degraded":
+          return ["--bs-warning-rgb", "255,193,7"];
+        case "Unhealthy":
+          return ["--bs-danger-rgb", "220,53,69"];
+        case "TimedOut":
+          return ["--bs-pink-rgb", "214,51,132"];
+        default:
+          return ["--bs-secondary-rgb", "167,172,177"];
+      }
+    }
+
+    // --- Data Preparation ---
+    const dayBuckets = groupDataByDay(data);
+    const { startDate, today } = getHeatmapRange();
+    const days = buildDaysArray(startDate, today);
+    const weeks = buildWeeks(days);
+
+    // --- Canvas Layout ---
     const weekCount = weeks.length;
     const dayCount = 7;
     const cellSize = 12;
@@ -549,21 +632,20 @@
     const canvasHeight =
       topAxisHeight + dayCount * (cellSize + cellGap) + cellGap;
 
-    // Create canvas
+    // --- Canvas Setup ---
     const canvas = document.createElement("canvas");
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
-    canvas.style.width = `${canvasWidth}px`;
-    canvas.style.height = `${canvasHeight}px`;
-    canvas.style.background = "transparent";
-    canvas.style.display = "block";
-    canvas.style.cursor = "pointer";
+    Object.assign(canvas.style, {
+      width: `${canvasWidth}px`,
+      height: `${canvasHeight}px`,
+      background: "transparent",
+      display: "block",
+      cursor: "pointer",
+    });
     heatmapContainer.appendChild(canvas);
 
-    // Precompute cell info for hit detection
-    const cellInfo = [];
-
-    // Draw
+    // --- Drawing ---
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -574,7 +656,6 @@
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#888";
     for (let d = 0; d < dayCount; d++) {
-      // Use a reference Monday to get the day name
       const refDate = new Date(2025, 0, 6 + d); // 2025-01-06 is a Monday
       ctx.fillText(
         refDate.toLocaleDateString(undefined, { weekday: "short" }),
@@ -611,37 +692,26 @@
       computedStyle.getPropertyValue("--bs-secondary-border-subtle").trim() ||
       "#dee2e6";
 
-    // Draw cells
+    // Draw cells and collect hit info
+    const cellInfo = {};
     for (let w = 0; w < weekCount; w++) {
       const week = weeks[w];
+      cellInfo[w] = {};
+
       for (let d = 0; d < dayCount; d++) {
         const day = week[d];
         if (!day) continue;
-        const dayKey = day.toISOString().slice(0, 10);
+        const dayKey = getDayKey(day);
         const { state, stats, intensity } = getDayStateAndStats(
           dayBuckets[dayKey]
         );
         const x = leftAxisWidth + w * (cellSize + cellGap) + cellGap;
         const y = topAxisHeight + d * (cellSize + cellGap) + cellGap;
-
-        // Color
-        // Use -rgb CSS variables for color, fallback to hardcoded if not available
-        // Map state to CSS variable and fallback RGB
-        const stateColorVars = {
-          Healthy: ["--bs-success-rgb", "25,135,84"],
-          Degraded: ["--bs-warning-rgb", "255,193,7"],
-          Unhealthy: ["--bs-danger-rgb", "220,53,69"],
-          TimedOut: ["--bs-pink-rgb", "214,51,132"],
-          Unknown: ["--bs-secondary-rgb", "167,172,177"],
-        };
-        const [cssVar, fallback] =
-          stateColorVars[state] || stateColorVars.Unknown;
+        const [cssVar, fallback] = getStateColorVars(state);
         const rgb =
           computedStyle.getPropertyValue(cssVar).replaceAll(/\s+/g, "") ||
           fallback;
         const color = `rgba(${rgb},${intensity})`;
-
-        // Adjust size to account for 1px border inside the cell
         const borderWidth = 1;
         const innerSize = cellSize - borderWidth;
         const innerRadius = Math.max(0, cellRadius - borderWidth / 2);
@@ -685,28 +755,25 @@
         ctx.closePath();
         ctx.fillStyle = color;
         ctx.fill();
-
         ctx.lineWidth = borderWidth;
         ctx.strokeStyle = strokeStyle;
-        ctx.setLineDash([]); // solid
+        ctx.setLineDash([]);
         ctx.stroke();
         ctx.restore();
 
-        // Store for hit detection
-        cellInfo.push({
+        cellInfo[w][d] = {
           x,
           y,
-          w: cellSize,
-          h: cellSize,
           dayKey,
           state,
           stats,
           week: w,
           day: d,
-        });
+        };
       }
     }
 
+    // --- Tooltip ---
     const tooltipDiv = document.createElement("div");
     tooltipDiv.className = "heatmap-tooltip";
     tooltipDiv.setAttribute("data-bs-toggle", "tooltip");
@@ -723,48 +790,45 @@
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      let found = null;
-      for (const cell of cellInfo) {
-        if (
-          mouseX >= cell.x &&
-          mouseX <= cell.x + cell.w &&
-          mouseY >= cell.y &&
-          mouseY <= cell.y + cell.h
-        ) {
-          found = cell;
-          break;
-        }
+      // Compute which cell (week, day) the mouse is over
+      const week = Math.floor((mouseX - leftAxisWidth) / (cellSize + cellGap));
+      const day = Math.floor((mouseY - topAxisHeight) / (cellSize + cellGap));
+
+      let found = cellInfo[week] ? cellInfo[week][day] : null;
+
+      // Extra check in case of gaps or missing cells
+      if (
+        found &&
+        (mouseX < found.x ||
+          mouseX > found.x + cellSize ||
+          mouseY < found.y ||
+          mouseY > found.y + cellSize)
+      ) {
+        found = null;
       }
 
-      if (found && lastCellFound != found) {
+      if (found && lastCellFound !== found) {
         const content = `<strong>${found.dayKey}: ${found.state}</strong><br>${found.stats}`;
-
         tooltipDiv.setAttribute("data-bs-title", content);
         tooltipDiv.setAttribute("data-pulse-day", found.dayKey);
-
         const parentRect = heatmapContainer.getBoundingClientRect();
-
         const x =
           rect.left -
           parentRect.left +
           found.x +
-          found.w / 2 -
+          cellSize / 2 -
           tooltipDiv.offsetWidth / 2 +
           heatmapContainer.scrollLeft;
-
         const y =
           rect.top -
           parentRect.top +
           found.y +
-          found.h -
+          cellSize -
           tooltipDiv.offsetHeight +
           heatmapContainer.scrollTop;
-
         tooltipDiv.style.left = `${x}px`;
         tooltipDiv.style.top = `${Math.max(y, 0)}px`;
-
         lastCellFound = found;
-
         tooltip.setContent({ ".tooltip-inner": content });
         tooltip.update();
       }
@@ -773,18 +837,15 @@
     tooltipDiv.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-
       const currentDayKey = tooltipDiv.getAttribute("data-pulse-day");
       if (!currentDayKey) return;
       const { fromSelect, toSelect, decimationSelect } =
         getDetailCardElements();
       const fromIso = `${currentDayKey}T00:00`;
       const toIsoStr = `${currentDayKey}T23:59`;
-
       if (fromSelect) fromSelect.value = fromIso;
       if (toSelect) toSelect.value = toIsoStr;
       if (decimationSelect) decimationSelect.value = "5";
-
       const urlParams = new URLSearchParams(window.location.search);
       urlParams.set("from", fromIso);
       urlParams.set("to", toIsoStr);
@@ -794,13 +855,12 @@
         "",
         `${window.location.pathname}?${urlParams}`
       );
-
       if (renderChartListener) {
         renderChartListener();
       }
     });
 
-    // Also observe theme changes in the current window (for Bootstrap 5 theme toggler)
+    // --- Theme Change Observer ---
     const html = document.documentElement;
     if (window._pulseguardHeatmapMutationObserver) {
       window._pulseguardHeatmapMutationObserver.disconnect();
