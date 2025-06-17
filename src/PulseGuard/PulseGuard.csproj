@@ -27,8 +27,8 @@
 		<PackageReference Include="Sqids" />
 		<PackageReference Include="System.Linq.Async" />
 		<PackageReference Include="System.Text.Json" />
-		<PackageReference Include="TableStorage" />
-		<PackageReference Include="TableStorage.Blobs" />
+		<PackageReference Include="TableStorage.Blobs.RuntimeCompilations" />
+		<PackageReference Include="TableStorage.RuntimeCompilations" />
 	</ItemGroup>
 
 	<ItemGroup>

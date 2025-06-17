@@ -5,6 +5,7 @@ using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
 using System.Text.Json.Serialization;
+using TableStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,7 @@ x =>
 {
     x.CreateContainerIfNotExists = autoCreate;
     x.Serializer = new PulseBlobSerializer();
+    x.EnableCompilationAtRuntime();
 });
 builder.Services.ConfigurePulseServices();
 

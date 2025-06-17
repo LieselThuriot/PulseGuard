@@ -4,7 +4,7 @@ using TableStorage;
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true)]
+[TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true, DisableTables = true)]
 public sealed partial class PulseCheckResult
 {
     public partial string Day { get; set; }
@@ -44,7 +44,7 @@ public sealed partial class PulseCheckResult
         int splitIdx = span.IndexOf(BodySeparator);
         var header = span[..splitIdx];
 
-        PulseCheckResult result = [];
+        PulseCheckResult result = new();
 
         int headerSplitIdx = 0;
         foreach (Range headerRange in header.Split(Separator))

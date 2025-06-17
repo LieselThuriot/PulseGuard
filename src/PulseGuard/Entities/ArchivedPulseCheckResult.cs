@@ -3,8 +3,8 @@ using ProtoBuf;
 
 namespace PulseGuard.Entities;
 
-[ProtoContract(IgnoreListHandling = true)]
-[TableSet(PartitionKey = "Year", RowKey = "Sqid", SupportBlobs = true)]
+[ProtoContract]
+[TableSet(PartitionKey = "Year", RowKey = "Sqid", SupportBlobs = true, DisableTables = true)]
 public sealed partial class ArchivedPulseCheckResult
 {
     [ProtoMember(1)]

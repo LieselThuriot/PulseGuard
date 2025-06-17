@@ -124,7 +124,11 @@ public static class PulseRoutes
 
         group.MapGet("details/{id}", async Task<Results<FileContentHttpResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
-            var archivedItems = context.ArchivedPulseCheckResults.Where(x => x.Sqid == id).ToListAsync(token);
+            var archivedItems = context.ArchivedPulseCheckResults.FindPartitionsAsync(id, token)
+                                       .SelectAwaitWithCancellation(async (x,t) => await context.ArchivedPulseCheckResults.GetEntityAsync(x, id, t))
+                                       .SelectMany(x => x!.Items.ToAsyncEnumerable())
+                                       .ToListAsync(token);
+
             var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
 
             if (results.Count is 0)
@@ -132,7 +136,7 @@ public static class PulseRoutes
                 return TypedResults.NotFound();
             }
 
-            var items = (await archivedItems).SelectMany(x => x.Items).Concat(results.SelectMany(x => x.Items));
+            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
 
             PulseCheckResult pulseCheckResult = results[^1];
             PulseDetailResultGroup result = new(pulseCheckResult.Group, pulseCheckResult.Name, items);
