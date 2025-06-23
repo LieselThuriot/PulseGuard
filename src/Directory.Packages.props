@@ -24,6 +24,7 @@
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.0-preview-02" />
     <PackageVersion Include="Sqids" Version="3.1.0" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.3" />
+    <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.0-preview.5.25277.114" />
     <PackageVersion Include="System.Text.Json" Version="9.0.6" />
     <PackageVersion Include="TableStorage.Blobs.RuntimeCompilations" Version="5.1.0-preview.1" />
     <PackageVersion Include="TableStorage.RuntimeCompilations" Version="5.1.0-preview.1" />

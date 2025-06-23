@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using ProtoBuf.Meta;
+﻿using ProtoBuf.Meta;
 using PulseGuard.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -27,7 +26,7 @@ public class PulseBlobSerializer : IBlobSerializer
 
         if (typeof(T) == typeof(ArchivedPulseCheckResult))
         {
-            return Serializer.Deserialize<T>(entity);
+            return Proto.Deserialize<T>(entity);
         }
 
         return await JsonSerializer.DeserializeAsync(entity, GetTypeInfo<T>(), cancellationToken);
@@ -42,9 +41,7 @@ public class PulseBlobSerializer : IBlobSerializer
 
         if (entity is ArchivedPulseCheckResult archivedPulse)
         {
-            using MemoryStream stream = new();
-            Serializer.Serialize(stream, archivedPulse);
-            return new(stream.GetBuffer().AsMemory(0, (int)stream.Position));
+            return Proto.Serialize(archivedPulse);
         }
 
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(entity, GetTypeInfo<T>());
@@ -52,16 +49,8 @@ public class PulseBlobSerializer : IBlobSerializer
     }
 }
 
-[ProtoContract]
-public struct DateTimeOffsetSurrogate
+public readonly record struct DateTimeOffsetSurrogate(long UnixTimeSeconds)
 {
-    [ProtoMember(1)]
-    public long UnixTimeSeconds { get; set; }
-
-    public static implicit operator DateTimeOffsetSurrogate(DateTimeOffset value) => new()
-    {
-        UnixTimeSeconds = value.ToUnixTimeSeconds()
-    };
-
+    public static implicit operator DateTimeOffsetSurrogate(DateTimeOffset value) => new(value.ToUnixTimeSeconds());
     public static implicit operator DateTimeOffset(DateTimeOffsetSurrogate value) => DateTimeOffset.FromUnixTimeSeconds(value.UnixTimeSeconds);
 }

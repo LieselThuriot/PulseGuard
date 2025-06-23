@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using ProtoBuf;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Data;
@@ -45,15 +44,22 @@ public static class PulseRoutes
             var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
             var groups = await context.Pulses.ExistsIn(x => x.Sqid, relevantSqids)
                                       .Where(x => x.CreationTimestamp > offset)
-                                      .ToLookupAsync(x => x.Sqid, token);
+                                      .ToLookupAsync(x => x.Sqid, cancellationToken: token);
 
             if (groups.Count is 0)
             {
                 return TypedResults.NotFound();
             }
 
-            var entries = groups.Select(g => new PulseOverviewStateGroupItem(g.Key, g.First().Name, g.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp)).ToAsyncEnumerable()));
-            return TypedResults.Ok(new PulseOverviewStateGroup(group, entries.ToAsyncEnumerable()));
+            PulseOverviewStateGroup result = new(group,
+                                                 groups.Select(g => new PulseOverviewStateGroupItem(g.Key,
+                                                                                                    g.First().Name,
+                                                                                                    g.Select(x => new PulseStateItem(x.State,
+                                                                                                                                     x.CreationTimestamp,
+                                                                                                                                     x.LastUpdatedTimestamp))))
+                                           );
+
+            return TypedResults.Ok(result);
         });
 
         group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
@@ -82,7 +88,8 @@ public static class PulseRoutes
                                      ? null
                                      : pulse.ContinuationToken;
 
-            return TypedResults.Ok(new PulseDetailGroupItem(pulse.Sqid, pulse.Name, continuationToken, entries.ToAsyncEnumerable()));
+            PulseDetailGroupItem result = new(pulse.Sqid, pulse.Name, continuationToken, entries);
+            return TypedResults.Ok(result);
         });
 
         group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
@@ -100,7 +107,8 @@ public static class PulseRoutes
 
             Pulse pulse = items[^1];
 
-            return TypedResults.Ok(new PulseStateGroupItem(pulse.Sqid, pulse.Name, entries.ToAsyncEnumerable()));
+            PulseStateGroupItem result = new(pulse.Sqid, pulse.Name, entries);
+            return TypedResults.Ok(result);
         });
 
         group.MapGet("application/{id}/state", async (string id, PulseContext context, CancellationToken token) =>
@@ -120,32 +128,6 @@ public static class PulseRoutes
             };
 
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
-        });
-
-        group.MapGet("details/{id}", async Task<Results<FileContentHttpResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
-        {
-            var archivedItems = context.ArchivedPulseCheckResults.FindPartitionsAsync(id, token)
-                                       .SelectAwaitWithCancellation(async (x,t) => await context.ArchivedPulseCheckResults.GetEntityAsync(x, id, t))
-                                       .SelectMany(x => x!.Items.ToAsyncEnumerable())
-                                       .ToListAsync(token);
-
-            var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
-
-            if (results.Count is 0)
-            {
-                return TypedResults.NotFound();
-            }
-
-            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
-
-            PulseCheckResult pulseCheckResult = results[^1];
-            PulseDetailResultGroup result = new(pulseCheckResult.Group, pulseCheckResult.Name, items);
-
-            await using MemoryStream stream = new();
-            Serializer.Serialize(stream, result);
-            Memory<byte> memory = stream.GetBuffer().AsMemory(0, (int)stream.Position);
-
-            return TypedResults.Bytes(memory, contentType: "application/protobuf");
         });
     }
 

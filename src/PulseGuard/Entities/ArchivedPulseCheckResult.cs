@@ -9,10 +9,10 @@ public sealed partial class ArchivedPulseCheckResult
 {
     [ProtoMember(1)]
     public partial string Year { get; set; }
-    
+
     [ProtoMember(2)]
     public partial string Sqid { get; set; }
-    
+
     [ProtoMember(3)]
     public partial string Group { get; set; }
     

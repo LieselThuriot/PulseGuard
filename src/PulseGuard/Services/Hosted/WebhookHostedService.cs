@@ -56,7 +56,7 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
                                                                                (x.Group == "*" || x.Group == group) &&
                                                                                (x.Name == "*" || x.Name == name))
                                                            .SelectFields(x => new { x.Secret, x.Location })
-                                                           .AsAsyncEnumerable().WithCancellation(cancellationToken))
+                                                           .WithCancellation(cancellationToken))
         {
             await SendWebhook(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
         }

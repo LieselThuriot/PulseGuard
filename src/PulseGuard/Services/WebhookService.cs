@@ -32,10 +32,7 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
             foreach (QueueMessage message in result)
             {
                 WebhookEvent? webhookEvent = PulseSerializerContext.Default.WebhookEvent.Deserialize(message.Body);
-                //if (Proto.TryDeserialize(message, out WebhookEvent? webhookEvent))
-                {
-                    yield return new(message.MessageId, message.PopReceipt, webhookEvent);
-                }
+                yield return new(message.MessageId, message.PopReceipt, webhookEvent);
             }
         }
     }
@@ -50,23 +47,22 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
     {
         double? duration = (old.LastUpdatedTimestamp - old.CreationTimestamp).TotalMinutes;
 
-        WebhookEvent webhookEvent = new()
-        {
-            Id = @new.Sqid,
-            Group = @new.Group,
-            Name = @new.Name,
-            Payload = new()
-            {
-                OldState = old.State.Stringify(),
-                NewState = @new.State.Stringify(),
-                Timestamp = @new.CreationTimestamp.ToUnixTimeSeconds(),
-                Duration = duration,
-                Reason = @new.Message
-            }
-        };
+        WebhookEvent webhookEvent = new
+        (
+            @new.Sqid,
+            @new.Group,
+            @new.Name,
+            new
+            (
+                old.State.Stringify(),
+                @new.State.Stringify(),
+                @new.CreationTimestamp.ToUnixTimeSeconds(),
+                duration,
+                @new.Message
+            )
+        );
 
         BinaryData data = new(PulseSerializerContext.Default.WebhookEvent.SerializeToUtf8Bytes(webhookEvent));
-        //BinaryData data = Proto.Serialize(webhookEvent);
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }

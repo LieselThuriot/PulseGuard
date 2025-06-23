@@ -3,12 +3,7 @@ using PulseGuard.Entities;
 
 namespace PulseGuard.Models;
 
-[ProtoContract(SkipConstructor = true)]
-public sealed record PulseReport(
-    [property: ProtoMember(1)] PulseConfiguration Options,
-    [property: ProtoMember(2)] PulseStates State,
-    [property: ProtoMember(3)] string Message,
-    [property: ProtoMember(4)] string? Error)
+public sealed record PulseReport(PulseConfiguration Options, PulseStates State, string Message, string? Error)
 {
     internal const string HealthyMessage = "Pulse check succeeded";
 

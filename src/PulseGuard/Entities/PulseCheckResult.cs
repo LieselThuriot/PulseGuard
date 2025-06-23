@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using PulseGuard.Models;
+﻿using PulseGuard.Models;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -108,8 +107,7 @@ public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
     }
 }
 
-[ProtoContract(SkipConstructor = true)]
-public sealed record PulseCheckResultDetail([property: ProtoMember(1)] PulseStates State, [property: ProtoMember(2)] long Timestamp, [property: ProtoMember(3)] long? ElapsedMilliseconds)
+public sealed record PulseCheckResultDetail(PulseStates State, long Timestamp, long? ElapsedMilliseconds)
 {
     public const char Separator = ';';
 

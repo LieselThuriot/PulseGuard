@@ -27,11 +27,8 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
             foreach (QueueMessage message in result)
             {
                 PulseEvent? pulseEvent = PulseSerializerContext.Default.PulseEvent.Deserialize(message.Body);
-                //if (Proto.TryDeserialize(message, out PulseEvent? pulseEvent))
-                {
-                    DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
-                    yield return new(message.MessageId, message.PopReceipt, creation, pulseEvent);
-                }
+                DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
+                yield return new(message.MessageId, message.PopReceipt, creation, pulseEvent);
             }
         }
     }
@@ -44,14 +41,8 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 
     public Task PostAsync(PulseReport report, long elapsedMilliseconds, CancellationToken token)
     {
-        PulseEvent @event = new()
-        {
-            ElapsedMilliseconds = elapsedMilliseconds,
-            Report = report
-        };
-
+        PulseEvent @event = new(elapsedMilliseconds, report);
         BinaryData data = new(PulseSerializerContext.Default.PulseEvent.SerializeToUtf8Bytes(@event));
-        //BinaryData data = Proto.Serialize(@event);
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }

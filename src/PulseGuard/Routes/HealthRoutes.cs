@@ -57,9 +57,9 @@ public static class HealthRoutes
             return context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
                           .SelectFields(x => new { x.Group, x.Name, x.State, x.LastUpdatedTimestamp })
                           .GroupBy(x => x.GetFullName())
-                          .SelectAwait(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).FirstAsync(token))
+                          .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).First())
                           .OrderBy(x => x.Name)
-                          .ToDictionaryAsync(x => x.Name, x => x.State, token);
+                          .ToDictionaryAsync(cancellationToken: token);
         });
     }
 }

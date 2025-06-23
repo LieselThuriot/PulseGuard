@@ -45,6 +45,7 @@ public static class Routes
         });
 
         routes.MapPulses();
+        routes.MapProtoPulses();
         routes.MapBadges();
 
         Views.V2.Routes.MapViews(routes.MapGroup("").WithTags("Views V2").ExcludeFromDescription());
