@@ -6,11 +6,12 @@ using TableStorage.Linq;
 
 namespace PulseGuard.Services;
 
-public sealed class PulseStore(PulseContext context, IdService idService, WebhookService webhookService, IOptions<PulseOptions> options, ILogger<PulseStore> logger)
+public sealed class PulseStore(PulseContext context, IdService idService, WebhookService webhookService, IPulseEventService pulseEventService, IOptions<PulseOptions> options, ILogger<PulseStore> logger)
 {
     private readonly PulseContext _context = context;
     private readonly IdService _idService = idService;
     private readonly WebhookService _webhookService = webhookService;
+    private readonly IPulseEventService _pulseEventService = pulseEventService;
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
@@ -56,6 +57,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             webhookTask = _webhookService.PostAsync(oldPulse, pulse, token);
         }
 
+        pulse.LastElapsedMilliseconds = elapsedMilliseconds;
+
         await _context.Pulses.UpsertEntityAsync(pulse, token);
         await _context.RecentPulses.UpsertEntityAsync(pulse, token);
 
@@ -74,6 +77,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         {
             await webhookTask;
         }
+
+        _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
     }
 
     public Task CleanRecent(CancellationToken token)
