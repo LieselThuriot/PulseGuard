@@ -212,6 +212,14 @@
   background-color: var(--bs-pink);
 }
 
+#live-pulse-view {
+  --bs-offcanvas-width: 100%;
+}
+
+.bi-glow {
+  text-shadow: 0 0 0.25rem currentColor;
+}
+
 @media (max-width: 768px) {
   .offcanvas {
     --bs-offcanvas-width: 100%;

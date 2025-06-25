@@ -4,7 +4,9 @@ using PulseGuard.Entities;
 using PulseGuard.Models;
 using PulseGuard.Services;
 using System.Collections.Concurrent;
+using System.IO.Pipelines;
 using System.Net.Mime;
+using System.Text;
 using TableStorage.Linq;
 
 namespace PulseGuard.Routes;
@@ -57,7 +59,7 @@ public static class EventRoutes
 
         await foreach (PulseEventInfo pulseEventInfo in query.WithCancellation(token))
         {
-            await WriteEvent(response, pulseEventInfo, token);
+            await WriteEvent(response.BodyWriter, pulseEventInfo, token);
         }
     }
 
@@ -72,16 +74,19 @@ public static class EventRoutes
 
         await foreach (PulseEventInfo pulseEventInfo in listener.WithCancellation(cancellationToken))
         {
-            await WriteEvent(response, pulseEventInfo, cancellationToken);
+            await WriteEvent(response.BodyWriter, pulseEventInfo, cancellationToken);
         }
     }
 
-    private static async Task WriteEvent(HttpResponse response, PulseEventInfo pulseEventInfo, CancellationToken cancellationToken)
+    private static readonly byte[] s_dataPrefix = Encoding.UTF8.GetBytes("data: ");
+    private static readonly byte[] s_eventPostfix = Encoding.UTF8.GetBytes("\n\n");
+
+    private static async Task WriteEvent(PipeWriter BodyWriter, PulseEventInfo pulseEventInfo, CancellationToken cancellationToken)
     {
-        await response.WriteAsync("data: ", cancellationToken);
-        await PulseSerializerContext.Default.PulseEventInfo.SerializeAsync(response.Body, pulseEventInfo, cancellationToken);
-        await response.WriteAsync("\n\n", cancellationToken);
-        await response.Body.FlushAsync(cancellationToken);
+        await BodyWriter.WriteAsync(s_dataPrefix, cancellationToken);
+        await BodyWriter.WriteAsync(PulseSerializerContext.Default.PulseEventInfo.SerializeToUtf8Bytes(pulseEventInfo), cancellationToken);
+        await BodyWriter.WriteAsync(s_eventPostfix, cancellationToken);
+        await BodyWriter.FlushAsync(cancellationToken);
     }
 
     private sealed class FilteredPulseEventListener(Func<PulseEventInfo, bool> filter) : PulseEventListener

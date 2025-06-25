@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * @typedef {Object} LogItem
  * @property {string} state - The state of the pulse check (e.g., "Healthy", "Unhealthy", "Degraded", "TimedOut" or "Unknown").
@@ -13,7 +15,6 @@
  * @property {string} name - The name of the log.
  * @property {LogItem[]} items - The list of log items.
  */
-"use strict";
 
 (async function () {
   /** @type {string} */

@@ -26,7 +26,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "pulseguard",
-      "applicationUrl": "https://localhost:7010;http://localhost:5084",
+      "applicationUrl": "http://localhost:5084;https://localhost:7010",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "PathBase": "/pulseguard"

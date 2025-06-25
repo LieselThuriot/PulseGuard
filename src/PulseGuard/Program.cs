@@ -49,7 +49,10 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 string? pathBase = app.Configuration["PathBase"];
 if (!string.IsNullOrEmpty(pathBase))
@@ -58,7 +61,7 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseRouting();
-
+app.UseWebSockets();
 app.MapRoutes(authorized);
 
 app.Run();
