@@ -11,7 +11,8 @@ public enum PulseCheckType
     Json,
     Contains,
     HealthCheck,
-    StatusApi
+    StatusApi,
+    Sql
 }
 
 public sealed class PulseCheckTypeJsonConverter : JsonConverter<PulseCheckType>
@@ -36,6 +37,7 @@ internal static class PulseCheckTypeFastString
         PulseCheckType.Contains => nameof(PulseCheckType.Contains),
         PulseCheckType.HealthCheck => nameof(PulseCheckType.HealthCheck),
         PulseCheckType.StatusApi => nameof(PulseCheckType.StatusApi),
+        PulseCheckType.Sql => nameof(PulseCheckType.Sql),
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -48,6 +50,7 @@ internal static class PulseCheckTypeFastString
         nameof(PulseCheckType.Contains) => PulseCheckType.Contains,
         nameof(PulseCheckType.HealthCheck) => PulseCheckType.HealthCheck,
         nameof(PulseCheckType.StatusApi) => PulseCheckType.StatusApi,
+        nameof(PulseCheckType.Sql) => PulseCheckType.Sql,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -60,6 +63,7 @@ internal static class PulseCheckTypeFastString
         (int)PulseCheckType.Contains => PulseCheckType.Contains,
         (int)PulseCheckType.HealthCheck => PulseCheckType.HealthCheck,
         (int)PulseCheckType.StatusApi => PulseCheckType.StatusApi,
+        (int)PulseCheckType.Sql => PulseCheckType.Sql,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };

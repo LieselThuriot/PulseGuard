@@ -18,6 +18,7 @@ public sealed class PulseCheckFactory(HttpClient client, ILogger<PulseCheck> log
             PulseCheckType.Contains => new ContainsPulseCheck(_client, options, _logger),
             PulseCheckType.HealthCheck => new HealthCheckPulseCheck(_client, options, _logger),
             PulseCheckType.StatusApi => new StatusApiPulseCheck(_client, options, _logger),
+            PulseCheckType.Sql => new SqlPulseCheck(_client, options, _logger),
             _ => throw new ArgumentOutOfRangeException(nameof(options), options.Type, null)
         };
     }
