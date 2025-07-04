@@ -130,10 +130,10 @@
       };
     } else {
       if (options.group) {
-        route += "/group/" + encodeURIComponent(options.group);
+        route += `/group/${encodeURIComponent(options.group)}/`;
         prefixWithGroup = false;
       } else if (options.id) {
-        route += "/application/" + encodeURIComponent(options.id);
+        route += `/application/${encodeURIComponent(options.id)}/`;
         prefixWithGroup = false;
       }
     }
