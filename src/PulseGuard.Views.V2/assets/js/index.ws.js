@@ -27,10 +27,10 @@
     );
   }
 
-  function openPulseSocket() {
+  function openPulseSocket(options) {
     if (hasSocketConnection()) {
       console.warn("WebSocket is already open or connecting.");
-      return;
+      return false;
     }
 
     if (pulseChart) {
@@ -118,13 +118,42 @@
       },
     });
 
-    socket = new WebSocket("ws");
+    let route = "ws";
+
+    let prefixWithGroup = true;
+
+    if (!options) {
+      options = {};
+    } else if (typeof options === "function") {
+      options = {
+        filter: options,
+      };
+    } else {
+      if (options.group) {
+        route += "/group/" + options.group;
+        prefixWithGroup = false;
+      } else if (options.id) {
+        route += "/application/" + options.id;
+        prefixWithGroup = false;
+      }
+    }
+
+    if (!options.filter) {
+      options.filter = function () {
+        return true;
+      };
+    }
+
+    socket = new WebSocket(route);
 
     socket.addEventListener("message", function (event) {
       try {
         /** @type {PulseEventInfo} */
         const pulseEvent = JSON.parse(event.data);
-        handlePulseEvent(pulseEvent);
+
+        if (options.filter(pulseEvent)) {
+          handlePulseEvent(pulseEvent, prefixWithGroup);
+        }
       } catch (e) {
         console.error("Invalid JSON received:", event.data);
       }
@@ -141,6 +170,8 @@
     socket.addEventListener("error", function (error) {
       console.error("WebSocket error:", error);
     });
+
+    return true;
   }
 
   function closePulseSocket() {
@@ -187,84 +218,60 @@
    * @returns {string} A color in the format rgb(r, g, b).
    */
   function getGraphColor(index) {
-    const colors = [
-      "rgb(75, 192, 192)", // Teal
-      "rgb(54, 163, 235)", // Blue
-      "rgb(153, 102, 255)", // Purple
-      "rgb(102, 204, 255)", // Light Blue
-      "rgb(0, 128, 128)", // Dark Teal
-      "rgb(0, 102, 204)", // Medium Blue
-      "rgb(51, 153, 255)", // Sky Blue
-      "rgb(102, 153, 204)", // Steel Blue
-      "rgb(0, 153, 153)", // Aqua
-      "rgb(51, 102, 153)", // Slate Blue
-      "rgb(0, 76, 153)", // Navy Blue
-      "rgb(102, 178, 255)", // Light Sky Blue
-      "rgb(0, 102, 102)", // Deep Aqua
-      "rgb(51, 153, 204)", // Cerulean
-      "rgb(0, 51, 102)", // Midnight Blue
-      "rgb(102, 204, 255)", // Pale Blue
-      "rgb(128, 255, 255)", // Light Cyan
-      "rgb(72, 191, 227)", // Medium Sky Blue
-      "rgb(176, 196, 222)", // Light Steel Blue
-      "rgb(70, 130, 180)", // Steel Blue Variant
-      "rgb(95, 158, 160)", // Cadet Blue
-      "rgb(135, 206, 235)", // Sky Blue Light
-      "rgb(30, 144, 255)", // Dodger Blue
-      "rgb(65, 105, 225)", // Royal Blue
-      "rgb(100, 149, 237)", // Cornflower Blue
-      "rgb(123, 104, 238)", // Medium Slate Blue
-      "rgb(147, 112, 219)", // Medium Purple
-      "rgb(138, 43, 226)", // Blue Violet
-      "rgb(72, 61, 139)", // Dark Slate Blue
-      "rgb(106, 90, 205)", // Slate Blue Light
-      "rgb(25, 25, 112)", // Midnight Blue Dark
-      "rgb(0, 191, 255)", // Deep Sky Blue
-      "rgb(135, 206, 250)", // Light Sky Blue Variant
-      "rgb(176, 224, 230)", // Powder Blue
-      "rgb(173, 216, 230)", // Light Blue Variant
-      "rgb(240, 248, 255)", // Alice Blue
-      "rgb(64, 224, 208)", // Turquoise
-      "rgb(72, 209, 204)", // Medium Turquoise
-      "rgb(32, 178, 170)", // Light Sea Green
-      "rgb(95, 158, 160)", // Cadet Blue Variant
-      "rgb(20, 150, 170)", // Teal Blue
-      "rgb(80, 200, 220)", // Light Turquoise
-      "rgb(40, 120, 140)", // Deep Teal
-      "rgb(90, 180, 200)", // Soft Blue
-      "rgb(110, 160, 180)", // Grayish Blue
-      "rgb(50, 140, 160)", // Ocean Blue
-      "rgb(120, 190, 210)", // Pale Turquoise
-      "rgb(30, 110, 130)", // Dark Cyan
-      "rgb(85, 170, 190)", // Medium Aqua
-      "rgb(55, 155, 175)", // Steel Cyan
-      "rgb(75, 145, 165)", // Blue Gray
-      "rgb(186, 85, 211)", // Medium Orchid
-      "rgb(221, 160, 221)", // Plum
-      "rgb(238, 130, 238)", // Violet
-      "rgb(218, 112, 214)", // Orchid
-      "rgb(199, 21, 133)", // Medium Violet Red
-      "rgb(148, 0, 211)", // Dark Violet
-      "rgb(139, 69, 19)", // Saddle Brown
-      "rgb(160, 82, 45)", // Sienna
-      "rgb(210, 180, 140)", // Tan
-      "rgb(222, 184, 135)", // Burlywood
-    ];
+    // Use index as seed for consistent colors per dataset
+    const seed = index * 2654435761; // Large prime for better distribution
 
-    if (index < colors.length) {
-      return colors[index];
+    // Generate random values based on the seed
+    const random1 = Math.abs(Math.sin(seed)) * 10000;
+    const random2 = Math.abs(Math.sin(seed * 1.1)) * 10000;
+    const random3 = Math.abs(Math.sin(seed * 1.3)) * 10000;
+
+    // Focus on blue, teal, and purple hues (180-300 degrees on color wheel)
+    const hue = 180 + (random1 % 120); // 180-300 range
+
+    // Ensure good saturation and lightness for visibility
+    const saturation = 60 + (random2 % 40); // 60-100%
+    const lightness = 40 + (random3 % 30); // 40-70%
+
+    // Convert HSL to RGB
+    const c = ((1 - Math.abs((2 * lightness) / 100 - 1)) * saturation) / 100;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const m = lightness / 100 - c / 2;
+
+    let r, g, b;
+    if (hue < 60) {
+      [r, g, b] = [c, x, 0];
+    } else if (hue < 120) {
+      [r, g, b] = [x, c, 0];
+    } else if (hue < 180) {
+      [r, g, b] = [0, c, x];
+    } else if (hue < 240) {
+      [r, g, b] = [0, x, c];
+    } else if (hue < 300) {
+      [r, g, b] = [x, 0, c];
+    } else {
+      [r, g, b] = [c, 0, x];
     }
 
-    return "rgb(128, 128, 128)"; // Default to Gray for indices beyond the array
+    // Convert to 0-255 range
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return `rgb(${r}, ${g}, ${b})`;
   }
 
   /**
    * Handles incoming pulse event data.
    *
    * @param {PulseEventInfo} data - The data associated with the pulse event.
+   * @param {boolean} prefixWithGroup - Whether to prefix the event type with the group name.
    */
-  function handlePulseEvent(data) {
-    const eventType = !!data.group ? `${data.group} > ${data.name}` : data.name;
+  function handlePulseEvent(data, prefixWithGroup) {
+    const eventType =
+      prefixWithGroup && !!data.group
+        ? `${data.group} > ${data.name}`
+        : data.name;
     const timestamp = new Date(data.creation);
 
     // Find or create dataset for this event type
@@ -314,12 +321,80 @@
     console.warn("Live pulse view action button not found.");
   }
 
-  const livePulseViewClose = document.getElementById("live-pulse-view-close");
-  if (livePulseViewClose) {
-    livePulseViewClose.addEventListener("click", function () {
+  const detailLivePulseViewAction = document.getElementById(
+    "detail-live-pulse-view-action"
+  );
+
+  if (detailLivePulseViewAction) {
+    detailLivePulseViewAction.removeAttribute("disabled");
+    detailLivePulseViewAction.addEventListener("click", function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sqid = urlParams.get("details");
+      const sqids = [sqid, ...urlParams.getAll("overlay")];
+
+      if (sqids.length === 1) {
+        openPulseSocket({ id: sqid });
+      } else {
+        openPulseSocket(function (pulseEvent) {
+          return sqids.indexOf(pulseEvent.id) !== -1;
+        });
+      }
+    });
+  } else {
+    console.warn("Detail Live pulse view action button not found.");
+  }
+
+  var myOffcanvas = document.getElementById("live-pulse-view");
+  if (myOffcanvas) {
+    myOffcanvas.addEventListener("hidden.bs.offcanvas", function () {
       closePulseSocket();
     });
   } else {
-    console.warn("Live pulse view close button not found.");
+    console.warn("Live pulse view offcanvas not found.");
   }
+
+  window.addEventListener("pulseTreeLoaded", function () {
+    const livePulseButtons = document.querySelectorAll(
+      "[data-live-pulse-type]"
+    );
+
+    livePulseButtons.forEach((button) => {
+      if (!button.classList.contains("d-none")) {
+        return; // already initialized
+      }
+
+      button.classList.remove("d-none");
+
+      const value = button.getAttribute("data-live-pulses");
+      if (!value) {
+        console.warn("Live pulse button missing value:", button);
+        return;
+      }
+
+      const type = button.getAttribute("data-live-pulse-type");
+
+      let openPulseFunction;
+      if (type === "group") {
+        openPulseFunction = function () {
+          return openPulseSocket({ group: value });
+        };
+      } else if (type === "pulse") {
+        openPulseFunction = function () {
+          return openPulseSocket({ id: value });
+        };
+      } else {
+        console.warn("Unknown live pulse type:", type);
+        return;
+      }
+
+      button.setAttribute("data-bs-target", "#live-pulse-view");
+      button.setAttribute("data-bs-toggle", "offcanvas");
+
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openPulseFunction();
+      });
+    });
+  });
 })();

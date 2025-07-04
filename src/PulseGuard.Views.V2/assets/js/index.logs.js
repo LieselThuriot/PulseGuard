@@ -276,6 +276,7 @@
         fetchData();
       });
       logActionButton.removeAttribute("disabled");
+      new bootstrap.Tooltip(logActionButton);
     } else {
       console.error("Error getting detail-card-open-log-action");
     }

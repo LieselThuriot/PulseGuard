@@ -24,7 +24,8 @@
       </a>
       <div class="d-flex flex-row align-items-center">
         <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas"
-          data-bs-target="#live-pulse-view" aria-controls="live-pulse-view" id="live-pulse-view-action" disabled>
+          data-bs-target="#live-pulse-view" aria-controls="live-pulse-view" id="live-pulse-view-action"
+          data-bs-toggle="tooltip" data-bs-title="Live Pulse View" disabled>
           <i class="bi bi-broadcast-pin text-success bi-glow"></i> Live
         </button>
 
@@ -120,8 +121,14 @@
               <span class="badge my-auto mx-2" id="detail-card-badge">...</span>
               <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas"
                 data-bs-target="#detail-card-open-log" aria-controls="detail-card-open-log"
-                id="detail-card-open-log-action" disabled>
+                id="detail-card-open-log-action" title="Open Log" disabled>
                 <i class="bi bi-journal-text text-secondary-emphasis"></i>
+              </button>
+
+              <button class="btn btn-outline-secondary btn-sm ms-2" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#live-pulse-view" aria-controls="live-pulse-view" id="detail-live-pulse-view-action"
+                title="Live Pulse View" disabled>
+                <i class="bi bi-broadcast-pin text-success bi-glow"></i>
               </button>
             </div>
           </div>
@@ -338,8 +345,7 @@
       <h5 class="offcanvas-title" id="detail-card-open-log-label">
         <i class="bi bi-broadcast-pin text-success bi-glow"></i> Live Pulses
       </h5>
-      <button type="button" id="live-pulse-view-close" class="btn-close" data-bs-dismiss="offcanvas"
-        aria-label="Close"></button>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
       <canvas id="live-pulse-view-chart"></canvas>

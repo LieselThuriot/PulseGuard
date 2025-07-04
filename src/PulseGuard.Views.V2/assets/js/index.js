@@ -66,6 +66,8 @@
 
     const listGroup = createListGroup(data);
     overviewCard.appendChild(listGroup);
+
+    window.dispatchEvent(new CustomEvent('pulseTreeLoaded'));
   }
 
   /**
@@ -217,10 +219,10 @@
       a.appendChild(icon);
       a.appendChild(textSpan);
 
-      const overlayDiv = document.createElement("div");
-      overlayDiv.className = "me-4 d-none d-md-inline pulse-overlay-toggle";
-
       if (!("group" in item)) {
+        const overlayDiv = document.createElement("div");
+        overlayDiv.className = "me-2 d-none d-md-inline pulse-overlay-toggle";
+
         const overlayIcon = document.createElement("i");
         overlayIcon.className = "bi bi-stack";
         overlayIcon.setAttribute("data-bs-toggle", "tooltip");
@@ -250,9 +252,33 @@
         });
 
         overlayDiv.appendChild(overlayIcon);
+
+        a.appendChild(overlayDiv);
       }
 
-      a.appendChild(overlayDiv);
+      const liveDiv = document.createElement("div");
+      liveDiv.className = "me-2 d-none d-md-inline pulse-live-toggle";
+      const liveEventsIcon = document.createElement("i");
+      liveEventsIcon.className = "me-2 bi bi-broadcast-pin text-success bi-glow d-none";
+      liveEventsIcon.setAttribute("data-bs-toggle", "tooltip");
+      liveEventsIcon.setAttribute("data-bs-placement", "top");
+      liveEventsIcon.setAttribute("data-bs-title", "Show Live Events");
+
+      if (!("group" in item)) {
+        liveEventsIcon.setAttribute("data-live-pulse-type", "pulse");
+        liveEventsIcon.setAttribute("data-live-pulses", id);
+      } else {
+        liveEventsIcon.setAttribute("data-live-pulse-type", "group");
+        liveEventsIcon.setAttribute("data-live-pulses", text);
+      }
+
+      liveEventsIcon.setAttribute(
+        "data-live-pulse-type",
+        !("group" in item) ? "pulse" : "group"
+      );
+      new bootstrap.Tooltip(liveEventsIcon);
+      liveDiv.appendChild(liveEventsIcon);
+      a.appendChild(liveDiv);
 
       const healthbar = createHealthBar(item);
       if (healthbar.lastChild.classList.contains("text-bg-success")) {
