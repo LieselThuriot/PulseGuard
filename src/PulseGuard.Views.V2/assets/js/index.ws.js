@@ -159,16 +159,40 @@
       }
     });
 
-    socket.addEventListener("open", function () {
-      console.log("WebSocket connection opened.");
-    });
+    // socket.addEventListener("open", function () {
+    //   console.log("WebSocket connection opened.");
+    // });
 
-    socket.addEventListener("close", function () {
-      console.log("WebSocket connection closed.");
-    });
+    // socket.addEventListener("close", function () {
+    //   console.log("WebSocket connection closed.");
+    // });
 
     socket.addEventListener("error", function (error) {
+      bootstrap.showToast({
+        header: "❌ PulseGuard",
+        headerSmall: "",
+        closeButton: true,
+        closeButtonLabel: "close",
+        closeButtonClass: "",
+        animation: true,
+        delay: 5000,
+        position: "bottom-0 end-0",
+        direction: "append",
+        ariaLive: "assertive",
+        body: "Live Events: error occurred.",
+        toastClass: "toast-danger",
+      });
+
       console.error("WebSocket error:", error);
+
+      // Close the live pulse view offcanvas when an error occurs
+      const liveOffcanvas = document.getElementById("live-pulse-view");
+      if (liveOffcanvas) {
+        const bsOffcanvas = bootstrap.Offcanvas.getInstance(liveOffcanvas);
+        if (bsOffcanvas) {
+          bsOffcanvas.hide();
+        }
+      }
     });
 
     return true;
@@ -177,7 +201,7 @@
   function closePulseSocket() {
     if (hasSocketConnection()) {
       socket.close();
-      console.log("WebSocket connection closing...");
+      //console.log("WebSocket connection closing...");
       socket = null;
     }
 
@@ -288,10 +312,8 @@
         pointBorderColor: graphColor,
         fill: false,
         tension: 0.2,
-        segment: {
-          borderColor: (ctx) => getStateColor(ctx.p0.raw.state, false) + "80",
-        },
       };
+
       pulseChart.data.datasets.push(dataset);
     }
 
