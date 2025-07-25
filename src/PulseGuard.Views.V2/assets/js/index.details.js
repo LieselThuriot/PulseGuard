@@ -89,7 +89,6 @@
     }
   }
 
-
   /**
    * PulseDetailResultGroup message: Represents a health check group with monitoring data
    * @typedef {Object} PulseDetailResultGroup
@@ -118,7 +117,9 @@
             message.name = reader.string();
             break;
           case 3:
-            message.items.push(PulseDetailResult.decode(reader, reader.uint32()));
+            message.items.push(
+              PulseDetailResult.decode(reader, reader.uint32())
+            );
             break;
           default:
             reader.skipType(tag & 7);
@@ -128,7 +129,6 @@
       return message;
     }
   }
-
 
   /** @type {Chart|null} */
   let detailCardChart = null;
@@ -220,8 +220,37 @@
   (function () {
     const { fromSelect, toSelect } = getDetailCardElements();
 
+    function getRangeForDays(days) {
+      const toDate = new Date();
+      const fromDate = new Date(toDate);
+
+      if (days < 1) {
+        fromDate.setHours(toDate.getHours() - 24 * days);
+      } else {
+        fromDate.setDate(toDate.getDate() - days);
+      }
+
+      toDate.setHours(23, 59 - toDate.getTimezoneOffset(), 59, 0);
+
+      if (days >= 7) {
+        fromDate.setHours(0, 0, 0, 0);
+      }
+
+      fromDate.setMinutes(fromDate.getMinutes() - fromDate.getTimezoneOffset());
+
+      return { fromDate: fromDate.toISOString().slice(0, 16), toDate: toDate.toISOString().slice(0, 16) };
+    }
+
+    {
+      const { fromDate, toDate } = getRangeForDays(1);
+      fromSelect.value = fromDate;
+      toSelect.value = toDate;
+    }
+
     [
+      { id: "detail-card-filter-0-5", days: 0.5 },
       { id: "detail-card-filter-1", days: 1 },
+      { id: "detail-card-filter-2", days: 2 },
       { id: "detail-card-filter-7", days: 7 },
       { id: "detail-card-filter-14", days: 14 },
       { id: "detail-card-filter-30", days: 30 },
@@ -236,31 +265,19 @@
 
       button.addEventListener("click", () => {
         if (days) {
-          const toDate = new Date();
-          const fromDate = new Date(toDate);
-
-          fromDate.setDate(toDate.getDate() - days);
-          toDate.setHours(23, 59 - toDate.getTimezoneOffset(), 59, 0);
-
-          if (days !== 1) {
-            fromDate.setHours(0, 0, 0, 0);
-          }
-
-          fromDate.setMinutes(
-            fromDate.getMinutes() - fromDate.getTimezoneOffset()
-          );
+          const { fromDate, toDate } = getRangeForDays(days);
 
           const urlParams = new URLSearchParams(window.location.search);
 
           if (fromSelect) {
-            fromSelect.value = fromDate.toISOString().slice(0, 16);
+            fromSelect.value = fromDate;
             urlParams.set("from", fromSelect.value);
           } else {
             urlParams.delete("from");
           }
 
           if (toSelect) {
-            toSelect.value = toDate.toISOString().slice(0, 16);
+            toSelect.value = toDate;
             urlParams.set("to", toSelect.value);
           } else {
             urlParams.delete("to");

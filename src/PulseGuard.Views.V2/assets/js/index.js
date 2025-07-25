@@ -245,7 +245,7 @@
         badgeSpan.textContent = `${uptimePercentage.toFixed(2)}%`;
 
         badgeSpan.className =
-          "m-auto me-2 d-none d-xl-inline-block badge rounded-pill";
+          "m-auto me-2 d-inline-block d-md-none d-xl-inline-block badge rounded-pill";
         if (uptimePercentage >= 95) {
           badgeSpan.classList.add("text-bg-success");
         } else if (uptimePercentage >= 80) {
@@ -255,7 +255,10 @@
         }
         badgeSpan.setAttribute("data-bs-toggle", "tooltip");
         badgeSpan.setAttribute("data-bs-placement", "top");
-        badgeSpan.setAttribute("data-bs-title", `${uptimePercentage}%`);
+        badgeSpan.setAttribute(
+          "data-bs-title",
+          `${uptimePercentage}% uptime for the last 12 hours`
+        );
         new bootstrap.Tooltip(badgeSpan);
         a.appendChild(badgeSpan);
       }
