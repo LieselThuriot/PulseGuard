@@ -67,7 +67,7 @@
     const listGroup = createListGroup(data);
     overviewCard.appendChild(listGroup);
 
-    window.dispatchEvent(new CustomEvent('pulseTreeLoaded'));
+    window.dispatchEvent(new CustomEvent("pulseTreeLoaded"));
   }
 
   /**
@@ -160,16 +160,6 @@
         }
       }
 
-      const textSpan = document.createElement("span");
-      textSpan.textContent = text;
-      textSpan.className = "flex-grow-1 d-inline-block text-truncate me-4";
-
-      textSpan.setAttribute("data-bs-toggle", "tooltip");
-      textSpan.setAttribute("data-bs-placement", "right");
-      textSpan.setAttribute("data-bs-custom-class", "d-lg-none");
-      textSpan.setAttribute("data-bs-title", text);
-      new bootstrap.Tooltip(textSpan);
-
       const icon = document.createElement("i");
       icon.className = "bi me-2";
 
@@ -217,6 +207,68 @@
       }
 
       a.appendChild(icon);
+
+      if (!("group" in item)) {
+        const calculateUptimePercentage = (item) => {
+          const pulses = item.items;
+          if (!pulses || pulses.length === 0) return 0;
+
+          const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+
+          let totalDuration = 0.0;
+          let healthyDuration = 0.0;
+
+          pulses.forEach((pulse) => {
+            const from = new Date(pulse.from);
+            const to = new Date(pulse.to);
+
+            // Clamp the from date to not be earlier than 12 hours ago
+            const clampedFrom = from < twelveHoursAgo ? twelveHoursAgo : from;
+            clampedFrom.setSeconds(0, 0);
+            to.setSeconds(0, 0);
+            const duration = to - clampedFrom;
+            totalDuration += duration;
+
+            if (pulse.state === "Healthy") {
+              healthyDuration += duration;
+            }
+          });
+
+          return totalDuration > 0
+            ? (healthyDuration / totalDuration) * 100.0
+            : 0;
+        };
+
+        const uptimePercentage = calculateUptimePercentage(item);
+
+        const badgeSpan = document.createElement("span");
+        badgeSpan.textContent = `${uptimePercentage.toFixed(2)}%`;
+
+        badgeSpan.className =
+          "m-auto me-2 d-none d-xl-inline-block badge rounded-pill";
+        if (uptimePercentage >= 95) {
+          badgeSpan.classList.add("text-bg-success");
+        } else if (uptimePercentage >= 80) {
+          badgeSpan.classList.add("text-bg-warning");
+        } else {
+          badgeSpan.classList.add("text-bg-danger");
+        }
+        badgeSpan.setAttribute("data-bs-toggle", "tooltip");
+        badgeSpan.setAttribute("data-bs-placement", "top");
+        badgeSpan.setAttribute("data-bs-title", `${uptimePercentage}%`);
+        new bootstrap.Tooltip(badgeSpan);
+        a.appendChild(badgeSpan);
+      }
+
+      const textSpan = document.createElement("span");
+      textSpan.textContent = text;
+      textSpan.className = "flex-grow-1 d-inline-block text-truncate me-4";
+
+      textSpan.setAttribute("data-bs-toggle", "tooltip");
+      textSpan.setAttribute("data-bs-placement", "right");
+      textSpan.setAttribute("data-bs-custom-class", "d-lg-none");
+      textSpan.setAttribute("data-bs-title", text);
+      new bootstrap.Tooltip(textSpan);
       a.appendChild(textSpan);
 
       if (!("group" in item)) {
@@ -259,7 +311,8 @@
       const liveDiv = document.createElement("div");
       liveDiv.className = "me-2 d-none d-md-inline pulse-live-toggle";
       const liveEventsIcon = document.createElement("i");
-      liveEventsIcon.className = "me-2 bi bi-broadcast-pin text-success bi-glow d-none";
+      liveEventsIcon.className =
+        "me-2 bi bi-broadcast-pin text-success bi-glow d-none";
       liveEventsIcon.setAttribute("data-bs-toggle", "tooltip");
       liveEventsIcon.setAttribute("data-bs-placement", "top");
       liveEventsIcon.setAttribute("data-bs-title", "Show Live Events");

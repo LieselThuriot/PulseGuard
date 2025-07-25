@@ -1616,13 +1616,13 @@
   function calculateUptimes(items) {
     const totalChecks = items.length;
     const stateCounts = items.reduce((counts, item) => {
-      counts[item.state] = (counts[item.state] || 0) + 1;
+      counts[item.state] = (counts[item.state] || 0.0) + 1.0;
       return counts;
     }, {});
 
     const percentages = {};
     for (const [state, count] of Object.entries(stateCounts)) {
-      percentages[state] = (count / totalChecks) * 100;
+      percentages[state] = (count / totalChecks) * 100.0;
     }
 
     return percentages;
