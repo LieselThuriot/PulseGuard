@@ -248,11 +248,18 @@
           "m-auto me-2 d-inline-block d-md-none d-xl-inline-block badge rounded-pill";
         if (uptimePercentage >= 95) {
           badgeSpan.classList.add("text-bg-success");
+          const opacity = 0.7 + (uptimePercentage - 95) * 0.06;
+          badgeSpan.style.setProperty("--bs-bg-opacity", opacity);
         } else if (uptimePercentage >= 80) {
           badgeSpan.classList.add("text-bg-warning");
+          const opacity = 1 - ((uptimePercentage - 80) / 15) * 0.3;
+          badgeSpan.style.setProperty("--bs-bg-opacity", opacity);
         } else {
           badgeSpan.classList.add("text-bg-danger");
+          const opacity = 1 - (uptimePercentage / 79) * 0.3;
+          badgeSpan.style.setProperty("--bs-bg-opacity", opacity);
         }
+
         badgeSpan.setAttribute("data-bs-toggle", "tooltip");
         badgeSpan.setAttribute("data-bs-placement", "top");
         badgeSpan.setAttribute(
