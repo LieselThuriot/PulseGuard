@@ -17,13 +17,13 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
     public async Task StoreAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
     {
-        _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Name}", report.Options.Name);
-
         if (string.IsNullOrEmpty(report.Options.Sqid))
         {
             _logger.LogInformation(PulseEventIds.Store, "Empty Sqid found for {Name}, generating new one.", report.Options.Name);
             await GenerateSqid(report.Options, token);
         }
+
+        _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
 
         DateTimeOffset start = creation.AddMinutes(_options.Interval * -3);
 
@@ -33,19 +33,19 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         if (pulse is null || pulse.LastUpdatedTimestamp < start)
         {
-            _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
+            _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
             pulse = Pulse.From(report);
         }
         else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
         {
-            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name}", report.Options.Name);
+            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
             pulse.LastUpdatedTimestamp = creation;
         }
         else // State, message or error has changed
         {
             var oldPulse = pulse;
 
-            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Name} due to state change", report.Options.Name);
+            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name} due to state change", report.Options.Sqid, report.Options.Name);
             pulse.LastUpdatedTimestamp = creation;
 
             await _context.Pulses.UpdateEntityAsync(pulse, token);
@@ -69,7 +69,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Name} -- Creating a new one.", report.Options.Name);
+            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Sqid} - {Name} -- Creating a new one.", report.Options.Sqid, report.Options.Name);
             await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, elapsedMilliseconds), token);
         }
 
@@ -79,6 +79,22 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
 
         _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
+    }
+
+    public async Task StoreAsync(PulseAgentReport report, CancellationToken token)
+    {
+        _logger.LogInformation(PulseEventIds.Store, "Storing agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+
+        try
+        {
+            (string partition, string row, BinaryData data) = PulseAgentCheckResult.GetAppendValue(report);
+            await _context.PulseAgentResults.AppendAsync(partition, row, data.ToStream(), token);
+        }
+        catch (Exception e)
+        {
+            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append agent result for {Sqid} - {Type} -- Creating a new one.", report.Options.Sqid, report.Options.Type);
+            await _context.PulseAgentResults.UpsertEntityAsync(PulseAgentCheckResult.From(report), token);
+        }
     }
 
     public Task CleanRecent(CancellationToken token)
@@ -118,6 +134,29 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
             await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, CancellationToken.None);
             await _context.PulseCheckResults.DeleteEntityAsync(pulse, CancellationToken.None);
+        }
+
+        await foreach (PulseAgentCheckResult pulse in _context.PulseAgentResults.Where(x => x.Day != today).WithCancellation(token))
+        {
+            string year = pulse.Day[..4];
+            string sqid = pulse.Sqid;
+
+            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+
+            ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.Where(x => x.Year == year && x.Sqid == sqid)
+                                                                                        .FirstOrDefaultAsync(token);
+
+            archive ??= new()
+            {
+                Year = year,
+                Sqid = sqid,
+                Items = []
+            };
+
+            archive.Items.AddRange(pulse.Items);
+
+            await _context.ArchivedPulseAgentResults.UpsertEntityAsync(archive, CancellationToken.None);
+            await _context.PulseAgentResults.DeleteEntityAsync(pulse, CancellationToken.None);
         }
     }
 

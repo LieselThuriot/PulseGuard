@@ -39,7 +39,7 @@ public static class BadgeRoutes
 
             return Badge(url);
 
-            IResult Badge(string url)
+            HttpResponseMessageResult Badge(string url)
             {
                 HttpRequestMessage request = new(HttpMethod.Get, url);
 
@@ -48,7 +48,7 @@ public static class BadgeRoutes
                 request.Headers.AcceptEncoding.TryParseAdd(httpContext.Request.Headers.AcceptEncoding);
                 request.Headers.AcceptLanguage.TryParseAdd(httpContext.Request.Headers.AcceptLanguage);
 
-                return new HttpResponseMessageResult(clientFactory.CreateClient("Badges").SendAsync(request, token));
+                return clientFactory.CreateClient("Badges").SendAsync(request, token);
             }
         });
     }

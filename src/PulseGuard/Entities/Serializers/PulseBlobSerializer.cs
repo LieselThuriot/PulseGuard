@@ -29,6 +29,17 @@ public class PulseBlobSerializer : IBlobSerializer
             return Proto.Deserialize<T>(entity);
         }
 
+        if (typeof(T) == typeof(PulseAgentCheckResult))
+        {
+            var data = await BinaryData.FromStreamAsync(entity, cancellationToken);
+            return (T)(object)PulseAgentCheckResult.Deserialize(data);
+        }
+
+        if (typeof(T) == typeof(ArchivedPulseAgentCheckResult))
+        {
+            return Proto.Deserialize<T>(entity);
+        }
+
         return await JsonSerializer.DeserializeAsync(entity, GetTypeInfo<T>(), cancellationToken);
     }
 
@@ -42,6 +53,16 @@ public class PulseBlobSerializer : IBlobSerializer
         if (entity is ArchivedPulseCheckResult archivedPulse)
         {
             return Proto.Serialize(archivedPulse);
+        }
+
+        if (entity is PulseAgentCheckResult agentPulse)
+        {
+            return agentPulse.Serialize();
+        }
+
+        if (entity is ArchivedPulseAgentCheckResult archivedAgentPulse)
+        {
+            return Proto.Serialize(archivedAgentPulse);
         }
 
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(entity, GetTypeInfo<T>());

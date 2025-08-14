@@ -8,10 +8,12 @@ using System.Runtime.CompilerServices;
 namespace PulseGuard.Services;
 
 public readonly record struct PulseEventMessage(string Id, string PopReceipt, DateTimeOffset Created, PulseEvent? PulseEvent);
+public readonly record struct PulseAgentEventMessage(string Id, string PopReceipt, DateTimeOffset Created, PulseAgentReport? AgentReport);
 
 public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 {
     private readonly QueueClient _queueClient = new(options.Value.Store, "pulses");
+    private readonly QueueClient _agentQueueClient = new(options.Value.Store, "agents");
 
     public async IAsyncEnumerable<PulseEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
@@ -19,7 +21,7 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         {
             QueueMessage[] result = await _queueClient.ReceiveMessagesAsync(maxMessages: _queueClient.MaxPeekableMessages, cancellationToken: token);
 
-            if (result.Length == 0)
+            if (result.Length is 0)
             {
                 break;
             }
@@ -33,9 +35,35 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         }
     }
 
+    public async IAsyncEnumerable<PulseAgentEventMessage> ReceiveAgentMessagesAsync([EnumeratorCancellation] CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            QueueMessage[] result = await _agentQueueClient.ReceiveMessagesAsync(maxMessages: _agentQueueClient.MaxPeekableMessages, cancellationToken: token);
+
+            if (result.Length is 0)
+            {
+                break;
+            }
+
+            foreach (QueueMessage message in result)
+            {
+                PulseAgentReport? agentEvent = PulseSerializerContext.Default.PulseAgentReport.Deserialize(message.Body);
+                DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
+                yield return new(message.MessageId, message.PopReceipt, creation, agentEvent);
+            }
+        }
+    }
+
     public async Task<bool> DeleteMessageAsync(PulseEventMessage message)
     {
         Response result = await _queueClient.DeleteMessageAsync(message.Id, message.PopReceipt, CancellationToken.None);
+        return !result.IsError;
+    }
+
+    public async Task<bool> DeleteMessageAsync(PulseAgentEventMessage message)
+    {
+        Response result = await _agentQueueClient.DeleteMessageAsync(message.Id, message.PopReceipt, CancellationToken.None);
         return !result.IsError;
     }
 
@@ -44,5 +72,11 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         PulseEvent @event = new(elapsedMilliseconds, report);
         BinaryData data = new(PulseSerializerContext.Default.PulseEvent.SerializeToUtf8Bytes(@event));
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
+    }
+
+    public Task PostAsync(PulseAgentReport report, CancellationToken token)
+    {
+        BinaryData data = new(PulseSerializerContext.Default.PulseAgentReport.SerializeToUtf8Bytes(report));
+        return _agentQueueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }

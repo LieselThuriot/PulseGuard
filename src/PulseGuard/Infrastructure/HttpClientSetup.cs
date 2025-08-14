@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Polly;
+using PulseGuard.Agents;
 using PulseGuard.Checks;
 using PulseGuard.Models;
 using System.Net.Http.Headers;
@@ -44,6 +45,10 @@ internal static class HttpClientSetup
                 })
                 .AddTransientHttpErrorPolicy(x => x.WaitAndRetryAsync(3, x => TimeSpan.FromSeconds(x)));
 
+        var retryPolicy = Policy<HttpResponseMessage>.Handle<SocketException>()
+                                                     .OrInner<SocketException>()
+                                                     .WaitAndRetryAsync(3, x => TimeSpan.FromMilliseconds(x * 333));
+
         services.AddHttpClient<PulseCheckFactory>(x => x.DefaultRequestHeaders.SetDefaultHeaders())
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
                 {
@@ -60,16 +65,19 @@ internal static class HttpClientSetup
                         return options.ContainsKey("IgnoreSslErrors");
                     }
                 })
-                .AddPolicyHandler(
-                    Policy<HttpResponseMessage>.Handle<SocketException>()
-                                               .OrInner<SocketException>()
-                                               .WaitAndRetryAsync(3, x => TimeSpan.FromMilliseconds(x * 333))
-                );
+                .AddPolicyHandler(retryPolicy);
+
+        services.AddHttpClient<AgentCheckFactory>(x => x.DefaultRequestHeaders.SetDefaultHeaders())
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    MaxConnectionsPerServer = MaxConnectionsPerServer
+                })
+                .AddPolicyHandler(retryPolicy);
     }
 
     private static void SetDefaultHeaders(this HttpRequestHeaders headers)
     {
         headers.CacheControl = new() { NoCache = true };
-        headers.UserAgent.Add(new("PulseGuard", "1.0"));
+        headers.UserAgent.Add(new("PulseGuard", "2.0"));
     }
 }

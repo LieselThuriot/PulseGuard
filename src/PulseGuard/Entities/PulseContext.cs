@@ -8,6 +8,7 @@ public sealed partial class PulseContext
     internal const int RecentMinutes = 720;
 
     public TableSet<PulseConfiguration> Configurations { get; }
+    public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
     public TableSet<Pulse> Pulses { get; }
     public TableSet<UniqueIdentifiers> UniqueIdentifiers { get; }
     public TableSet<Webhook> Webhooks { get; }
@@ -19,4 +20,7 @@ public sealed partial class PulseContext
 
     public AppendBlobSet<PulseCheckResult> PulseCheckResults { get; }
     public BlobSet<ArchivedPulseCheckResult> ArchivedPulseCheckResults { get; }
+
+    public AppendBlobSet<PulseAgentCheckResult> PulseAgentResults { get; }
+    public BlobSet<ArchivedPulseAgentCheckResult> ArchivedPulseAgentResults { get; }
 }

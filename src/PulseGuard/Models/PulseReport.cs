@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using PulseGuard.Entities;
+﻿using PulseGuard.Entities;
 
 namespace PulseGuard.Models;
 

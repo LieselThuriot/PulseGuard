@@ -12,3 +12,4 @@ public sealed record PulseOverviewStateGroupItem(string Id, string Name, IEnumer
 public sealed record PulseStateGroupItem(string Id, string Name, IEnumerable<PulseStateItem> Items);
 public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, DateTimeOffset? To);
 public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerable<PulseCheckResultDetail> Items);
+public sealed record PulseMetricsResultGroup(IEnumerable<PulseAgentCheckResultDetail> Items);

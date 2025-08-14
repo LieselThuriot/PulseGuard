@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using static PulseGuard.Agents.Implementations.ApplicationInsightsAgent;
 
 namespace PulseGuard.Models;
 
@@ -20,6 +21,8 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(PulseEvent))]
 [JsonSerializable(typeof(PulseEventInfo))]
+[JsonSerializable(typeof(PulseAgentReport))]
+[JsonSerializable(typeof(ApplicationInsightsQueryResponse))]
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]
 [JsonSerializable(typeof(Entities.PulseConfiguration))]

@@ -4,6 +4,8 @@ namespace PulseGuard;
 
 public sealed class HttpResponseMessageResult(Task<HttpResponseMessage> asyncResponseMessage) : IResult
 {
+    public static implicit operator HttpResponseMessageResult(Task<HttpResponseMessage> asyncResponseMessage) => new(asyncResponseMessage);
+
     private readonly Task<HttpResponseMessage> _asyncResponseMessage = asyncResponseMessage;
 
     public async Task ExecuteAsync(HttpContext httpContext)

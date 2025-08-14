@@ -57,6 +57,23 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
         }
 
+        await foreach (PulseAgentEventMessage message in _storeClient.ReceiveAgentMessagesAsync(cancellationToken))
+        {
+            try
+            {
+                if (message.AgentReport is not null)
+                {
+                    await store.StoreAsync(message.AgentReport, cancellationToken);
+                }
+
+                await _storeClient.DeleteMessageAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", message.Id);
+            }
+        }
+
         return count;
     }
 }

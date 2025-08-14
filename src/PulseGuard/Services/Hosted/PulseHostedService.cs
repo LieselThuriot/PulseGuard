@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using PulseGuard.Agents;
 using PulseGuard.Checks;
 using PulseGuard.Entities;
 using PulseGuard.Models;
@@ -45,24 +46,34 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         using var scope = _services.CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
+
         var configurations = await context.Configurations.Where(c => c.Enabled).ToListAsync(token);
+        var agentConfigurations = await context.AgentConfigurations.Where(c => c.Enabled).ToListAsync(token);
 
         var store = scope.ServiceProvider.GetRequiredService<AsyncPulseStoreService>();
         var factory = scope.ServiceProvider.GetRequiredService<PulseCheckFactory>();
-        var checks = new Task[configurations.Count];
+        var agentFactory = scope.ServiceProvider.GetRequiredService<AgentCheckFactory>();
+
+        var checks = new Task[configurations.Count + agentConfigurations.Count];
 
         int simultaneousPulses = _options.CurrentValue.SimultaneousPulses;
         using SemaphoreSlim semaphore = new(simultaneousPulses, simultaneousPulses); // rate gate
 
-        for (int i = 0; i < checks.Length; i++)
+        for (int i = 0; i < configurations.Count; i++)
         {
             PulseConfiguration configuration = configurations[i];
-            checks[i] = Task.Run(() => Check(configuration), token);
+            checks[i] = Task.Run(() => CheckPulse(configuration), token);
+        }
+
+        for (int i = 0; i < agentConfigurations.Count; i++)
+        {
+            PulseAgentConfiguration configuration = agentConfigurations[i];
+            checks[i + configurations.Count] = Task.Run(() => CheckAgent(configuration), token);
         }
 
         await Task.WhenAll(checks);
 
-        async Task Check(PulseConfiguration config)
+        async Task CheckPulse(PulseConfiguration config)
         {
             try
             {
@@ -79,6 +90,50 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             {
                 semaphore.Release();
             }
+        }
+
+        async Task CheckAgent(PulseAgentConfiguration config)
+        {
+            try
+            {
+                await semaphore.WaitAsync(token);
+
+                AgentCheck check = agentFactory.Create(config);
+                await CheckPulseAsync(check, store, token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking agent");
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+    }
+
+    private async Task CheckPulseAsync(AgentCheck check, AsyncPulseStoreService store, CancellationToken token)
+    {
+        try
+        {
+            PulseAgentReport report = await check.CheckAsync(token);
+            await store.PostAsync(report, token);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(PulseEventIds.HealthChecks, ex, "Agent timeout");
+        }
+        catch (SocketException ex)
+        {
+            _logger.LogError(PulseEventIds.HealthChecks, ex, "Socket error checking agent");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(PulseEventIds.HealthChecks, ex, "HTTP Error checking agent");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking agent");
         }
     }
 
