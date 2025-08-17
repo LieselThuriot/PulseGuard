@@ -6,7 +6,8 @@ namespace PulseGuard.Agents;
 [JsonConverter(typeof(AgentCheckTypeJsonConverter))]
 public enum AgentCheckType
 {
-    ApplicationInsights = 1
+    ApplicationInsights = 1,
+    LogAnalyticsWorkspace = 2
 }
 
 public sealed class AgentCheckTypeJsonConverter : JsonConverter<AgentCheckType>
@@ -26,6 +27,7 @@ internal static class AgentCheckTypeFastString
     public static string Stringify(this AgentCheckType state) => state switch
     {
         AgentCheckType.ApplicationInsights => nameof(AgentCheckType.ApplicationInsights),
+        AgentCheckType.LogAnalyticsWorkspace => nameof(AgentCheckType.LogAnalyticsWorkspace),
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -33,6 +35,7 @@ internal static class AgentCheckTypeFastString
     public static AgentCheckType FromString(string state) => state switch
     {
         nameof(AgentCheckType.ApplicationInsights) => AgentCheckType.ApplicationInsights,
+        nameof(AgentCheckType.LogAnalyticsWorkspace) => AgentCheckType.LogAnalyticsWorkspace,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -40,6 +43,7 @@ internal static class AgentCheckTypeFastString
     public static AgentCheckType FromNumber(int state) => state switch
     {
         (int)AgentCheckType.ApplicationInsights => AgentCheckType.ApplicationInsights,
+        (int)AgentCheckType.LogAnalyticsWorkspace => AgentCheckType.LogAnalyticsWorkspace,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };

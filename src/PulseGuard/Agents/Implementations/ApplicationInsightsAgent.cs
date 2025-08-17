@@ -6,8 +6,6 @@ public sealed class ApplicationInsightsAgent(HttpClient client, Entities.PulseAg
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 
-    // TODO: Test case Options.Location https://api.applicationinsights.io/v1/apps/05dca815-addd-484d-832e-e069411e3053/query
-
     public override async Task<PulseAgentReport> CheckAsync(CancellationToken token)
     {
         var pulseResponseString = await Post("""

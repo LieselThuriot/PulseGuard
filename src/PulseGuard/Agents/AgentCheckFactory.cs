@@ -13,6 +13,7 @@ public sealed class AgentCheckFactory(HttpClient client, ILogger<AgentCheck> log
         return AgentCheckTypeFastString.FromString(options.Type) switch
         {
             AgentCheckType.ApplicationInsights => new ApplicationInsightsAgent(_client, options, _logger),
+            AgentCheckType.LogAnalyticsWorkspace => new LogAnalyticsWorkspaceAgent(_client, options, _logger),
             _ => throw new ArgumentOutOfRangeException(nameof(options), options.Type, null)
         };
     }
