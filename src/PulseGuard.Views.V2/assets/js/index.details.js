@@ -301,8 +301,12 @@
       detailMetrics: document.querySelector("#detail-metrics"),
       metricsCpuSpinner: document.querySelector("#detail-metrics-cpu-spinner"),
       metricsCpuChart: document.querySelector("#detail-metrics-cpu-chart"),
-      metricsMemorySpinner: document.querySelector("#detail-metrics-memory-spinner"),
-      metricsMemoryChart: document.querySelector("#detail-metrics-memory-chart"),
+      metricsMemorySpinner: document.querySelector(
+        "#detail-metrics-memory-spinner"
+      ),
+      metricsMemoryChart: document.querySelector(
+        "#detail-metrics-memory-chart"
+      ),
     };
   }
 
@@ -665,7 +669,12 @@
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
 
       // Update metrics charts using stored metrics
-      updateMetricsCharts(detailCardElements, currentMetrics);
+      updateMetricsCharts(
+        detailCardElements,
+        currentMetrics,
+        newDecimation,
+        newPercentile
+      );
     };
 
     renderChartListener = updateChart;
@@ -1466,6 +1475,11 @@
             type: "time",
             time: {
               unit: getTimeUnit(maxTimestamp, minTimestamp),
+              displayFormats: {
+                minute: "HH:mm",
+                hour: "MMM dd HH:mm",
+                day: "MMM dd",
+              },
             },
             title: {
               display: true,
@@ -1940,82 +1954,205 @@
    * @param {string} metricType - The type of metric ('cpu' or 'memory').
    * @param {string} label - The label for the chart dataset.
    * @param {string} color - The color for the chart line.
+   * @param {number} decimation - The decimation factor for data grouping.
+   * @param {number} percentile - The percentile value for data processing.
    * @returns {Chart} A Chart.js instance representing the rendered chart.
    */
-  function renderMetricsChart(canvas, filteredMetrics, metricType, label, color) {
-    const data = filteredMetrics
-      .filter(item => item[metricType] !== null && item[metricType] !== undefined)
-      .map(item => ({
-        x: new Date(item.timestamp * 1000),
-        y: item[metricType]
-      }))
-      .sort((a, b) => a.x - b.x);
+  function renderMetricsChart(
+    canvas,
+    filteredMetrics,
+    metricType,
+    label,
+    color,
+    decimation,
+    percentile
+  ) {
+    // Filter out null/undefined values and sort by timestamp
+    const validMetrics = filteredMetrics
+      .filter((x) => x[metricType] !== null && x[metricType] !== undefined)
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-    // Calculate min/max timestamps for time unit determination
-    const timestamps = data.map(d => d.x.getTime());
+    if (validMetrics.length === 0) {
+      return null;
+    }
+
+    // Calculate min/max timestamps from the data
+    const timestamps = validMetrics.map((item) => item.timestamp * 1000);
     const minTimestamp = Math.min(...timestamps);
     const maxTimestamp = Math.max(...timestamps);
+
+    const interval = 60000; // 1 minute interval like renderChart
+
+    // Build labels array like renderChart does
+    const labels = [];
+    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
+      labels.push(new Date(time));
+    }
+
+    // Create a time map for quick lookup
+    const timeMap = new Map();
+    validMetrics.forEach((item) => {
+      const itemTime = new Date(item.timestamp * 1000);
+      itemTime.setSeconds(0, 0); // Round to minute
+      timeMap.set(itemTime.getTime(), item);
+    });
+
+    let data;
+
+    if (decimation > 1) {
+      // Apply decimation - group data by time intervals
+      const decimationInterval = interval * decimation;
+      const buckets = new Map();
+
+      // Group metrics into buckets based on decimation interval and labels
+      labels.forEach((timestamp) => {
+        const time = timestamp.getTime();
+        const item = timeMap.get(time);
+
+        if (
+          item &&
+          item[metricType] !== null &&
+          item[metricType] !== undefined
+        ) {
+          const bucketKey =
+            Math.floor(time / decimationInterval) * decimationInterval;
+
+          if (!buckets.has(bucketKey)) {
+            buckets.set(bucketKey, []);
+          }
+          buckets.get(bucketKey).push(item[metricType]);
+        }
+      });
+
+      // Create data points for ALL time buckets in the range, not just the ones with data
+      data = [];
+      for (
+        let time = minTimestamp;
+        time <= maxTimestamp;
+        time += decimationInterval
+      ) {
+        const bucketKey =
+          Math.floor(time / decimationInterval) * decimationInterval;
+
+        if (buckets.has(bucketKey)) {
+          const values = buckets.get(bucketKey);
+          values.sort((a, b) => a - b);
+          let value;
+
+          if (percentile === 0) {
+            // Use average for percentile 0
+            value = values.reduce((sum, val) => sum + val, 0) / values.length;
+          } else {
+            // Calculate percentile
+            const index = Math.ceil((percentile / 100) * values.length) - 1;
+            value = values[Math.max(0, index)];
+          }
+
+          data.push({
+            x: new Date(bucketKey),
+            y: value,
+          });
+        } else {
+          // No data for this bucket - create a gap
+          data.push({
+            x: new Date(bucketKey),
+            y: null,
+          });
+        }
+      }
+    } else {
+      // No decimation - create data points for all labels, with gaps where no data exists
+      data = labels.map((timestamp) => {
+        const time = timestamp.getTime();
+        const item = timeMap.get(time);
+
+        if (
+          item &&
+          item[metricType] !== null &&
+          item[metricType] !== undefined
+        ) {
+          return {
+            x: timestamp,
+            y: item[metricType],
+          };
+        } else {
+          // Create a gap in the data by returning null
+          return {
+            x: timestamp,
+            y: null,
+          };
+        }
+      });
+    }
+
     const timeUnit = getTimeUnit(maxTimestamp, minTimestamp);
 
     const config = {
-      type: 'line',
+      type: "line",
       data: {
-        datasets: [{
-          label: label,
-          data: data,
-          borderColor: color,
-          backgroundColor: color + '20',
-          borderWidth: 2,
-          fill: false,
-          tension: 0.1,
-          pointRadius: 1,
-          pointHoverRadius: 4,
-        }]
+        datasets: [
+          {
+            label: label,
+            data: data,
+            borderColor: color,
+            backgroundColor: color + "20",
+            borderWidth: 2,
+            fill: false,
+            tension: 0.1,
+            pointRadius: 1,
+            pointHoverRadius: 4,
+            segment: {
+              borderDash: (ctx) =>
+                ctx.p0.skip || ctx.p1.skip ? [6, 6] : undefined,
+            },
+            spanGaps: true,
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: {
-            type: 'time',
+            type: "time",
             time: {
               unit: timeUnit,
               displayFormats: {
-                minute: 'HH:mm',
-                hour: 'MMM dd HH:mm',
-                day: 'MMM dd'
-              }
+                minute: "HH:mm",
+                hour: "MMM dd HH:mm",
+                day: "MMM dd",
+              },
             },
             title: {
               display: true,
-              text: 'Time'
-            }
+              text: "Time",
+            },
           },
           y: {
             beginAtZero: true,
-            max: metricType === 'cpu' ? 100 : undefined,
+            max: 100,
             title: {
               display: true,
-              text: metricType === 'cpu' ? 'CPU Usage (%)' : 'Memory Usage (%)'
-            }
-          }
+              text: label,
+            },
+          },
         },
         plugins: {
           legend: {
-            display: false
+            display: false,
           },
           tooltip: {
-            mode: 'index',
+            mode: "index",
             intersect: false,
             callbacks: {
-              title: function(context) {
+              title: function (context) {
                 return new Date(context[0].parsed.x).toLocaleString();
               },
-              label: function(context) {
+              label: function (context) {
                 const value = context.parsed.y;
                 return `${label}: ${value.toFixed(1)}%`;
-              }
-            }
+              },
+            },
           },
           zoom: {
             zoom: {
@@ -2045,11 +2182,11 @@
           },
         },
         interaction: {
-          mode: 'nearest',
-          axis: 'x',
-          intersect: false
-        }
-      }
+          mode: "nearest",
+          axis: "x",
+          intersect: false,
+        },
+      },
     };
 
     return new Chart(canvas, config);
@@ -2060,8 +2197,10 @@
    *
    * @param {DetailDomElements} elements - The DOM elements for the detail card.
    * @param {PulseMetricsResultGroup|null} metrics - The metrics data to display.
+   * @param {number} decimation - The decimation factor for data grouping.
+   * @param {number} percentile - The percentile value for data processing.
    */
-  function updateMetricsCharts(elements, metrics) {
+  function updateMetricsCharts(elements, metrics, decimation, percentile) {
     // Destroy existing charts
     destroyMetricsCharts();
 
@@ -2098,9 +2237,11 @@
       detailMetricsCpuChart = renderMetricsChart(
         elements.metricsCpuChart,
         filteredMetrics,
-        'cpu',
-        'CPU Usage',
-        'rgb(54, 162, 235)'
+        "cpu",
+        "CPU Usage",
+        "rgb(54, 162, 235)",
+        decimation,
+        percentile
       );
     }
 
@@ -2109,9 +2250,11 @@
       detailMetricsMemoryChart = renderMetricsChart(
         elements.metricsMemoryChart,
         filteredMetrics,
-        'memory',
-        'Memory Usage',
-        'rgb(255, 99, 132)'
+        "memory",
+        "Memory Usage",
+        "rgb(255, 99, 132)",
+        decimation,
+        percentile
       );
     }
   }
