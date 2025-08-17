@@ -64,13 +64,13 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         try
         {
-            (string partition, string row, BinaryData data) = PulseCheckResult.GetAppendValue(report, elapsedMilliseconds);
+            (string partition, string row, BinaryData data) = PulseCheckResult.GetAppendValue(report, creation, elapsedMilliseconds);
             await _context.PulseCheckResults.AppendAsync(partition, row, data.ToStream(), token);
         }
         catch (Exception e)
         {
             _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Sqid} - {Name} -- Creating a new one.", report.Options.Sqid, report.Options.Name);
-            await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, elapsedMilliseconds), token);
+            await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, creation, elapsedMilliseconds), token);
         }
 
         if (webhookTask is not null)
@@ -81,19 +81,19 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
     }
 
-    public async Task StoreAsync(PulseAgentReport report, CancellationToken token)
+    public async Task StoreAsync(PulseAgentReport report, DateTimeOffset creation, CancellationToken token)
     {
         _logger.LogInformation(PulseEventIds.Store, "Storing agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
 
         try
         {
-            (string partition, string row, BinaryData data) = PulseAgentCheckResult.GetAppendValue(report);
+            (string partition, string row, BinaryData data) = PulseAgentCheckResult.GetAppendValue(report, creation);
             await _context.PulseAgentResults.AppendAsync(partition, row, data.ToStream(), token);
         }
         catch (Exception e)
         {
             _logger.LogDebug(PulseEventIds.Store, e, "Failed to append agent result for {Sqid} - {Type} -- Creating a new one.", report.Options.Sqid, report.Options.Type);
-            await _context.PulseAgentResults.UpsertEntityAsync(PulseAgentCheckResult.From(report), token);
+            await _context.PulseAgentResults.UpsertEntityAsync(PulseAgentCheckResult.From(report, creation), token);
         }
     }
 

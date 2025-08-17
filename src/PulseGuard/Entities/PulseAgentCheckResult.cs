@@ -14,14 +14,13 @@ public sealed partial class PulseAgentCheckResult
 
     public const string PartitionKeyFormat = "yyyyMMdd";
 
-    public static PulseAgentCheckResult From(PulseAgentReport report)
+    public static PulseAgentCheckResult From(PulseAgentReport report, DateTimeOffset creation)
     {
-        var executionTime = DateTimeOffset.UtcNow;
         return new()
         {
-            Day = executionTime.ToString(PartitionKeyFormat),
+            Day = creation.ToString(PartitionKeyFormat),
             Sqid = report.Options.Sqid,
-            Items = [new(executionTime.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory)]
+            Items = [new(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory)]
         };
     }
 
@@ -65,13 +64,12 @@ public sealed partial class PulseAgentCheckResult
         return result;
     }
 
-    public static (string partition, string row, BinaryData data) GetAppendValue(PulseAgentReport report)
+    public static (string partition, string row, BinaryData data) GetAppendValue(PulseAgentReport report, DateTimeOffset creation)
     {
-        var executionTime = DateTimeOffset.UtcNow;
-        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(executionTime.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory);
+        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory);
         var data = BinaryData.FromString(result);
 
-        return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
+        return (creation.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
 
     public static string GetCurrentPartition() => DateTimeOffset.UtcNow.ToString(PartitionKeyFormat);

@@ -63,7 +63,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             {
                 if (message.AgentReport is not null)
                 {
-                    await store.StoreAsync(message.AgentReport, cancellationToken);
+                    await store.StoreAsync(message.AgentReport, message.Created, cancellationToken);
                 }
 
                 await _storeClient.DeleteMessageAsync(message);

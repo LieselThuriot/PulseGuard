@@ -14,16 +14,15 @@ public sealed partial class PulseCheckResult
 
     public const string PartitionKeyFormat = "yyyyMMdd";
 
-    public static PulseCheckResult From(PulseReport report, long elapsedMilliseconds)
+    public static PulseCheckResult From(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds)
     {
-        var executionTime = DateTimeOffset.UtcNow;
         return new()
         {
-            Day = executionTime.ToString(PartitionKeyFormat),
+            Day = creation.ToString(PartitionKeyFormat),
             Sqid = report.Options.Sqid,
             Group = report.Options.Group,
             Name = report.Options.Name,
-            Items = [new(report.State, executionTime.ToUnixTimeSeconds(), elapsedMilliseconds)]
+            Items = [new(report.State, creation.ToUnixTimeSeconds(), elapsedMilliseconds)]
         };
     }
 
@@ -73,13 +72,12 @@ public sealed partial class PulseCheckResult
         return result;
     }
 
-    public static (string partition, string row, BinaryData data) GetAppendValue(PulseReport report, long? elapsedMilliseconds)
+    public static (string partition, string row, BinaryData data) GetAppendValue(PulseReport report, DateTimeOffset creation, long? elapsedMilliseconds)
     {
-        var executionTime = DateTimeOffset.UtcNow;
-        string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, executionTime.ToUnixTimeSeconds(), elapsedMilliseconds);
+        string result = PulseCheckResultDetails.Separator + PulseCheckResultDetail.Serialize(report.State, creation.ToUnixTimeSeconds(), elapsedMilliseconds);
         var data = BinaryData.FromString(result);
 
-        return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
+        return (creation.ToString(PartitionKeyFormat), report.Options.Sqid, data);
     }
 
     public static string GetCurrentPartition() => DateTimeOffset.UtcNow.ToString(PartitionKeyFormat);
