@@ -1905,26 +1905,6 @@
   }
 
   /**
-   * Creates a Map where the keys are timestamps (rounded to the nearest minute)
-   * and the values are the corresponding metric items from the input array.
-   *
-   * @param {Array<PulseMetricsResult>} items - An array of metric objects, each containing a `timestamp` property.
-   * @returns {Map<number, PulseMetricsResult>} A Map with keys as rounded timestamps (in milliseconds since epoch)
-   * and values as the corresponding metric items.
-   */
-  function createMetricsTimeMap(items) {
-    const map = new Map();
-    for (const item of items) {
-      const timestamp = new Date(item.timestamp * 1000);
-      const roundedTimestamp = new Date(
-        Math.floor(timestamp.getTime() / 60000) * 60000
-      );
-      map.set(roundedTimestamp.getTime(), item);
-    }
-    return map;
-  }
-
-  /**
    * Filters an array of metric items based on a date range specified by two HTML select elements.
    *
    * @param {Array<PulseMetricsResult>} items - The array of metric items to filter.
@@ -1933,24 +1913,25 @@
    * @returns {Array<PulseMetricsResult>} The filtered array of metric items that fall within the specified date range.
    */
   function filterMetricsByDateRange(items, fromSelect, toSelect) {
-    if (!fromSelect?.value || !toSelect?.value) {
+    const from = fromSelect?.value ? Date.parse(fromSelect.value) / 1000 : null;
+    const to = toSelect?.value ? Date.parse(toSelect.value) / 1000 : null;
+
+    if (from === null && to === null) {
       return items;
     }
 
-    const fromDate = new Date(fromSelect.value);
-    const toDate = new Date(toSelect.value);
-
-    return items.filter((item) => {
-      const itemDate = new Date(item.timestamp * 1000);
-      return itemDate >= fromDate && itemDate <= toDate;
-    });
+    return items.filter(
+      (item) =>
+        (from === null || item.timestamp >= from) &&
+        (to === null || item.timestamp <= to)
+    );
   }
 
   /**
    * Renders a line chart for metrics (CPU or Memory) using Chart.js.
    *
    * @param {HTMLCanvasElement} canvas - The canvas element to render the chart on.
-   * @param {Array<PulseMetricsResult>} filteredMetrics - The filtered metrics data.
+   * @param {Object} timeStructures - Pre-calculated time structures containing timeMap, minTimestamp, maxTimestamp, labels, and interval.
    * @param {string} metricType - The type of metric ('cpu' or 'memory').
    * @param {string} label - The label for the chart dataset.
    * @param {string} color - The color for the chart line.
@@ -1960,42 +1941,15 @@
    */
   function renderMetricsChart(
     canvas,
-    filteredMetrics,
+    timeStructures,
     metricType,
     label,
     color,
     decimation,
     percentile
   ) {
-    // Filter out null/undefined values and sort by timestamp
-    const validMetrics = filteredMetrics
-      .filter((x) => x[metricType] !== null && x[metricType] !== undefined)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    if (validMetrics.length === 0) {
-      return null;
-    }
-
-    // Calculate min/max timestamps from the data
-    const timestamps = validMetrics.map((item) => item.timestamp * 1000);
-    const minTimestamp = Math.min(...timestamps);
-    const maxTimestamp = Math.max(...timestamps);
-
-    const interval = 60000; // 1 minute interval like renderChart
-
-    // Build labels array like renderChart does
-    const labels = [];
-    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
-      labels.push(new Date(time));
-    }
-
-    // Create a time map for quick lookup
-    const timeMap = new Map();
-    validMetrics.forEach((item) => {
-      const itemTime = new Date(item.timestamp * 1000);
-      itemTime.setSeconds(0, 0); // Round to minute
-      timeMap.set(itemTime.getTime(), item);
-    });
+    const { timeMap, minTimestamp, maxTimestamp, labels, interval } =
+      timeStructures;
 
     let data;
 
@@ -2193,6 +2147,51 @@
   }
 
   /**
+   * Creates common time structures used by both CPU and Memory charts.
+   *
+   * @param {Array<PulseMetricsResult>} filteredMetrics - The filtered metrics data.
+   * @returns {Object|null} An object containing timeMap, minTimestamp, maxTimestamp, and labels, or null if no valid data.
+   */
+  function createMetricsTimeStructures(filteredMetrics) {
+    // Filter out null/undefined values and sort by timestamp
+    const validMetrics = filteredMetrics
+      //.filter((x) => (x.cpu !== null && x.cpu !== undefined) || (x.memory !== null && x.memory !== undefined))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (validMetrics.length === 0) {
+      return null;
+    }
+
+    const interval = 60000; // 1 minute interval like renderChart
+
+    // Create a time map for quick lookup
+    const timeMap = new Map();
+    validMetrics.forEach((item) => {
+      const itemTime = new Date(item.timestamp * 1000);
+      itemTime.setSeconds(0, 0);
+      timeMap.set(itemTime.getTime(), item);
+    });
+
+    // Calculate min/max timestamps from the map keys
+    const minTimestamp = Math.min(...timeMap.keys());
+    const maxTimestamp = Math.max(...timeMap.keys());
+
+    // Build labels array like renderChart does
+    const labels = [];
+    for (let time = minTimestamp; time <= maxTimestamp; time += interval) {
+      labels.push(new Date(time));
+    }
+
+    return {
+      timeMap,
+      minTimestamp,
+      maxTimestamp,
+      labels,
+      interval,
+    };
+  }
+
+  /**
    * Updates or creates metrics charts based on the provided metrics data.
    *
    * @param {DetailDomElements} elements - The DOM elements for the detail card.
@@ -2223,6 +2222,14 @@
       return;
     }
 
+    // Calculate common time structures once for both charts
+    const timeStructures = createMetricsTimeStructures(filteredMetrics);
+    if (!timeStructures) {
+      // Hide metrics section if no valid data
+      toggleElementVisibility(elements.detailMetrics, false);
+      return;
+    }
+
     // Show metrics section
     toggleElementVisibility(elements.detailMetrics, true);
 
@@ -2236,7 +2243,7 @@
     if (elements.metricsCpuChart) {
       detailMetricsCpuChart = renderMetricsChart(
         elements.metricsCpuChart,
-        filteredMetrics,
+        timeStructures,
         "cpu",
         "CPU Usage",
         "rgb(54, 162, 235)",
@@ -2249,7 +2256,7 @@
     if (elements.metricsMemoryChart) {
       detailMetricsMemoryChart = renderMetricsChart(
         elements.metricsMemoryChart,
-        filteredMetrics,
+        timeStructures,
         "memory",
         "Memory Usage",
         "rgb(255, 99, 132)",

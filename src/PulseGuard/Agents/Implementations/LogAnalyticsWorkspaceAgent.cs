@@ -33,7 +33,8 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
             | project TimeGenerated = todatetime(format_datetime(TimeGenerated, 'yyyy-MM-dd HH:mm')), Name, Value
             | evaluate pivot(Name, any(Value))
             | extend ['% Memory'] = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100)
-            | project TimeGenerated, CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100)
+            | project CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100)
+            | take 1
             """;
             
             string workspaceId = Options.Location;
