@@ -31,6 +31,11 @@
  * @property {HTMLElement|null} fromSelect - The dropdown for selecting the start date/time.
  * @property {HTMLElement|null} toSelect - The dropdown for selecting the end date/time.
  * @property {HTMLElement|null} heatmap - The heatmap element.
+ * @property {HTMLElement|null} detailMetrics - The detail metrics container element.
+ * @property {HTMLElement|null} metricsCpuSpinner - The spinner element for CPU metrics loading state.
+ * @property {HTMLElement|null} metricsCpuChart - The CPU metrics chart element.
+ * @property {HTMLElement|null} metricsMemorySpinner - The spinner element for memory metrics loading state.
+ * @property {HTMLElement|null} metricsMemoryChart - The memory metrics chart element.
  */
 
 (async function () {
@@ -130,8 +135,84 @@
     }
   }
 
+  /**
+   * PulseMetricsResult message: Represents metrics snapshot
+   * @typedef {Object} PulseMetricsResult
+   * @property {number|Long} timestamp
+   * @property {number|null} cpu
+   * @property {number|null} memory
+   */
+  class PulseMetricsResult {
+    constructor() {
+      this.timestamp = 0;
+      this.cpu = null;
+      this.memory = null;
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseMetricsResult();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.timestamp = reader.int64();
+            break;
+          case 2:
+            message.cpu = reader.double();
+            break;
+          case 3:
+            message.memory = reader.double();
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
+  /**
+   * PulseMetricsResultGroup message: Represents a group of metric details
+   * @typedef {Object} PulseMetricsResultGroup
+   * @property {PulseMetricsResult[]} items
+   */
+  class PulseMetricsResultGroup {
+    constructor() {
+      this.items = [];
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseMetricsResultGroup();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.items.push(
+              PulseMetricsResult.decode(reader, reader.uint32())
+            );
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
   /** @type {Chart|null} */
   let detailCardChart = null;
+
+  /** @type {Chart|null} */
+  let detailMetricsCpuChart = null;
+
+  /** @type {Chart|null} */
+  let detailMetricsMemoryChart = null;
 
   /** @type {Function|null} */
   let renderChartListener = null;
@@ -141,6 +222,9 @@
 
   /** @type {string[]} */
   let overlaySqids = [];
+
+  /** @type {PulseMetricsResultGroup|null} */
+  let currentMetrics = null;
 
   /** @type {AbortController|null} */
   let fetchAbortController;
@@ -214,6 +298,11 @@
       fromSelect: document.querySelector("#detail-card-chart-from"),
       toSelect: document.querySelector("#detail-card-chart-to"),
       heatmap: document.querySelector("#detail-card-heatmap"),
+      detailMetrics: document.querySelector("#detail-metrics"),
+      metricsCpuSpinner: document.querySelector("#detail-metrics-cpu-spinner"),
+      metricsCpuChart: document.querySelector("#detail-metrics-cpu-chart"),
+      metricsMemorySpinner: document.querySelector("#detail-metrics-memory-spinner"),
+      metricsMemoryChart: document.querySelector("#detail-metrics-memory-chart"),
     };
   }
 
@@ -238,7 +327,10 @@
 
       fromDate.setMinutes(fromDate.getMinutes() - fromDate.getTimezoneOffset());
 
-      return { fromDate: fromDate.toISOString().slice(0, 16), toDate: toDate.toISOString().slice(0, 16) };
+      return {
+        fromDate: fromDate.toISOString().slice(0, 16),
+        toDate: toDate.toISOString().slice(0, 16),
+      };
     }
 
     {
@@ -356,8 +448,37 @@
         })
     );
 
-    Promise.all(promises)
-      .then(([data, ...overlays]) => {
+    const metricsPromise = fetch(`api/1.0/metrics/${sqid}`, {
+      method: "get",
+      signal: fetchAbortController.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok " + response.statusText);
+        }
+        const buffer = await response.arrayBuffer();
+        const view = new Uint8Array(buffer);
+        /** @type {PulseMetricsResultGroup} */
+        return PulseMetricsResultGroup.decode(view);
+      })
+      .catch((error) => {
+        // Silently ignore aborts; otherwise log minimal info for troubleshooting
+        if (!(error && error.name === "AbortError")) {
+          // console.warn("Failed to fetch metrics for", sqid, error);
+        }
+      });
+
+    Promise.all([...promises, metricsPromise])
+      .then((results) => {
+        /** @type {PulseDetailResultGroup|null} */
+        const data = results[0];
+
+        /** @type {PulseMetricsResultGroup|null} */
+        const metrics = results[results.length - 1];
+
+        /** @type {PulseDetailResultGroup[]|null} */
+        const overlays = results.slice(1, -1);
+
         if (!data) {
           let toast = {
             header: "PulseGuard",
@@ -382,7 +503,7 @@
         }
 
         const overlayData = (overlays || []).filter((o) => o !== null);
-        handleData(data, overlayData);
+        handleData(data, overlayData, metrics);
       })
       .finally(() => {
         fetchAbortController = null;
@@ -402,17 +523,42 @@
   }
 
   /**
+   * Destroys the existing metrics chart instances if they exist.
+   * This function ensures that the metrics charts are properly destroyed
+   * and their references are set to `null` to free up resources.
+   */
+  function destroyMetricsCharts() {
+    if (detailMetricsCpuChart) {
+      detailMetricsCpuChart.destroy();
+      detailMetricsCpuChart = null;
+    }
+    if (detailMetricsMemoryChart) {
+      detailMetricsMemoryChart.destroy();
+      detailMetricsMemoryChart = null;
+    }
+  }
+
+  /**
    * Resets the details card by destroying the chart, showing the spinner,
    * and resetting the content of various elements to their default states.
    */
   function resetDetails(spinning = true) {
     destroyChart();
+    destroyMetricsCharts();
+
+    // Clear stored metrics
+    currentMetrics = null;
 
     const detailCardElements = getDetailCardElements();
 
     toggleSpinner(detailCardElements.spinner, spinning);
     toggleSpinner(detailCardElements.heatmapSpinner, spinning);
+    toggleSpinner(detailCardElements.metricsCpuSpinner, spinning);
+    toggleSpinner(detailCardElements.metricsMemorySpinner, spinning);
     toggleElementVisibility(detailCardElements.chart, false);
+    toggleElementVisibility(detailCardElements.metricsCpuChart, false);
+    toggleElementVisibility(detailCardElements.metricsMemoryChart, false);
+    toggleElementVisibility(detailCardElements.detailMetrics, false);
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
     resetTextContent(detailCardElements.errorRate, "...");
@@ -430,9 +576,14 @@
    * Handles the data by sorting, formatting, and displaying it.
    * @param {PulseDetailResultGroup} data - The data to handle.
    * @param {PulseDetailResultGroup[]} overlays - The data to handle.
+   * @param {PulseMetricsResultGroup | null} metrics - The metrics for the current data.
    */
-  function handleData(data, overlays) {
+  function handleData(data, overlays, metrics) {
     destroyChart();
+    destroyMetricsCharts();
+
+    // Store metrics for use in updateChart function
+    currentMetrics = metrics;
 
     const detailCardElements = getDetailCardElements();
 
@@ -512,6 +663,9 @@
 
       const uptimes = calculateUptimes(filteredData);
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
+
+      // Update metrics charts using stored metrics
+      updateMetricsCharts(detailCardElements, currentMetrics);
     };
 
     renderChartListener = updateChart;
@@ -1734,5 +1888,231 @@
     });
 
     return healthBar;
+  }
+
+  /**
+   * Creates a Map where the keys are timestamps (rounded to the nearest minute)
+   * and the values are the corresponding metric items from the input array.
+   *
+   * @param {Array<PulseMetricsResult>} items - An array of metric objects, each containing a `timestamp` property.
+   * @returns {Map<number, PulseMetricsResult>} A Map with keys as rounded timestamps (in milliseconds since epoch)
+   * and values as the corresponding metric items.
+   */
+  function createMetricsTimeMap(items) {
+    const map = new Map();
+    for (const item of items) {
+      const timestamp = new Date(item.timestamp * 1000);
+      const roundedTimestamp = new Date(
+        Math.floor(timestamp.getTime() / 60000) * 60000
+      );
+      map.set(roundedTimestamp.getTime(), item);
+    }
+    return map;
+  }
+
+  /**
+   * Filters an array of metric items based on a date range specified by two HTML select elements.
+   *
+   * @param {Array<PulseMetricsResult>} items - The array of metric items to filter.
+   * @param {HTMLSelectElement} fromSelect - The HTML select element representing the start date of the range.
+   * @param {HTMLSelectElement} toSelect - The HTML select element representing the end date of the range.
+   * @returns {Array<PulseMetricsResult>} The filtered array of metric items that fall within the specified date range.
+   */
+  function filterMetricsByDateRange(items, fromSelect, toSelect) {
+    if (!fromSelect?.value || !toSelect?.value) {
+      return items;
+    }
+
+    const fromDate = new Date(fromSelect.value);
+    const toDate = new Date(toSelect.value);
+
+    return items.filter((item) => {
+      const itemDate = new Date(item.timestamp * 1000);
+      return itemDate >= fromDate && itemDate <= toDate;
+    });
+  }
+
+  /**
+   * Renders a line chart for metrics (CPU or Memory) using Chart.js.
+   *
+   * @param {HTMLCanvasElement} canvas - The canvas element to render the chart on.
+   * @param {Array<PulseMetricsResult>} filteredMetrics - The filtered metrics data.
+   * @param {string} metricType - The type of metric ('cpu' or 'memory').
+   * @param {string} label - The label for the chart dataset.
+   * @param {string} color - The color for the chart line.
+   * @returns {Chart} A Chart.js instance representing the rendered chart.
+   */
+  function renderMetricsChart(canvas, filteredMetrics, metricType, label, color) {
+    const data = filteredMetrics
+      .filter(item => item[metricType] !== null && item[metricType] !== undefined)
+      .map(item => ({
+        x: new Date(item.timestamp * 1000),
+        y: item[metricType]
+      }))
+      .sort((a, b) => a.x - b.x);
+
+    // Calculate min/max timestamps for time unit determination
+    const timestamps = data.map(d => d.x.getTime());
+    const minTimestamp = Math.min(...timestamps);
+    const maxTimestamp = Math.max(...timestamps);
+    const timeUnit = getTimeUnit(maxTimestamp, minTimestamp);
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: label,
+          data: data,
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.1,
+          pointRadius: 1,
+          pointHoverRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: timeUnit,
+              displayFormats: {
+                minute: 'HH:mm',
+                hour: 'MMM dd HH:mm',
+                day: 'MMM dd'
+              }
+            },
+            title: {
+              display: true,
+              text: 'Time'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            max: metricType === 'cpu' ? 100 : undefined,
+            title: {
+              display: true,
+              text: metricType === 'cpu' ? 'CPU Usage (%)' : 'Memory Usage (%)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: function(context) {
+                return new Date(context[0].parsed.x).toLocaleString();
+              },
+              label: function(context) {
+                const value = context.parsed.y;
+                return `${label}: ${value.toFixed(1)}%`;
+              }
+            }
+          },
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+                modifierKey: "ctrl",
+              },
+              drag: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: "x",
+            },
+            pan: {
+              enabled: true,
+              mode: "x",
+              modifierKey: "ctrl",
+            },
+            limits: {
+              x: {
+                min: "original",
+                max: "original",
+              },
+            },
+          },
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        }
+      }
+    };
+
+    return new Chart(canvas, config);
+  }
+
+  /**
+   * Updates or creates metrics charts based on the provided metrics data.
+   *
+   * @param {DetailDomElements} elements - The DOM elements for the detail card.
+   * @param {PulseMetricsResultGroup|null} metrics - The metrics data to display.
+   */
+  function updateMetricsCharts(elements, metrics) {
+    // Destroy existing charts
+    destroyMetricsCharts();
+
+    if (!metrics || !metrics.items || metrics.items.length === 0) {
+      // Hide metrics section if no data
+      toggleElementVisibility(elements.detailMetrics, false);
+      return;
+    }
+
+    // Filter metrics by date range
+    const filteredMetrics = filterMetricsByDateRange(
+      metrics.items,
+      elements.fromSelect,
+      elements.toSelect
+    );
+
+    if (filteredMetrics.length === 0) {
+      // Hide metrics section if no data after filtering
+      toggleElementVisibility(elements.detailMetrics, false);
+      return;
+    }
+
+    // Show metrics section
+    toggleElementVisibility(elements.detailMetrics, true);
+
+    // Hide spinners and show charts
+    toggleSpinner(elements.metricsCpuSpinner, false);
+    toggleSpinner(elements.metricsMemorySpinner, false);
+    toggleElementVisibility(elements.metricsCpuChart, true);
+    toggleElementVisibility(elements.metricsMemoryChart, true);
+
+    // Create CPU chart
+    if (elements.metricsCpuChart) {
+      detailMetricsCpuChart = renderMetricsChart(
+        elements.metricsCpuChart,
+        filteredMetrics,
+        'cpu',
+        'CPU Usage',
+        'rgb(54, 162, 235)'
+      );
+    }
+
+    // Create Memory chart
+    if (elements.metricsMemoryChart) {
+      detailMetricsMemoryChart = renderMetricsChart(
+        elements.metricsMemoryChart,
+        filteredMetrics,
+        'memory',
+        'Memory Usage',
+        'rgb(255, 99, 132)'
+      );
+    }
   }
 })();

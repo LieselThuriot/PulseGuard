@@ -285,6 +285,35 @@
               </div>
             </div>
 
+            <div id="detail-metrics" class="row mb-2">
+              <div class="col-12 col-lg-6">
+                <div class="card">
+                  <div class="card-header"><i class="bi bi-cpu"></i> CPU</div>
+                  <div class="card-body">
+                    <div class="text-center" id="detail-metrics-cpu-spinner">
+                      <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                    <canvas id="detail-metrics-cpu-chart" class="d-flex overflow-x-auto"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-6">
+                <div class="card">
+                  <div class="card-header"><i class="bi bi-memory"></i> Memory</div>
+                  <div class="card-body">
+                    <div class="text-center" id="detail-metrics-memory-spinner">
+                      <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                    <canvas id="detail-metrics-memory-chart" class="d-flex overflow-x-auto"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="row">
               <div class="col-12">
                 <div class="card">
@@ -295,7 +324,7 @@
                         <span class="visually-hidden">Loading...</span>
                       </div>
                     </div>
-                    <div id="detail-card-heatmap" class="d-flex overflow-x-auto" />
+                    <div id="detail-card-heatmap" class="d-flex overflow-x-auto"></div>
                   </div>
                 </div>
               </div>

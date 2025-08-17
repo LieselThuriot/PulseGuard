@@ -1,5 +1,7 @@
 ﻿using PulseGuard.Models;
+using System.Reflection.PortableExecutable;
 using TableStorage;
+using static FastExpressionCompiler.ExpressionCompiler;
 
 namespace PulseGuard.Entities;
 
@@ -19,7 +21,7 @@ public sealed partial class PulseAgentCheckResult
         {
             Day = executionTime.ToString(PartitionKeyFormat),
             Sqid = report.Options.Sqid,
-            Items = [new(report.CpuPercentage, report.Memory)]
+            Items = [new(executionTime.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory)]
         };
     }
 
@@ -66,7 +68,7 @@ public sealed partial class PulseAgentCheckResult
     public static (string partition, string row, BinaryData data) GetAppendValue(PulseAgentReport report)
     {
         var executionTime = DateTimeOffset.UtcNow;
-        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(report.CpuPercentage, report.Memory);
+        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(executionTime.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory);
         var data = BinaryData.FromString(result);
 
         return (executionTime.ToString(PartitionKeyFormat), report.Options.Sqid, data);
@@ -97,21 +99,39 @@ public sealed class PulseAgentCheckResultDetails : List<PulseAgentCheckResultDet
     }
 }
 
-public sealed record PulseAgentCheckResultDetail(double? Cpu, double? Memory)
+public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, double? Memory)
 {
     public const char Separator = ';';
 
-    public string Serialize() => Serialize(Cpu, Memory);
+    public string Serialize() => Serialize(Timestamp, Cpu, Memory);
 
     public static PulseAgentCheckResultDetail Deserialize(ReadOnlySpan<char> value)
     {
-        int splitIdx = value.IndexOf(Separator);
-        double? cpu = double.TryParse(value[..splitIdx], out double parsed) ? parsed : null;
-        double? memory = double.TryParse(value[(splitIdx + 1)..], out parsed) ? parsed : null;
+        long timestamp = 0;
+        double? cpu = null, memory = null;
 
-        return new(cpu, memory);
+        int headerSplitIdx = 0;
+        foreach (Range range in value.Split(Separator))
+        {
+            switch (headerSplitIdx)
+            {
+                case 0:
+                    timestamp = long.Parse(value[range]);
+                    break;
+                case 1:
+                    cpu = double.TryParse(value[range], out double parsed) ? parsed : null;
+                    break;
+                case 2:
+                    memory = double.TryParse(value[range], out parsed) ? parsed : null;
+                    break;
+            }
+
+            headerSplitIdx++;
+        }
+
+        return new(timestamp, cpu, memory);
     }
 
-    public static string Serialize(double? cpu, double? memory)
-        => string.Join(Separator, cpu, memory);
+    public static string Serialize(long timestamp, double? cpu, double? memory)
+        => string.Join(Separator, timestamp, cpu, memory);
 }
