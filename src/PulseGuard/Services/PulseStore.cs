@@ -173,8 +173,10 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             {
                 await _context.UniqueIdentifiers.AddEntityAsync(new()
                 {
-                    IdentifierType = UniqueIdentifiers.PartitionPulseConfiguration,
-                    Id = id
+                    IdentifierType = UniqueIdentifier.PartitionPulseConfiguration,
+                    Id = id,
+                    Group = configuration.Group,
+                    Name = configuration.Name
                 }, token);
 
                 loop = false;

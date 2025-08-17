@@ -26,7 +26,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]
 [JsonSerializable(typeof(Entities.PulseConfiguration))]
-[JsonSerializable(typeof(Entities.UniqueIdentifiers))]
+[JsonSerializable(typeof(Entities.UniqueIdentifier))]
 [JsonSerializable(typeof(Entities.Webhook))]
 [JsonSerializable(typeof(Entities.ArchivedPulseCheckResult))]
 public partial class PulseSerializerContext : JsonSerializerContext;

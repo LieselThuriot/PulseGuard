@@ -148,21 +148,32 @@ public static class WebSocketRoutes
         DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
 
         var query = context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset);
+        var identifiers = context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration);
 
         if (application is not null)
         {
             query = query.Where(x => x.Sqid == application);
+            identifiers = identifiers.Where(x => x.Id == application);
         }
         else if (group is not null)
         {
             query = query.Where(x => x.Group == group);
+            identifiers = identifiers.Where(x => x.Group == group);
         }
+        
+        var info = await identifiers.ToDictionaryAsync(x => x.Id, cancellationToken: token);
 
-        var groupedQuery = query.SelectFields(x => new { x.Sqid, x.Group, x.Name, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
-                          .GroupBy(x => new { x.Group, x.Sqid })
-                          .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).First())
-                          .OrderBy(x => x.Group + x.Name)
-                          .Select(x => new PulseEventInfo(x.Sqid, x.Group, x.Name, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds.GetValueOrDefault()));
+        var groupedQuery = query.SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
+                                .Select(x => (info: info[x.Sqid], item: x))
+                                .GroupBy(x => (x.info.Group, x.info.Id))
+                                .Select(x => x.OrderByDescending(y => y.item.LastUpdatedTimestamp).First())
+                                .OrderBy(x => x.info.Group + x.info.Id)
+                                .Select(x => new PulseEventInfo(x.info.Id,
+                                                                x.info.Group,
+                                                                x.info.Name,
+                                                                x.item.State,
+                                                                x.item.LastUpdatedTimestamp,
+                                                                x.item.LastElapsedMilliseconds.GetValueOrDefault()));
 
         await foreach (PulseEventInfo pulseEventInfo in groupedQuery.WithCancellation(token))
         {

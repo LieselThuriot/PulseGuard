@@ -50,11 +50,22 @@ public static class EventRoutes
         response.SetEventingHeader();
 
         DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
+
+        var identifiers = await context.UniqueIdentifiers
+                                       .Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+                                       .ToDictionaryAsync(x => x.Id, cancellationToken: token);
+
         var query = context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
-                           .SelectFields(x => new { x.Sqid, x.Group, x.Name, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
-                           .GroupBy(x => new { x.Group, x.Sqid })
-                           .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp)
-                                         .Select(x => new PulseEventInfo(x.Sqid, x.Group, x.Name, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds.GetValueOrDefault()))
+                           .SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
+                           .Select(x => (info: identifiers[x.Sqid], item: x))
+                           .GroupBy(x => (x.info.Group, x.info.Id))
+                           .Select(x => x.OrderByDescending(y => y.item.LastUpdatedTimestamp)
+                                         .Select(x => new PulseEventInfo(x.info.Id,
+                                                                         x.info.Group,
+                                                                         x.info.Name,
+                                                                         x.item.State,
+                                                                         x.item.LastUpdatedTimestamp,
+                                                                         x.item.LastElapsedMilliseconds.GetValueOrDefault()))
                                          .First());
 
         await foreach (PulseEventInfo pulseEventInfo in query.WithCancellation(token))

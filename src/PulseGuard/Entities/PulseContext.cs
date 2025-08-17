@@ -10,7 +10,7 @@ public sealed partial class PulseContext
     public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
     public TableSet<Pulse> Pulses { get; }
-    public TableSet<UniqueIdentifiers> UniqueIdentifiers { get; }
+    public TableSet<UniqueIdentifier> UniqueIdentifiers { get; }
     public TableSet<Webhook> Webhooks { get; }
 
     /// <summary>

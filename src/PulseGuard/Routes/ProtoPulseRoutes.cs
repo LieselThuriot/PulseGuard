@@ -16,6 +16,13 @@ public static class ProtoPulseRoutes
 
         pulseGroup.MapGet("details/{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
+            var info = await GetInfo(context, id, token);
+
+            if (info is null)
+            {
+                return TypedResults.NotFound();
+            }
+
             var archivedItems = context.ArchivedPulseCheckResults.FindPartitionsAsync(id, token)
                                        .Select((string x, CancellationToken ct) => context.ArchivedPulseCheckResults.GetEntityAsync(x, id, ct).AsValue())
                                        .SelectMany(x => x!.Items)
@@ -30,8 +37,7 @@ public static class ProtoPulseRoutes
 
             var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
 
-            PulseCheckResult pulseCheckResult = results[^1];
-            PulseDetailResultGroup result = new(pulseCheckResult.Group, pulseCheckResult.Name, items);
+            PulseDetailResultGroup result = new(info.Group, info.Name, items);
 
             return Proto.Result(result);
         });
@@ -57,5 +63,10 @@ public static class ProtoPulseRoutes
             PulseMetricsResultGroup result = new(items);
             return Proto.Result(result);
         });
+    }
+
+    private static Task<UniqueIdentifier?> GetInfo(PulseContext context, string id, CancellationToken token)
+    {
+        return context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id).FirstOrDefaultAsync(token);
     }
 }
