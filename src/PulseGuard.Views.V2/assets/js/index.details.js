@@ -2298,7 +2298,7 @@
         timeStructures,
         "io",
         "IO Usage",
-        "rgb(75, 192, 192)",
+        "rgb(75, 192, 104)",
         decimation,
         percentile
       );
