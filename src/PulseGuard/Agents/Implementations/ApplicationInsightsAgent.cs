@@ -10,7 +10,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, Entities.PulseAg
     {
         var pulseResponseString = await Post("""
             {
-              "query": "performanceCounters | where timestamp >= ago(10m) | where name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized', 'IO Data Bytes/sec') | project timestamp = todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm')), name, value | evaluate pivot(name, any(value)) | order by timestamp desc | take 1 | project timestamp, CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100), IO = toreal(['IO Data Bytes/sec'])"
+              "query": "performanceCounters | where timestamp >= ago(10m) | where name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized', 'IO Data Bytes/sec') | project timestamp = todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm')), name, value | evaluate pivot(name, any(value)) | order by timestamp desc | take 1 | project CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100), IO = toreal(['IO Data Bytes/sec'])"
             }
             """, token);
 
