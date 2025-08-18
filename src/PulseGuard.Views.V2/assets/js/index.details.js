@@ -551,7 +551,7 @@
       detailMetricsMemoryChart.destroy();
       detailMetricsMemoryChart = null;
     }
-    
+
     if (detailMetricsIoChart) {
       detailMetricsIoChart.destroy();
       detailMetricsIoChart = null;
@@ -1544,6 +1544,10 @@
    *                   "hour" if the difference is less than or equal to 1 day, or "day" otherwise.
    */
   function getTimeUnit(maxTimestamp, minTimestamp) {
+    if (maxTimestamp === null && minTimestamp === null) {
+      return "minute";
+    }
+
     const timeDiff = maxTimestamp - minTimestamp;
 
     if (timeDiff <= 3600000) {
@@ -1978,6 +1982,7 @@
           if (!buckets.has(bucketKey)) {
             buckets.set(bucketKey, []);
           }
+
           buckets.get(bucketKey).push(item[metricType]);
         }
       });
@@ -2006,6 +2011,10 @@
             value = values[Math.max(0, index)];
           }
 
+          if (metricType === "io") {
+            value = value / 1024 / 1024; // Convert to MB/s
+          }
+
           data.push({
             x: new Date(bucketKey),
             y: value,
@@ -2019,7 +2028,6 @@
         }
       }
     } else {
-      // No decimation - create data points for all labels, with gaps where no data exists
       data = labels.map((timestamp) => {
         const time = timestamp.getTime();
         const item = timeMap.get(time);
@@ -2029,12 +2037,17 @@
           item[metricType] !== null &&
           item[metricType] !== undefined
         ) {
+          let value = item[metricType];
+
+          if (metricType === "io") {
+            value = value / 1024 / 1024; // Convert to MB/s
+          }
+
           return {
             x: timestamp,
-            y: item[metricType],
+            y: value,
           };
         } else {
-          // Create a gap in the data by returning null
           return {
             x: timestamp,
             y: null,
@@ -2043,7 +2056,18 @@
       });
     }
 
-    const timeUnit = getTimeUnit(maxTimestamp, minTimestamp);
+    while (data.length > 0 && data[0].y === null) {
+      data.shift();
+    }
+
+    while (data.length > 0 && data[data.length - 1].y === null) {
+      data.pop();
+    }
+
+    const filteredMinTimestamp = data.length > 0 ? data[0].x : null;
+    const filteredMaxTimestamp =
+      data.length > 0 ? data[data.length - 1].x : null;
+    const timeUnit = getTimeUnit(filteredMaxTimestamp, filteredMinTimestamp);
 
     const config = {
       type: "line",
@@ -2088,7 +2112,7 @@
           },
           y: {
             beginAtZero: true,
-            max: 100,
+            suggestedMax: metricType !== "io" ? 100 : undefined,
             title: {
               display: true,
               text: label,
@@ -2108,7 +2132,9 @@
               },
               label: function (context) {
                 const value = context.parsed.y;
-                return `${label}: ${value.toFixed(1)}%`;
+                return metricType === "io"
+                  ? `${label}: ${value.toFixed(2)}MB/s`
+                  : `${label}: ${value.toFixed(1)}%`;
               },
             },
           },
