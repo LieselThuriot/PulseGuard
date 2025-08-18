@@ -5,7 +5,7 @@ using TableStorage;
 namespace PulseGuard.Entities;
 
 [ProtoContract(IgnoreListHandling = true, UseProtoMembersOnly = true)]
-[TableSet(PartitionKey = "Group", RowKey = "Name")]
+[TableSet(PartitionKey = nameof(Group), RowKey = nameof(Name))]
 public sealed partial class PulseConfiguration
 {
     [ProtoMember(1)]

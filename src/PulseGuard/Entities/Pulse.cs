@@ -3,31 +3,17 @@ using TableStorage;
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Sqid", RowKey = "ContinuationToken")]
+[TableSet(PartitionKey = nameof(Sqid), RowKey = nameof(ContinuationToken))]
 public sealed partial class Pulse
 {
     public partial string Sqid { set; get; }
     public partial string ContinuationToken { set; get; }
-    public partial string Group { get; set; }
-    public partial string Name { get; set; }
     public partial string Message { get; set; }
     public partial string? Error { get; set; }
     public partial PulseStates State { get; set; }
     public partial DateTimeOffset CreationTimestamp { get; set; }
     public partial DateTimeOffset LastUpdatedTimestamp { get; set; }
     public partial long? LastElapsedMilliseconds { get; set; }
-
-    public string GetFullName()
-    {
-        string result = Name;
-
-        if (!string.IsNullOrWhiteSpace(Group))
-        {
-            result = $"{Group} > {result}";
-        }
-
-        return result;
-    }
 
     public static Pulse From(PulseReport report)
     {
@@ -36,8 +22,6 @@ public sealed partial class Pulse
         {
             Sqid = report.Options.Sqid,
             ContinuationToken = CreateContinuationToken(executionTime),
-            Group = report.Options.Group,
-            Name = report.Options.Name,
             State = report.State,
             Message = report.Message,
             Error = report.Error,

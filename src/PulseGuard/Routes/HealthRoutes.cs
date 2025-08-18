@@ -51,15 +51,19 @@ public static class HealthRoutes
         })
         .AllowAnonymous();
 
-        healthGroup.MapGet("applications", (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
+        healthGroup.MapGet("applications", async (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
         {
+            var uniqueIdentifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+                                                 .SelectFields(x => new { x.Id, x.Group, x.Name })
+                                                 .ToDictionaryAsync(x => x.Id, cancellationToken: token);
+
             DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
-            return context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
-                          .SelectFields(x => new { x.Group, x.Name, x.State, x.LastUpdatedTimestamp })
-                          .GroupBy(x => x.GetFullName())
-                          .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).First())
-                          .OrderBy(x => x.Name)
-                          .ToDictionaryAsync(cancellationToken: token);
+            return await context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
+                                .SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp })
+                                .GroupBy(x => uniqueIdentifiers[x.Sqid].GetFullName())
+                                .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).First())
+                                .OrderBy(x => x.Name)
+                                .ToDictionaryAsync(cancellationToken: token);
         });
     }
 }

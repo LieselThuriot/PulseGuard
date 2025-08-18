@@ -54,7 +54,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
             pulse = Pulse.From(report);
 
-            webhookTask = _webhookService.PostAsync(oldPulse, pulse, token);
+            webhookTask = _webhookService.PostAsync(oldPulse, pulse, report.Options, token);
         }
 
         pulse.LastElapsedMilliseconds = elapsedMilliseconds;

@@ -1,5 +1,4 @@
-﻿using PulseGuard.Agents;
-using TableStorage;
+﻿using TableStorage;
 
 namespace PulseGuard.Entities;
 

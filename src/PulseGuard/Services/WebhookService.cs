@@ -43,15 +43,15 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
         return !result.IsError;
     }
 
-    public Task PostAsync(Pulse old, Pulse @new, CancellationToken token)
+    public Task PostAsync(Pulse old, Pulse @new, PulseConfiguration options, CancellationToken token)
     {
         double? duration = (old.LastUpdatedTimestamp - old.CreationTimestamp).TotalMinutes;
 
         WebhookEvent webhookEvent = new
         (
             @new.Sqid,
-            @new.Group,
-            @new.Name,
+            options.Group,
+            options.Name,
             new
             (
                 old.State.Stringify(),

@@ -15,16 +15,9 @@ public static class PulseRoutes
     {
         RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses").WithTags("Pulses");
 
-        group.MapGet("", async (PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null, [FromQuery(Name = "f")] string? groupFilter = null) =>
+        group.MapGet("", async (PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
         {
             var (query, identifiers) = BuildQuery(context, minutes);
-
-            if (!string.IsNullOrWhiteSpace(groupFilter))
-            {
-                query = query.Where(x => x.Group == groupFilter);
-                identifiers = identifiers.Where(x => x.Group == groupFilter);
-            }
-
             var lookup = await identifiers.ToDictionaryAsync(x => x.Id, cancellationToken: token);
             return await GetPulses(query, lookup, token);
         });
@@ -42,10 +35,10 @@ public static class PulseRoutes
 
         group.MapGet("group/{group}/states", async Task<Results<Ok<PulseOverviewStateGroup>, NotFound>> (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
-            List<string> relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
+            var relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
 
             var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
-            var groups = await context.Pulses.ExistsIn(x => x.Sqid, relevantSqids)
+            var groups = await context.Pulses.ExistsIn(x => x.Sqid, relevantSqids.Keys)
                                       .Where(x => x.CreationTimestamp > offset)
                                       .ToLookupAsync(x => x.Sqid, cancellationToken: token);
 
@@ -56,7 +49,7 @@ public static class PulseRoutes
 
             PulseOverviewStateGroup result = new(group,
                                                  groups.Select(g => new PulseOverviewStateGroupItem(g.Key,
-                                                                                                    g.First().Name,
+                                                                                                    relevantSqids[g.Key],
                                                                                                     g.Select(x => new PulseStateItem(x.State,
                                                                                                                                      x.CreationTimestamp,
                                                                                                                                      x.LastUpdatedTimestamp))))
@@ -67,6 +60,15 @@ public static class PulseRoutes
 
         group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
         {
+            var identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
+                                          .SelectFields(x => x.Name)
+                                          .FirstOrDefaultAsync(token);
+
+            if (identifier is null)
+            {
+                return TypedResults.NotFound();
+            }
+
             var query = context.Pulses.Where(x => x.Sqid == id);
 
             if (!string.IsNullOrEmpty(continuationToken))
@@ -91,12 +93,21 @@ public static class PulseRoutes
                                      ? null
                                      : pulse.ContinuationToken;
 
-            PulseDetailGroupItem result = new(pulse.Sqid, pulse.Name, continuationToken, entries);
+            PulseDetailGroupItem result = new(pulse.Sqid, identifier.Name, continuationToken, entries);
             return TypedResults.Ok(result);
         });
 
         group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
+            var identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
+                                          .SelectFields(x => x.Name)
+                                          .FirstOrDefaultAsync(token);
+
+            if (identifier is null)
+            {
+                return TypedResults.NotFound();
+            }
+
             var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
 
             List<Pulse> items = await context.Pulses.Where(x => x.Sqid == id).Where(x => x.CreationTimestamp > offset).ToListAsync(token);
@@ -110,7 +121,7 @@ public static class PulseRoutes
 
             Pulse pulse = items[^1];
 
-            PulseStateGroupItem result = new(pulse.Sqid, pulse.Name, entries);
+            PulseStateGroupItem result = new(pulse.Sqid, identifier.Name, entries);
             return TypedResults.Ok(result);
         });
 
@@ -136,7 +147,7 @@ public static class PulseRoutes
 
     private static ISelectedTableQueryable<Pulse> SelectPulseOverviewFields(TableSet<Pulse> pulses)
     {
-        return pulses.SelectFields(x => new { x.Sqid, x.Group, x.Name, x.Message, x.State, x.CreationTimestamp, x.LastUpdatedTimestamp });
+        return pulses.SelectFields(x => new { x.Sqid, x.Message, x.State, x.CreationTimestamp, x.LastUpdatedTimestamp });
     }
 
     private static (ISelectedTableQueryable<Pulse> query, IAsyncEnumerable<UniqueIdentifier> identifiers) BuildQuery(PulseContext context, uint? minutes)
@@ -155,12 +166,11 @@ public static class PulseRoutes
         return (query, identifiers);
     }
 
-    private static ValueTask<List<string>> GetRelevantSqidsForGroup(string group, PulseContext context, CancellationToken token)
+    private static ValueTask<Dictionary<string, string>> GetRelevantSqidsForGroup(string group, PulseContext context, CancellationToken token)
     {
         return context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Group == group)
-                                        .SelectFields(x => x.Id)
-                                        .Select(x => x.Id)
-                                        .ToListAsync(token);
+                                        .SelectFields(x => new { x.Id, x.Name })
+                                        .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken: token);
     }
 
     private static ValueTask<List<PulseOverviewGroup>> GetPulses(IAsyncEnumerable<Pulse> query, IReadOnlyDictionary<string, UniqueIdentifier> identifiers, CancellationToken token)

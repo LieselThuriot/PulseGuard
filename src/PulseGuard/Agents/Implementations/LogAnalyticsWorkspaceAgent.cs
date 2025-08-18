@@ -17,7 +17,7 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
             DefaultAzureCredential credential = new();
             LogsQueryClient client = new(credential);
 
-            QueryTimeRange timeRange = TimeSpan.FromMinutes(5);
+            QueryTimeRange timeRange = TimeSpan.FromMinutes(10);
 
             LogsQueryOptions options = new()
             {
@@ -27,14 +27,13 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
             string query = $$"""
             AppPerformanceCounters
             | where AppRoleName == '{{Options.ApplicationName}}'
-            | where TimeGenerated >= ago(5m)
-            | order by TimeGenerated desc
-            | where Name == 'Available Bytes' or Name == 'Private Bytes' or Name == '% Processor Time Normalized'
+            | where TimeGenerated >= ago(10m)
+            | where Name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized', 'IO Data Bytes/sec')
             | project TimeGenerated = todatetime(format_datetime(TimeGenerated, 'yyyy-MM-dd HH:mm')), Name, Value
             | evaluate pivot(Name, any(Value))
-            | extend ['% Memory'] = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100)
-            | project CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100)
+            | order by TimeGenerated desc
             | take 1
+            | project CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100), IO = toreal(['IO Data Bytes/sec'])
             """;
             
             string workspaceId = Options.Location;
@@ -42,11 +41,11 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
 
             if (result.Value?.AllTables is not null && result.Value.AllTables.Count is not 0)
             {
-                var rows = result.Value.AllTables[0].Rows;
+                IReadOnlyList<LogsTableRow> rows = result.Value.AllTables[0].Rows;
                 if (rows.Count is not 0)
                 {
-                    var row = rows[0];
-                    return new(Options, row.GetDouble("CPU"), row.GetDouble("Memory"));
+                    LogsTableRow row = rows[0];
+                    return new(Options, LargerThanZero(row.GetDouble("CPU")), LargerThanZero(row.GetDouble("Memory")), LargerThanZero(row.GetDouble("IO")));
                 }
             }
         }
@@ -55,6 +54,6 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
             _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, ex, "Agent check failed due to deserialization error");
         }
 
-        return new(Options, null, null);
+        return PulseAgentReport.Fail(Options);
     }
 }

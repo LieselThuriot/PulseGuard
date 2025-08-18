@@ -1,11 +1,9 @@
 ﻿using PulseGuard.Models;
-using System.Reflection.PortableExecutable;
 using TableStorage;
-using static FastExpressionCompiler.ExpressionCompiler;
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true, DisableTables = true)]
+[TableSet(PartitionKey = nameof(Day), RowKey = nameof(Sqid), SupportBlobs = true, DisableTables = true)]
 public sealed partial class PulseAgentCheckResult
 {
     public partial string Day { get; set; }
@@ -20,7 +18,7 @@ public sealed partial class PulseAgentCheckResult
         {
             Day = creation.ToString(PartitionKeyFormat),
             Sqid = report.Options.Sqid,
-            Items = [new(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory)]
+            Items = [new(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory, report.InputOutput)]
         };
     }
 
@@ -66,7 +64,7 @@ public sealed partial class PulseAgentCheckResult
 
     public static (string partition, string row, BinaryData data) GetAppendValue(PulseAgentReport report, DateTimeOffset creation)
     {
-        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory);
+        string result = PulseAgentCheckResultDetails.Separator + PulseAgentCheckResultDetail.Serialize(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory, report.InputOutput);
         var data = BinaryData.FromString(result);
 
         return (creation.ToString(PartitionKeyFormat), report.Options.Sqid, data);
@@ -97,16 +95,16 @@ public sealed class PulseAgentCheckResultDetails : List<PulseAgentCheckResultDet
     }
 }
 
-public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, double? Memory)
+public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, double? Memory, double? InputOutput)
 {
     public const char Separator = ';';
 
-    public string Serialize() => Serialize(Timestamp, Cpu, Memory);
+    public string Serialize() => Serialize(Timestamp, Cpu, Memory, InputOutput);
 
     public static PulseAgentCheckResultDetail Deserialize(ReadOnlySpan<char> value)
     {
         long timestamp = 0;
-        double? cpu = null, memory = null;
+        double? cpu = null, memory = null, inputoutput = null;
 
         int headerSplitIdx = 0;
         foreach (Range range in value.Split(Separator))
@@ -122,14 +120,17 @@ public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, do
                 case 2:
                     memory = double.TryParse(value[range], out parsed) ? parsed : null;
                     break;
+                case 3:
+                    inputoutput = double.TryParse(value[range], out parsed) ? parsed : null;
+                    break;
             }
 
             headerSplitIdx++;
         }
 
-        return new(timestamp, cpu, memory);
+        return new(timestamp, cpu, memory, inputoutput);
     }
 
-    public static string Serialize(long timestamp, double? cpu, double? memory)
-        => string.Join(Separator, timestamp, cpu, memory);
+    public static string Serialize(long timestamp, double? cpu, double? memory, double? inputoutput)
+        => string.Join(Separator, timestamp, cpu, memory, inputoutput);
 }

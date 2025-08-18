@@ -14,19 +14,28 @@ public static class BadgeRoutes
 
         group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
         {
+            UniqueIdentifier? identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
+                                                        .SelectFields(x => new { x.Group, x.Name })
+                                                        .FirstOrDefaultAsync(token);
+
+            if (identifier is null)
+            {
+                return UnknownBadge();
+            }
+
             Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
-                                               .SelectFields(x => new { x.Group, x.Name, x.State, x.CreationTimestamp })
+                                               .SelectFields(x => new { x.State, x.CreationTimestamp })
                                                .FirstOrDefaultAsync(token);
 
             if (pulse is null)
             {
-                return Badge("Pulse > Unknown > " + UnknownColor);
+                return UnknownBadge();
             }
 
-            string name = pulse.GetFullName()
-                               .Replace("_", "__")
-                               .Replace("-", "--")
-                               .Replace(" ", "_");
+            string name = identifier.GetFullName()
+                                    .Replace("_", "__")
+                                    .Replace("-", "--")
+                                    .Replace(" ", "_");
 
             string url = $"{name}-{pulse.State}-{pulse.State switch
             {
@@ -38,6 +47,11 @@ public static class BadgeRoutes
             }}?style=flat-square";
 
             return Badge(url);
+
+            HttpResponseMessageResult UnknownBadge()
+            {
+                return Badge("Pulse > Unknown > " + UnknownColor);
+            }
 
             HttpResponseMessageResult Badge(string url)
             {

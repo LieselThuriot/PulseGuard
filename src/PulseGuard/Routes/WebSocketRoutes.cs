@@ -150,6 +150,7 @@ public static class WebSocketRoutes
         var query = context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset);
         var identifiers = context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration);
 
+        bool filterOnSqid = false;
         if (application is not null)
         {
             query = query.Where(x => x.Sqid == application);
@@ -157,11 +158,16 @@ public static class WebSocketRoutes
         }
         else if (group is not null)
         {
-            query = query.Where(x => x.Group == group);
+            filterOnSqid = true;
             identifiers = identifiers.Where(x => x.Group == group);
         }
         
         var info = await identifiers.ToDictionaryAsync(x => x.Id, cancellationToken: token);
+
+        if (filterOnSqid)
+        {
+            query = query.ExistsIn(x => x.Sqid, info.Keys);
+        }
 
         var groupedQuery = query.SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
                                 .Select(x => (info: info[x.Sqid], item: x))

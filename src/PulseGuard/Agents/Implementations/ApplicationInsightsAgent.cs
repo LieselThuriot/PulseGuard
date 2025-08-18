@@ -10,7 +10,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, Entities.PulseAg
     {
         var pulseResponseString = await Post("""
             {
-              "query": "performanceCounters | where timestamp >= ago(5m) | where name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized') | order by timestamp desc | project timestamp = todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm')), name, value | evaluate pivot(name, any(value)) | project timestamp, CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100) | order by timestamp desc | take 1 | project CPU, Memory"
+              "query": "performanceCounters | where timestamp >= ago(10m) | where name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized', 'IO Data Bytes/sec') | project timestamp = todatetime(format_datetime(timestamp, 'yyyy-MM-dd HH:mm')), name, value | evaluate pivot(name, any(value)) | order by timestamp desc | take 1 | project timestamp, CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100), IO = toreal(['IO Data Bytes/sec'])"
             }
             """, token);
 
@@ -19,7 +19,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, Entities.PulseAg
         if (pulseResponse is null)
         {
             _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, "Could not read application insights");
-            return new(Options, null, null);
+            return PulseAgentReport.Fail(Options);
         }
 
         ApplicationInsightsQueryResponse? insight = null;
@@ -36,13 +36,13 @@ public sealed class ApplicationInsightsAgent(HttpClient client, Entities.PulseAg
         if (insight is null || insight.Tables.Count is 0 || insight.Tables[0].Rows.Count is 0)
         {
             _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, "Agent check failed due to deserialization error");
-            return new(Options, null, null);
+            return PulseAgentReport.Fail(Options);
         }
 
         var row = insight.Tables[0].Rows[0];
-        return new(Options, row[0], row[1]);
+        return new(Options, LargerThanZero(row.ElementAtOrDefault(0)), LargerThanZero(row.ElementAtOrDefault(1)), LargerThanZero(row.ElementAtOrDefault(2)));
     }
 
-    public sealed record ApplicationInsightsQueryResponse(List<Table> Tables);
-    public sealed record Table(List<List<double>> Rows);
+    public sealed record ApplicationInsightsQueryResponse(List<ApplicationInsightsQueryResponseTable> Tables);
+    public sealed record ApplicationInsightsQueryResponseTable(List<List<double>> Rows);
 }

@@ -12,4 +12,16 @@ public sealed partial class UniqueIdentifier
 
     public partial string Group { get; set; }
     public partial string Name { get; set; }
+
+    public string GetFullName()
+    {
+        string result = Name;
+
+        if (!string.IsNullOrWhiteSpace(Group))
+        {
+            result = $"{Group} > {result}";
+        }
+
+        return result;
+    }
 }

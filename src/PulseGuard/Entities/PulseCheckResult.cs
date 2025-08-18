@@ -3,7 +3,7 @@ using TableStorage;
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Day", RowKey = "Sqid", SupportBlobs = true, DisableTables = true)]
+[TableSet(PartitionKey = nameof(Day), RowKey = nameof(Sqid), SupportBlobs = true, DisableTables = true)]
 public sealed partial class PulseCheckResult
 {
     public partial string Day { get; set; }

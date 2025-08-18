@@ -285,8 +285,8 @@
               </div>
             </div>
 
-            <div id="detail-metrics" class="row mb-2">
-              <div class="col-12 col-lg-6">
+            <div id="detail-metrics" class="row d-flex flex-wrap">
+              <div id="detail-metrics-cpu" class="col-lg-4 flex-fill mb-2">
                 <div class="card">
                   <div class="card-header"><i class="bi bi-cpu"></i> CPU</div>
                   <div class="card-body">
@@ -299,7 +299,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-12 col-lg-6">
+              <div id="detail-metrics-memory" class="col-lg-4 flex-fill mb-2">
                 <div class="card">
                   <div class="card-header"><i class="bi bi-memory"></i> Memory</div>
                   <div class="card-body">
@@ -309,6 +309,19 @@
                       </div>
                     </div>
                     <canvas id="detail-metrics-memory-chart" class="d-flex overflow-x-auto"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div id="detail-metrics-io" class="col-lg-4 flex-fill mb-2">
+                <div class="card">
+                  <div class="card-header"><i class="bi bi-router"></i> IO</div>
+                  <div class="card-body">
+                    <div class="text-center" id="detail-metrics-io-spinner">
+                      <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                    <canvas id="detail-metrics-io-chart" class="d-flex overflow-x-auto"></canvas>
                   </div>
                 </div>
               </div>

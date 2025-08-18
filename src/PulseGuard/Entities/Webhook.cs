@@ -2,7 +2,7 @@
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = "Secret", RowKey = "EntryNumber")]
+[TableSet(PartitionKey = nameof(Secret), RowKey = nameof(EntryNumber))]
 public sealed partial class Webhook
 {
     public partial string Secret { get; set; }

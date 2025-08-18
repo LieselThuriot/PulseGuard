@@ -31,4 +31,6 @@ public abstract class AgentCheck(HttpClient client, PulseAgentConfiguration opti
 
         return _client.SendAsync(request, token);
     }
+
+    public double? LargerThanZero(double? value) => value is not null and > 0 ? value : null;
 }

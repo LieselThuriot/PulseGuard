@@ -32,10 +32,15 @@
  * @property {HTMLElement|null} toSelect - The dropdown for selecting the end date/time.
  * @property {HTMLElement|null} heatmap - The heatmap element.
  * @property {HTMLElement|null} detailMetrics - The detail metrics container element.
+ * @property {HTMLElement|null} metricsCpuContainer - The CPU metrics container element.
  * @property {HTMLElement|null} metricsCpuSpinner - The spinner element for CPU metrics loading state.
  * @property {HTMLElement|null} metricsCpuChart - The CPU metrics chart element.
+ * @property {HTMLElement|null} metricsMemoryContainer - The memory metrics container element.
  * @property {HTMLElement|null} metricsMemorySpinner - The spinner element for memory metrics loading state.
  * @property {HTMLElement|null} metricsMemoryChart - The memory metrics chart element.
+ * @property {HTMLElement|null} metricsIoContainer - The IO metrics container element.
+ * @property {HTMLElement|null} metricsIoSpinner - The spinner element for IO metrics loading state.
+ * @property {HTMLElement|null} metricsIoChart - The IO metrics chart element.
  */
 
 (async function () {
@@ -141,12 +146,14 @@
    * @property {number|Long} timestamp
    * @property {number|null} cpu
    * @property {number|null} memory
+   * @property {number|null} io
    */
   class PulseMetricsResult {
     constructor() {
       this.timestamp = 0;
       this.cpu = null;
       this.memory = null;
+      this.io = null;
     }
     static decode(reader, length) {
       if (!(reader instanceof protobuf.Reader))
@@ -164,6 +171,9 @@
             break;
           case 3:
             message.memory = reader.double();
+            break;
+          case 4:
+            message.io = reader.double();
             break;
           default:
             reader.skipType(tag & 7);
@@ -213,6 +223,9 @@
 
   /** @type {Chart|null} */
   let detailMetricsMemoryChart = null;
+
+  /** @type {Chart|null} */
+  let detailMetricsIoChart = null;
 
   /** @type {Function|null} */
   let renderChartListener = null;
@@ -270,7 +283,6 @@
   window.addEventListener("pushstate", handleQueryParamChange);
   window.addEventListener("replacestate", handleQueryParamChange);
 
-  // Initial call to handle the current query param value
   handleQueryParamChange();
 
   /**
@@ -299,14 +311,19 @@
       toSelect: document.querySelector("#detail-card-chart-to"),
       heatmap: document.querySelector("#detail-card-heatmap"),
       detailMetrics: document.querySelector("#detail-metrics"),
+      metricsCpuContainer: document.querySelector("#detail-metrics-cpu"),
       metricsCpuSpinner: document.querySelector("#detail-metrics-cpu-spinner"),
       metricsCpuChart: document.querySelector("#detail-metrics-cpu-chart"),
+      metricsMemoryContainer: document.querySelector("#detail-metrics-memory"),
       metricsMemorySpinner: document.querySelector(
         "#detail-metrics-memory-spinner"
       ),
       metricsMemoryChart: document.querySelector(
         "#detail-metrics-memory-chart"
       ),
+      metricsIoContainer: document.querySelector("#detail-metrics-io"),
+      metricsIoSpinner: document.querySelector("#detail-metrics-io-spinner"),
+      metricsIoChart: document.querySelector("#detail-metrics-io-chart"),
     };
   }
 
@@ -515,30 +532,29 @@
   }
 
   /**
-   * Destroys the existing chart instance if it exists.
-   * This function ensures that the `detailCardChart` is properly destroyed
-   * and its reference is set to `null` to free up resources.
+   * Destroys all chart instances if they exist.
+   * This function ensures that all charts are properly destroyed
+   * and their references are set to `null` to free up resources.
    */
-  function destroyChart() {
+  function destroyAllCharts() {
     if (detailCardChart) {
       detailCardChart.destroy();
       detailCardChart = null;
     }
-  }
 
-  /**
-   * Destroys the existing metrics chart instances if they exist.
-   * This function ensures that the metrics charts are properly destroyed
-   * and their references are set to `null` to free up resources.
-   */
-  function destroyMetricsCharts() {
     if (detailMetricsCpuChart) {
       detailMetricsCpuChart.destroy();
       detailMetricsCpuChart = null;
     }
+
     if (detailMetricsMemoryChart) {
       detailMetricsMemoryChart.destroy();
       detailMetricsMemoryChart = null;
+    }
+    
+    if (detailMetricsIoChart) {
+      detailMetricsIoChart.destroy();
+      detailMetricsIoChart = null;
     }
   }
 
@@ -547,10 +563,8 @@
    * and resetting the content of various elements to their default states.
    */
   function resetDetails(spinning = true) {
-    destroyChart();
-    destroyMetricsCharts();
+    destroyAllCharts();
 
-    // Clear stored metrics
     currentMetrics = null;
 
     const detailCardElements = getDetailCardElements();
@@ -560,8 +574,6 @@
     toggleSpinner(detailCardElements.metricsCpuSpinner, spinning);
     toggleSpinner(detailCardElements.metricsMemorySpinner, spinning);
     toggleElementVisibility(detailCardElements.chart, false);
-    toggleElementVisibility(detailCardElements.metricsCpuChart, false);
-    toggleElementVisibility(detailCardElements.metricsMemoryChart, false);
     toggleElementVisibility(detailCardElements.detailMetrics, false);
     resetTextContent(detailCardElements.header, "...");
     resetTextContent(detailCardElements.uptime, "...");
@@ -583,10 +595,6 @@
    * @param {PulseMetricsResultGroup | null} metrics - The metrics for the current data.
    */
   function handleData(data, overlays, metrics) {
-    destroyChart();
-    destroyMetricsCharts();
-
-    // Store metrics for use in updateChart function
     currentMetrics = metrics;
 
     const detailCardElements = getDetailCardElements();
@@ -597,10 +605,7 @@
     );
 
     const updateChart = function () {
-      if (detailCardChart) {
-        detailCardChart.destroy();
-        detailCardChart = null;
-      }
+      destroyAllCharts();
 
       const filteredData = filterDataByDateRange(
         data.items,
@@ -668,7 +673,6 @@
       const uptimes = calculateUptimes(filteredData);
       updateUptime(detailCardElements, uptimes, minTimestamp, filteredData);
 
-      // Update metrics charts using stored metrics
       updateMetricsCharts(
         detailCardElements,
         currentMetrics,
@@ -1928,11 +1932,11 @@
   }
 
   /**
-   * Renders a line chart for metrics (CPU or Memory) using Chart.js.
+   * Renders a line chart for metrics (CPU, Memory, or IO) using Chart.js.
    *
    * @param {HTMLCanvasElement} canvas - The canvas element to render the chart on.
    * @param {Object} timeStructures - Pre-calculated time structures containing timeMap, minTimestamp, maxTimestamp, labels, and interval.
-   * @param {string} metricType - The type of metric ('cpu' or 'memory').
+   * @param {string} metricType - The type of metric ('cpu', 'memory', or 'io').
    * @param {string} label - The label for the chart dataset.
    * @param {string} color - The color for the chart line.
    * @param {number} decimation - The decimation factor for data grouping.
@@ -2147,7 +2151,7 @@
   }
 
   /**
-   * Creates common time structures used by both CPU and Memory charts.
+   * Creates common time structures used by CPU, Memory, and IO charts.
    *
    * @param {Array<PulseMetricsResult>} filteredMetrics - The filtered metrics data.
    * @returns {Object|null} An object containing timeMap, minTimestamp, maxTimestamp, and labels, or null if no valid data.
@@ -2192,6 +2196,19 @@
   }
 
   /**
+   * Checks if a specific metric type has any valid data in the filtered metrics.
+   *
+   * @param {Array<PulseMetricsResult>} filteredMetrics - The filtered metrics data.
+   * @param {string} metricType - The metric type to check ('cpu', 'memory', or 'io').
+   * @returns {boolean} True if the metric type has valid data, false otherwise.
+   */
+  function hasMetricData(filteredMetrics, metricType) {
+    return filteredMetrics.some(
+      (item) => item[metricType] !== null && item[metricType] !== undefined
+    );
+  }
+
+  /**
    * Updates or creates metrics charts based on the provided metrics data.
    *
    * @param {DetailDomElements} elements - The DOM elements for the detail card.
@@ -2200,16 +2217,11 @@
    * @param {number} percentile - The percentile value for data processing.
    */
   function updateMetricsCharts(elements, metrics, decimation, percentile) {
-    // Destroy existing charts
-    destroyMetricsCharts();
-
     if (!metrics || !metrics.items || metrics.items.length === 0) {
-      // Hide metrics section if no data
       toggleElementVisibility(elements.detailMetrics, false);
       return;
     }
 
-    // Filter metrics by date range
     const filteredMetrics = filterMetricsByDateRange(
       metrics.items,
       elements.fromSelect,
@@ -2217,30 +2229,34 @@
     );
 
     if (filteredMetrics.length === 0) {
-      // Hide metrics section if no data after filtering
       toggleElementVisibility(elements.detailMetrics, false);
       return;
     }
 
-    // Calculate common time structures once for both charts
+    const hasCpuData = hasMetricData(filteredMetrics, "cpu");
+    const hasMemoryData = hasMetricData(filteredMetrics, "memory");
+    const hasIoData = hasMetricData(filteredMetrics, "io");
+
+    if (!hasCpuData && !hasMemoryData && !hasIoData) {
+      toggleElementVisibility(elements.detailMetrics, false);
+      return;
+    }
+
     const timeStructures = createMetricsTimeStructures(filteredMetrics);
     if (!timeStructures) {
-      // Hide metrics section if no valid data
       toggleElementVisibility(elements.detailMetrics, false);
       return;
     }
 
-    // Show metrics section
     toggleElementVisibility(elements.detailMetrics, true);
 
-    // Hide spinners and show charts
-    toggleSpinner(elements.metricsCpuSpinner, false);
-    toggleSpinner(elements.metricsMemorySpinner, false);
-    toggleElementVisibility(elements.metricsCpuChart, true);
-    toggleElementVisibility(elements.metricsMemoryChart, true);
-
-    // Create CPU chart
-    if (elements.metricsCpuChart) {
+    if (
+      hasCpuData &&
+      elements.metricsCpuContainer &&
+      elements.metricsCpuChart
+    ) {
+      toggleElementVisibility(elements.metricsCpuContainer, true);
+      toggleSpinner(elements.metricsCpuSpinner, false);
       detailMetricsCpuChart = renderMetricsChart(
         elements.metricsCpuChart,
         timeStructures,
@@ -2250,10 +2266,17 @@
         decimation,
         percentile
       );
+    } else if (elements.metricsCpuContainer) {
+      toggleElementVisibility(elements.metricsCpuContainer, false);
     }
 
-    // Create Memory chart
-    if (elements.metricsMemoryChart) {
+    if (
+      hasMemoryData &&
+      elements.metricsMemoryContainer &&
+      elements.metricsMemoryChart
+    ) {
+      toggleElementVisibility(elements.metricsMemoryContainer, true);
+      toggleSpinner(elements.metricsMemorySpinner, false);
       detailMetricsMemoryChart = renderMetricsChart(
         elements.metricsMemoryChart,
         timeStructures,
@@ -2263,6 +2286,24 @@
         decimation,
         percentile
       );
+    } else if (elements.metricsMemoryContainer) {
+      toggleElementVisibility(elements.metricsMemoryContainer, false);
+    }
+
+    if (hasIoData && elements.metricsIoContainer && elements.metricsIoChart) {
+      toggleElementVisibility(elements.metricsIoContainer, true);
+      toggleSpinner(elements.metricsIoSpinner, false);
+      detailMetricsIoChart = renderMetricsChart(
+        elements.metricsIoChart,
+        timeStructures,
+        "io",
+        "IO Usage",
+        "rgb(75, 192, 192)",
+        decimation,
+        percentile
+      );
+    } else if (elements.metricsIoContainer) {
+      toggleElementVisibility(elements.metricsIoContainer, false);
     }
   }
 })();
