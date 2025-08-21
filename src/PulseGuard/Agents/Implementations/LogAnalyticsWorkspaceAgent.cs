@@ -17,7 +17,8 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
             DefaultAzureCredential credential = new();
             LogsQueryClient client = new(credential);
 
-            QueryTimeRange timeRange = TimeSpan.FromMinutes(10);
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            QueryTimeRange timeRange = new(now.AddMinutes(-10), now);
 
             LogsQueryOptions options = new()
             {
@@ -26,8 +27,8 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, Entities.Pulse
 
             string query = $$"""
             AppPerformanceCounters
-            | where AppRoleName == '{{Options.ApplicationName}}'
             | where TimeGenerated >= ago(10m)
+            | where AppRoleName == '{{Options.ApplicationName}}'
             | where Name in ('Available Bytes', 'Private Bytes', '% Processor Time Normalized', 'IO Data Bytes/sec')
             | project TimeGenerated = todatetime(format_datetime(TimeGenerated, 'yyyy-MM-dd HH:mm')), Name, Value
             | evaluate pivot(Name, any(Value))
