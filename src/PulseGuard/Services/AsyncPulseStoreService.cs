@@ -74,6 +74,14 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 
+    public async Task PostAsync(IReadOnlyList<PulseAgentReport> reports, CancellationToken token)
+    {
+        foreach (PulseAgentReport report in reports)
+        {
+            await PostAsync(report, token);
+        }
+    }
+
     public Task PostAsync(PulseAgentReport report, CancellationToken token)
     {
         BinaryData data = new(PulseSerializerContext.Default.PulseAgentReport.SerializeToUtf8Bytes(report));

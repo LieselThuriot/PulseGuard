@@ -26,43 +26,68 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
 
-        DateTimeOffset start = creation.AddMinutes(_options.Interval * -3);
+        await Task.WhenAll(
+            StoreBlobsAsync(report, creation, elapsedMilliseconds, token),
+            StoreTablesAsync(report, creation, elapsedMilliseconds, token)
+        );
 
-        var pulse = await _context.Pulses.Where(x => x.Sqid == report.Options.Sqid).FirstOrDefaultAsync(token);
+        _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
+    }
 
-        Task? webhookTask = null;
-
-        if (pulse is null || pulse.LastUpdatedTimestamp < start)
+    private async Task StoreTablesAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
+    {
+        try
         {
-            _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
-            pulse = Pulse.From(report);
+            DateTimeOffset start = creation.AddMinutes(_options.Interval * -3);
+
+            var pulse = await _context.Pulses.Where(x => x.Sqid == report.Options.Sqid).FirstOrDefaultAsync(token);
+
+            Task? webhookTask = null;
+
+            if (pulse is null || pulse.LastUpdatedTimestamp < start)
+            {
+                _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+                pulse = Pulse.From(report);
+            }
+            else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
+            {
+                _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+                pulse.LastUpdatedTimestamp = creation;
+            }
+            else // State, message or error has changed
+            {
+                var oldPulse = pulse;
+
+                _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name} due to state change", report.Options.Sqid, report.Options.Name);
+                pulse.LastUpdatedTimestamp = creation;
+
+                await _context.Pulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
+                await _context.RecentPulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
+
+                _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
+                pulse = Pulse.From(report);
+
+                webhookTask = _webhookService.PostAsync(oldPulse, pulse, report.Options, token);
+            }
+
+            pulse.LastElapsedMilliseconds = elapsedMilliseconds;
+
+            await _context.Pulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
+            await _context.RecentPulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
+
+            if (webhookTask is not null)
+            {
+                await webhookTask;
+            }
         }
-        else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
+        catch (Exception e)
         {
-            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
-            pulse.LastUpdatedTimestamp = creation;
+            _logger.LogError(PulseEventIds.Store, e, "Failed to store pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
         }
-        else // State, message or error has changed
-        {
-            var oldPulse = pulse;
+    }
 
-            _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name} due to state change", report.Options.Sqid, report.Options.Name);
-            pulse.LastUpdatedTimestamp = creation;
-
-            await _context.Pulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
-            await _context.RecentPulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
-
-            _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
-            pulse = Pulse.From(report);
-
-            webhookTask = _webhookService.PostAsync(oldPulse, pulse, report.Options, token);
-        }
-
-        pulse.LastElapsedMilliseconds = elapsedMilliseconds;
-
-        await _context.Pulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
-        await _context.RecentPulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
-
+    private async Task StoreBlobsAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
+    {
         try
         {
             (string partition, string row, BinaryData data) = PulseCheckResult.GetAppendValue(report, creation, elapsedMilliseconds);
@@ -73,13 +98,6 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Sqid} - {Name} -- Creating a new one.", report.Options.Sqid, report.Options.Name);
             await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, creation, elapsedMilliseconds), token);
         }
-
-        if (webhookTask is not null)
-        {
-            await webhookTask;
-        }
-
-        _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
     }
 
     public async Task StoreAsync(PulseAgentReport report, DateTimeOffset creation, CancellationToken token)
@@ -100,64 +118,110 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
     public Task CleanRecent(CancellationToken token)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
+        Task cleanRecent = CleanRecentTable(token);
+        Task cleanPulses = CleanPulseChecks(token);
+        Task cleanAgents = CleanAgentResults(token);
 
-        Task cleanRecent = _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
-        Task cleanResults = CleanUpPulseChecks(token);
-
-        return Task.WhenAll(cleanRecent, cleanResults);
+        return Task.WhenAll(cleanRecent, cleanPulses, cleanAgents);
     }
 
-    private async Task CleanUpPulseChecks(CancellationToken token)
+    private async Task CleanRecentTable(CancellationToken token)
     {
-        string today = PulseCheckResult.GetCurrentPartition();
-        await foreach (PulseCheckResult pulse in _context.PulseCheckResults.Where(x => x.Day != today).WithCancellation(token))
+        try
         {
-            string year = pulse.Day[..4];
-            string sqid = pulse.Sqid;
-
-            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
-
-            ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Year == year && x.Sqid == sqid)
-                                                                                        .FirstOrDefaultAsync(token);
-
-            archive ??= new()
-            {
-                Year = year,
-                Sqid = sqid,
-                Items = []
-            };
-
-            archive.Group = pulse.Group;
-            archive.Name = pulse.Name;
-            archive.Items.AddRange(pulse.Items);
-
-            await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, CancellationToken.None);
-            await _context.PulseCheckResults.DeleteEntityAsync(pulse, CancellationToken.None);
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            DateTimeOffset recent = now.AddMinutes(-PulseContext.RecentMinutes);
+            await _context.RecentPulses.Where(x => x.LastUpdatedTimestamp < recent).BatchDeleteAsync(token);
         }
-
-        await foreach (PulseAgentCheckResult pulse in _context.PulseAgentResults.Where(x => x.Day != today).WithCancellation(token))
+        catch (Exception e)
         {
-            string year = pulse.Day[..4];
-            string sqid = pulse.Sqid;
+            _logger.LogError(PulseEventIds.Store, e, "Failed to clean recent pulses");
+        }
+    }
 
-            _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+    private async Task CleanPulseChecks(CancellationToken token)
+    {
+        try
+        {
+            string today = PulseCheckResult.GetCurrentPartition();
 
-            ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.Where(x => x.Year == year && x.Sqid == sqid)
-                                                                                        .FirstOrDefaultAsync(token);
-
-            archive ??= new()
+            await foreach (PulseCheckResult pulse in _context.PulseCheckResults.Where(x => x.Day != today).WithCancellation(token))
             {
-                Year = year,
-                Sqid = sqid,
-                Items = []
-            };
+                try
+                {
+                    string year = pulse.Day[..4];
+                    string sqid = pulse.Sqid;
 
-            archive.Items.AddRange(pulse.Items);
+                    _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
 
-            await _context.ArchivedPulseAgentResults.UpsertEntityAsync(archive, CancellationToken.None);
-            await _context.PulseAgentResults.DeleteEntityAsync(pulse, CancellationToken.None);
+                    ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Year == year && x.Sqid == sqid)
+                                                                                                .FirstOrDefaultAsync(token);
+
+                    archive ??= new()
+                    {
+                        Year = year,
+                        Sqid = sqid,
+                        Items = []
+                    };
+
+                    archive.Group = pulse.Group;
+                    archive.Name = pulse.Name;
+                    archive.Items.AddRange(pulse.Items);
+
+                    await _context.ArchivedPulseCheckResults.UpsertEntityAsync(archive, CancellationToken.None);
+                    await _context.PulseCheckResults.DeleteEntityAsync(pulse, CancellationToken.None);
+                }
+                catch (Exception innerEx)
+                {
+                    _logger.LogError(PulseEventIds.Store, innerEx, "Failed to clean up pulses for {day} - {sqid}", pulse.Day, pulse.Sqid);
+                }
+            }
+        }
+        catch (Exception outerEx)
+        {
+            _logger.LogError(PulseEventIds.Store, outerEx, "Failed to clean up pulses");
+        }
+    }
+
+    private async Task CleanAgentResults(CancellationToken token)
+    {
+        try
+        {
+            string today = PulseAgentCheckResult.GetCurrentPartition();
+
+            await foreach (PulseAgentCheckResult pulse in _context.PulseAgentResults.Where(x => x.Day != today).WithCancellation(token))
+            {
+                try
+                {
+                    string year = pulse.Day[..4];
+                    string sqid = pulse.Sqid;
+
+                    _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+
+                    ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.Where(x => x.Year == year && x.Sqid == sqid)
+                                                                                                     .FirstOrDefaultAsync(token);
+
+                    archive ??= new()
+                    {
+                        Year = year,
+                        Sqid = sqid,
+                        Items = []
+                    };
+
+                    archive.Items.AddRange(pulse.Items);
+
+                    await _context.ArchivedPulseAgentResults.UpsertEntityAsync(archive, CancellationToken.None);
+                    await _context.PulseAgentResults.DeleteEntityAsync(pulse, CancellationToken.None);
+                }
+                catch (Exception innerEx)
+                {
+                    _logger.LogError(PulseEventIds.Store, innerEx, "Failed to clean up agents for {day} - {sqid}", pulse.Day, pulse.Sqid);
+                }
+            }
+        }
+        catch (Exception outerEx)
+        {
+            _logger.LogError(PulseEventIds.Store, outerEx, "Failed to clean up agents");
         }
     }
 

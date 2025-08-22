@@ -5,26 +5,26 @@ using System.Text;
 
 namespace PulseGuard.Agents;
 
-public abstract class AgentCheck(HttpClient client, PulseAgentConfiguration options)
+public abstract class AgentCheck(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options)
 {
     private readonly HttpClient _client = client;
-    public PulseAgentConfiguration Options { get; } = options;
+    public IReadOnlyList<PulseAgentConfiguration> Options { get; } = options;
 
-    public abstract Task<PulseAgentReport> CheckAsync(CancellationToken token);
+    public abstract Task<IReadOnlyList<PulseAgentReport>> CheckAsync(CancellationToken token);
 
-    protected Task<HttpResponseMessage> Post(string body, CancellationToken token)
+    protected Task<HttpResponseMessage> Post(string body, PulseAgentConfiguration options, CancellationToken token)
     {
-        HttpRequestMessage request = new(HttpMethod.Post, Options.Location)
+        HttpRequestMessage request = new(HttpMethod.Post, options.Location)
         {
             Content = new StringContent(body, Encoding.UTF8, MediaTypeNames.Application.Json)
         };
 
-        return Send(request, token);
+        return Send(request, options, token);
     }
 
-    private Task<HttpResponseMessage> Send(HttpRequestMessage request, CancellationToken token)
+    private Task<HttpResponseMessage> Send(HttpRequestMessage request, PulseAgentConfiguration options, CancellationToken token)
     {
-        foreach ((string name, string value) in Options.GetHeaders())
+        foreach ((string name, string value) in options.GetHeaders())
         {
             request.Headers.TryAddWithoutValidation(name, value);
         }

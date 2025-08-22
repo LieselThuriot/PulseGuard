@@ -3,6 +3,7 @@ using PulseGuard.Agents;
 using PulseGuard.Checks;
 using PulseGuard.Entities;
 using PulseGuard.Models;
+using System.Configuration;
 using System.Diagnostics;
 using System.Net.Sockets;
 using TableStorage.Linq;
@@ -54,8 +55,6 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         var factory = scope.ServiceProvider.GetRequiredService<PulseCheckFactory>();
         var agentFactory = scope.ServiceProvider.GetRequiredService<AgentCheckFactory>();
 
-        var checks = new Task[configurations.Count + agentConfigurations.Count];
-
         int simultaneousPulses = _options.CurrentValue.SimultaneousPulses;
         using SemaphoreSlim semaphore = new(simultaneousPulses, simultaneousPulses); // rate gate
 
@@ -63,16 +62,19 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
                                        .SelectFields(x => new { x.Id, x.Group, x.Name })
                                        .ToDictionaryAsync(x => x.Id, x => (x.Group, x.Name), cancellationToken: token);
 
-        for (int i = 0; i < configurations.Count; i++)
+        List<Task> checks = new(configurations.Count + agentConfigurations.Count);
+
+        foreach (var configuration in configurations)
         {
-            PulseConfiguration configuration = configurations[i];
-            checks[i] = Task.Run(() => CheckPulse(configuration), token);
+            checks.Add(Task.Run(() => CheckPulse(configuration), token));
         }
 
-        for (int i = 0; i < agentConfigurations.Count; i++)
+        foreach (var configurationGroup in agentConfigurations.GroupBy(x => x.Type))
         {
-            PulseAgentConfiguration configuration = agentConfigurations[i];
-            checks[i + configurations.Count] = Task.Run(() => CheckAgent(configuration), token);
+            foreach (var locationConfigurationGroup in configurationGroup.GroupBy(x => x.Location))
+            {
+                checks.Add(Task.Run(() => CheckAgent(configurationGroup.Key, [.. locationConfigurationGroup]), token));
+            }
         }
 
         await Task.WhenAll(checks);
@@ -102,13 +104,13 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             }
         }
 
-        async Task CheckAgent(PulseAgentConfiguration config)
+        async Task CheckAgent(string type, IReadOnlyList<PulseAgentConfiguration> configs)
         {
             try
             {
                 await semaphore.WaitAsync(token);
 
-                AgentCheck check = agentFactory.Create(config);
+                AgentCheck check = agentFactory.Create(type, configs);
                 await CheckPulseAsync(check, store, token);
             }
             catch (Exception ex)
@@ -126,8 +128,8 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
     {
         try
         {
-            PulseAgentReport report = await check.CheckAsync(token);
-            await store.PostAsync(report, token);
+            IReadOnlyList<PulseAgentReport> reports = await check.CheckAsync(token);
+            await store.PostAsync(reports, token);
         }
         catch (TaskCanceledException ex)
         {
