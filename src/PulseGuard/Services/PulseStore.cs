@@ -1,4 +1,5 @@
 ﻿using Azure;
+using Azure.Data.Tables;
 using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
 using PulseGuard.Models;
@@ -48,8 +49,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name} due to state change", report.Options.Sqid, report.Options.Name);
             pulse.LastUpdatedTimestamp = creation;
 
-            await _context.Pulses.UpdateEntityAsync(pulse, token);
-            await _context.RecentPulses.UpdateEntityAsync(pulse, token);
+            await _context.Pulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
+            await _context.RecentPulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
 
             _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
             pulse = Pulse.From(report);
@@ -59,8 +60,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         pulse.LastElapsedMilliseconds = elapsedMilliseconds;
 
-        await _context.Pulses.UpsertEntityAsync(pulse, token);
-        await _context.RecentPulses.UpsertEntityAsync(pulse, token);
+        await _context.Pulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
+        await _context.RecentPulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
 
         try
         {
