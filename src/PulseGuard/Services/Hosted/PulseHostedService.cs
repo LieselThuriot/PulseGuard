@@ -85,7 +85,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             {
                 await semaphore.WaitAsync(token);
 
-                if (identifiers.TryGetValue(config.Sqid, out var identifier))
+                if (config.Sqid is not null && identifiers.TryGetValue(config.Sqid, out var identifier))
                 {
                     config.Group = identifier.Group;
                     config.Name = identifier.Name;
