@@ -61,7 +61,7 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 app.UseRouting();
-app.UseWebSockets();
 app.MapRoutes(authorized);
+app.UseWebSockets();
 
 app.Run();

@@ -21,7 +21,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         if (string.IsNullOrEmpty(report.Options.Sqid))
         {
             _logger.LogInformation(PulseEventIds.Store, "Empty Sqid found for {Name}, generating new one.", report.Options.Name);
-            await GenerateSqid(report.Options, token);
+            await GenerateSqidAndUpdate(report.Options, token);
         }
 
         _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
@@ -154,8 +154,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
                     _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
 
-                    ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Year == year && x.Sqid == sqid)
-                                                                                                .FirstOrDefaultAsync(token);
+                    ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.FindAsync(year, sqid, token);
 
                     archive ??= new()
                     {
@@ -198,8 +197,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
                     _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
 
-                    ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.Where(x => x.Year == year && x.Sqid == sqid)
-                                                                                                     .FirstOrDefaultAsync(token);
+                    ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.FindAsync(year, sqid, token);
 
                     archive ??= new()
                     {
@@ -225,9 +223,15 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
     }
 
-    private async Task GenerateSqid(PulseConfiguration configuration, CancellationToken token)
+    private async Task GenerateSqidAndUpdate(PulseConfiguration configuration, CancellationToken token)
     {
-        string id = _idService.GetSqid(configuration);
+        configuration.Sqid = await GenerateSqid(configuration.Group, configuration.Name, token);
+        await _context.Configurations.UpdateEntityAsync(configuration, token);
+    }
+
+    public async Task<string> GenerateSqid(string group, string name, CancellationToken token)
+    {
+        string id = _idService.GetSqid(group, name);
 
         bool loop = true;
         int retries = 0;
@@ -240,8 +244,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                 {
                     IdentifierType = UniqueIdentifier.PartitionPulseConfiguration,
                     Id = id,
-                    Group = configuration.Group,
-                    Name = configuration.Name
+                    Group = group,
+                    Name = name
                 }, token);
 
                 loop = false;
@@ -254,7 +258,6 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         while (loop);
 
-        configuration.Sqid = id;
-        await _context.Configurations.UpdateEntityAsync(configuration, token);
+        return id;
     }
 }

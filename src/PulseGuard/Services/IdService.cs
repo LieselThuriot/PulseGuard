@@ -10,7 +10,6 @@ public sealed class IdService
     });
 
     public string GetSqid(string group, string name) => _encoder.Encode(CalculateHash($"{group}|{name}"));
-    public string GetSqid(PulseConfiguration options) => GetSqid(options.Group, options.Name);
 
     public string GetRandomSqid()
     {

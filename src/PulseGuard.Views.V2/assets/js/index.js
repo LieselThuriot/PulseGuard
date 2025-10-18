@@ -22,6 +22,27 @@
    * @property {PulseGroupItem[]} items
    */
 
+  // Check if user is an administrator and show admin button
+  fetch("api/1.0/user")
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      return null;
+    })
+    .then((userInfo) => {
+      if (userInfo && userInfo.roles && userInfo.roles.includes("Administrator")) {
+        const adminButton = document.getElementById("admin-panel-button");
+        if (adminButton) {
+          adminButton.classList.remove("d-none");
+        }
+      }
+    })
+    .catch((error) => {
+      // Silently fail - admin button stays hidden
+      console.debug("Could not check user roles:", error);
+    });
+
   fetch("api/1.0/pulses")
     .then((response) => {
       if (!response.ok) {

@@ -2,6 +2,8 @@
 using PulseGuard.Checks;
 using TableStorage;
 
+#nullable disable
+
 namespace PulseGuard.Entities;
 
 [ProtoContract(IgnoreListHandling = true, UseProtoMembersOnly = true)]
@@ -51,5 +53,15 @@ public sealed partial class PulseConfiguration
                 yield return (split[0], split[1]);
             }
         }
+    }
+
+    public static string CreateHeaders(IDictionary<string, string> headers)
+    {
+        if (headers is null || headers.Count is 0)
+        {
+            return null;
+        }
+
+        return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
     }
 }

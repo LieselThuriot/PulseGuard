@@ -7,6 +7,7 @@ public sealed partial class PulseContext
 {
     internal const int RecentMinutes = 720;
 
+    public TableSet<User> Users { get; }
     public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
     public TableSet<Pulse> Pulses { get; }

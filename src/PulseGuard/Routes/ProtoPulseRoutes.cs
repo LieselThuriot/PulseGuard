@@ -67,6 +67,6 @@ public static class ProtoPulseRoutes
 
     private static Task<UniqueIdentifier?> GetInfo(PulseContext context, string id, CancellationToken token)
     {
-        return context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id).FirstOrDefaultAsync(token);
+        return context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
     }
 }

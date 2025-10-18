@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using PulseGuard.Entities;
+using System.Security.Claims;
+using TableStorage.Linq;
 
 namespace PulseGuard.Infrastructure;
 
@@ -14,10 +17,13 @@ internal sealed class PulseAuthenticationSettings
     public string? Scopes { get; set; }
     public bool UsePkce { get; set; } = true;
     public string ResponseMode { get; set; } = OpenIdConnectResponseMode.FormPost;
+    public string UserIdClaim { get; set; } = JwtRegisteredClaimNames.Sub;
 }
 
 internal static class AuthSetup
 {
+    public const string AdministratorPolicy = "Administrator";
+
     public static bool ConfigureAuthentication(this IServiceCollection services, ConfigurationManager configuration)
     {
         var settings = configuration.GetSection("Authentication")?.Get<PulseAuthenticationSettings>();
@@ -28,7 +34,8 @@ internal static class AuthSetup
         }
 
         string? pathBase = configuration["PathBase"];
-        services.AddAuthorization()
+        const string accessDeniedPath = "/AccessDenied";
+        services.AddAuthorization(options => options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator")))
                 .AddAuthentication(options =>
                 {
                     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -36,10 +43,12 @@ internal static class AuthSetup
                 })
                 .AddCookie(options =>
                 {
-                    options.Cookie.SameSite = SameSiteMode.Strict;
+                    options.AccessDeniedPath = accessDeniedPath;
                     options.Cookie.HttpOnly = true;
+#if !DEBUG
+                    options.Cookie.SameSite = SameSiteMode.Strict;
                     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-
+#endif
                     if (!string.IsNullOrEmpty(pathBase))
                     {
                         options.Cookie.Path = pathBase;
@@ -47,14 +56,7 @@ internal static class AuthSetup
                 })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
-                    string accessDenied = "/AccessDenied";
-                    if (!string.IsNullOrEmpty(pathBase))
-                    {
-                        options.CallbackPath = pathBase + options.CallbackPath;
-                        accessDenied = pathBase + accessDenied;
-                    }
-
-                    options.AccessDeniedPath = accessDenied;
+                    options.AccessDeniedPath = accessDeniedPath;
 
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.Authority = settings.Authority;
@@ -75,7 +77,7 @@ internal static class AuthSetup
 
                     if (settings.Scopes is not null)
                     {
-                        foreach (string scope in settings.Scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        foreach (string scope in settings.Scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                         {
                             options.Scope.Add(scope);
                         }
@@ -88,6 +90,36 @@ internal static class AuthSetup
                             context.HandleResponse();
                             context.Response.Redirect(options.AccessDeniedPath);
                             return Task.CompletedTask;
+                        },
+                        OnTokenValidated = ctx =>
+                        {
+                            ClaimsPrincipal? principal = ctx.Principal;
+                            if (principal?.Identity is not ClaimsIdentity identity)
+                            {
+                                return Task.CompletedTask;
+                            }
+
+                            string? userId = principal.FindFirstValue(settings.UserIdClaim);
+                            if (string.IsNullOrEmpty(userId))
+                            {
+                                return Task.CompletedTask;
+                            }
+
+                            return Enrich();
+
+                            async Task Enrich()
+                            {
+                                PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
+                                User? user = await db.Users.FindAsync(userId, User.RowTypeRoles);
+
+                                if (user is not null)
+                                {
+                                    IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                                                        .Select(r => new Claim(identity.RoleClaimType, r));
+
+                                    identity.AddClaims(roleClaims);
+                                }
+                            }
                         }
                     };
                 });

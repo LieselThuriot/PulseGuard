@@ -60,9 +60,7 @@ public static class PulseRoutes
 
         group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
         {
-            var identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
-                                          .SelectFields(x => x.Name)
-                                          .FirstOrDefaultAsync(token);
+            UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
 
             if (identifier is null)
             {
@@ -99,9 +97,7 @@ public static class PulseRoutes
 
         group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
         {
-            var identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
-                                          .SelectFields(x => x.Name)
-                                          .FirstOrDefaultAsync(token);
+            UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
 
             if (identifier is null)
             {

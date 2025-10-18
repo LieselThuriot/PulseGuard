@@ -1,0 +1,61 @@
+/* Import base index styles */
+@import url('./index.css');
+
+/* Admin-specific styles */
+.navbar-brand-title {
+  position: relative;
+}
+
+.navbar-brand-title::after {
+  content: "by Liesel Thuriot";
+  position: absolute;
+  right: 0;
+  bottom: -0.6rem;
+  font-size: 0.6rem;
+  color: var(--bs-secondary);
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+#configurations-table tbody tr {
+  vertical-align: middle;
+}
+
+#configurations-table .form-check-input {
+  cursor: pointer;
+  width: 2.5rem;
+  height: 1.25rem;
+}
+
+#configurations-table .btn-sm {
+  --bs-btn-padding-y: 0.25rem;
+  --bs-btn-padding-x: 0.5rem;
+  --bs-btn-font-size: 0.875rem;
+}
+
+#search-input {
+  max-width: 400px;
+}
+
+.toast-success {
+  --bs-toast-header-bg: RGBA(var(--bs-success-rgb), 0.5);
+}
+
+.toast-danger {
+  --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
+}
+
+.table th a:hover {
+  text-decoration: underline !important;
+}
+
+.table th a i {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.table th a:hover i {
+  opacity: 1;
+}

@@ -1,5 +1,7 @@
 ﻿using TableStorage;
 
+#nullable disable
+
 namespace PulseGuard.Entities;
 
 [TableSet(PartitionKey = nameof(Sqid), RowKey = nameof(Type))]
@@ -22,5 +24,15 @@ public sealed partial class PulseAgentConfiguration
                 yield return (split[0], split[1]);
             }
         }
+    }
+
+    public static string CreateHeaders(IDictionary<string, string> headers)
+    {
+        if (headers is null || headers.Count is 0)
+        {
+            return null;
+        }
+
+        return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
     }
 }
