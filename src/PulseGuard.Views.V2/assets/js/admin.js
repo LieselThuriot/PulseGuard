@@ -57,139 +57,162 @@
    * Renders the configurations table
    */
   function renderConfigurations() {
-    const tbody = document.getElementById('configurations-table');
-    if (!tbody) {
-      console.error('Error getting configurations-table');
+    const normalTbody = document.getElementById('normal-table');
+    const agentTbody = document.getElementById('agent-table');
+    
+    if (!normalTbody || !agentTbody) {
+      console.error('Error getting table elements');
       return;
     }
 
-    tbody.innerHTML = '';
+    // Clear both tables
+    normalTbody.innerHTML = '';
+    agentTbody.innerHTML = '';
 
-    if (filteredConfigurations.length === 0) {
-      const row = tbody.insertRow();
+    // Separate configurations by type
+    const normalConfigs = filteredConfigurations.filter(c => c.type === 'Normal' || c.type === 0);
+    const agentConfigs = filteredConfigurations.filter(c => c.type === 'Agent' || c.type === 1);
+
+    // Update tab counts
+    document.getElementById('normal-count').textContent = normalConfigs.length;
+    document.getElementById('agent-count').textContent = agentConfigs.length;
+
+    // Render normal configurations
+    if (normalConfigs.length === 0) {
+      const row = normalTbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 6;
+      cell.colSpan = 5;
       cell.className = 'text-center py-4 text-muted';
-      cell.textContent = 'No configurations found';
-      return;
+      cell.textContent = 'No pulse checks found';
+    } else {
+      normalConfigs.forEach(config => renderConfigRow(normalTbody, config));
     }
 
-    filteredConfigurations.forEach((config) => {
-      const row = tbody.insertRow();
-
-      // Type
-      const typeCell = row.insertCell();
-      const isNormal = config.type === 'Normal' || config.type === 0;
-      const typeIcon = isNormal ? 'bi-activity' : 'bi-robot';
-      const typeText = isNormal ? 'Normal' : 'Agent';
-      const typeBadge = isNormal ? 'bg-primary' : 'bg-info';
-      typeCell.innerHTML = `<span class="badge ${typeBadge}"><i class="bi ${typeIcon}"></i> ${typeText}</span>`;
-
-      // Group
-      const groupCell = row.insertCell();
-      groupCell.textContent = config.group || '(no group)';
-
-      // Name
-      const nameCell = row.insertCell();
-      nameCell.textContent = config.name;
-
-      // SubType
-      const subTypeCell = row.insertCell();
-      if (config.subType) {
-        // Create badge based on subType value
-        let subTypeBadge = 'bg-secondary';
-        let subTypeIcon = 'bi-gear';
-        
-        // Different colors/icons for different check types
-        switch (config.subType) {
-          case 'HealthApi':
-          case 'HealthCheck':
-            subTypeBadge = 'bg-success';
-            subTypeIcon = 'bi-heart-pulse';
-            break;
-          case 'StatusCode':
-          case 'StatusApi':
-            subTypeBadge = 'bg-info';
-            subTypeIcon = 'bi-check-circle';
-            break;
-          case 'Json':
-            subTypeBadge = 'bg-warning';
-            subTypeIcon = 'bi-braces';
-            break;
-          case 'Contains':
-            subTypeBadge = 'bg-warning';
-            subTypeIcon = 'bi-search';
-            break;
-          case 'ApplicationInsights':
-            subTypeBadge = 'bg-primary';
-            subTypeIcon = 'bi-graph-up';
-            break;
-          case 'LogAnalyticsWorkspace':
-            subTypeBadge = 'bg-primary';
-            subTypeIcon = 'bi-journal-text';
-            break;
-        }
-        
-        subTypeCell.innerHTML = `<span class="badge ${subTypeBadge}"><i class="bi ${subTypeIcon}"></i> ${config.subType}</span>`;
-      } else {
-        subTypeCell.textContent = '';
-      }
-
-      // Enabled toggle
-      const enabledCell = row.insertCell();
-      enabledCell.className = 'text-center';
-      const toggle = document.createElement('div');
-      toggle.className = 'form-check form-switch d-inline-block';
-      toggle.innerHTML = `
-        <input class="form-check-input" type="checkbox" role="switch" 
-               id="toggle-${config.id}" ${config.enabled ? 'checked' : ''}>
-      `;
-      enabledCell.appendChild(toggle);
-
-      const checkbox = toggle.querySelector('input');
-      checkbox?.addEventListener('change', (e) => handleToggle(config, e.target.checked));
-
-      // Actions
-      const actionsCell = row.insertCell();
-      actionsCell.className = 'text-center';
-      
-      const btnGroup = document.createElement('div');
-      btnGroup.className = 'btn-group btn-group-sm';
-      
-      const editBtn = document.createElement('a');
-      editBtn.className = 'btn btn-outline-primary';
-      editBtn.setAttribute('data-bs-toggle', 'tooltip');
-      editBtn.setAttribute('data-bs-title', 'Edit');
-      if (isNormal) {
-        editBtn.href = `editor?mode=update&type=normal&id=${config.id}`;
-      } else {
-        editBtn.href = `editor?mode=update&type=agent&id=${config.id}&agentType=${config.subType}`;
-      }
-      editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
-      
-      const renameBtn = document.createElement('button');
-      renameBtn.className = 'btn btn-outline-secondary';
-      renameBtn.setAttribute('data-bs-toggle', 'tooltip');
-      renameBtn.setAttribute('data-bs-title', 'Rename');
-      renameBtn.innerHTML = '<i class="bi bi-pencil-square"></i>';
-      renameBtn.addEventListener('click', () => handleRenameClick(config));
-      
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn btn-outline-danger';
-      deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
-      deleteBtn.setAttribute('data-bs-title', 'Delete');
-      deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
-      deleteBtn.addEventListener('click', () => handleDeleteClick(config));
-      
-      btnGroup.appendChild(editBtn);
-      btnGroup.appendChild(renameBtn);
-      btnGroup.appendChild(deleteBtn);
-      actionsCell.appendChild(btnGroup);
-    });
+    // Render agent configurations
+    if (agentConfigs.length === 0) {
+      const row = agentTbody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 5;
+      cell.className = 'text-center py-4 text-muted';
+      cell.textContent = 'No agent checks found';
+    } else {
+      agentConfigs.forEach(config => renderConfigRow(agentTbody, config));
+    }
 
     // Initialize tooltips for the newly created buttons
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  }
+
+  /**
+   * Renders a single configuration row
+   * @param {HTMLTableSectionElement} tbody
+   * @param {PulseConfiguration} config
+   */
+  function renderConfigRow(tbody, config) {
+    const row = tbody.insertRow();
+    const isNormal = config.type === 'Normal' || config.type === 0;
+
+    // Group
+    const groupCell = row.insertCell();
+    groupCell.textContent = config.group || '(no group)';
+
+    // Name
+    const nameCell = row.insertCell();
+    nameCell.textContent = config.name;
+
+    // SubType
+    const subTypeCell = row.insertCell();
+    if (config.subType) {
+      // Create badge based on subType value
+      let subTypeBadge = 'bg-secondary';
+      let subTypeIcon = 'bi-gear';
+      
+      // Different colors/icons for different check types
+      switch (config.subType) {
+        case 'HealthApi':
+        case 'HealthCheck':
+          subTypeBadge = 'bg-success';
+          subTypeIcon = 'bi-heart-pulse';
+          break;
+        case 'StatusCode':
+        case 'StatusApi':
+          subTypeBadge = 'bg-info';
+          subTypeIcon = 'bi-check-circle';
+          break;
+        case 'Json':
+          subTypeBadge = 'bg-warning';
+          subTypeIcon = 'bi-braces';
+          break;
+        case 'Contains':
+          subTypeBadge = 'bg-warning';
+          subTypeIcon = 'bi-search';
+          break;
+        case 'ApplicationInsights':
+          subTypeBadge = 'bg-primary';
+          subTypeIcon = 'bi-graph-up';
+          break;
+        case 'LogAnalyticsWorkspace':
+          subTypeBadge = 'bg-primary';
+          subTypeIcon = 'bi-journal-text';
+          break;
+      }
+      
+      subTypeCell.innerHTML = `<span class="badge ${subTypeBadge}"><i class="bi ${subTypeIcon}"></i> ${config.subType}</span>`;
+    } else {
+      subTypeCell.textContent = '';
+    }
+
+    // Enabled toggle
+    const enabledCell = row.insertCell();
+    enabledCell.className = 'text-center';
+    const toggle = document.createElement('div');
+    toggle.className = 'form-check form-switch d-inline-block';
+    toggle.innerHTML = `
+      <input class="form-check-input" type="checkbox" role="switch" 
+             id="toggle-${config.id}" ${config.enabled ? 'checked' : ''}>
+    `;
+    enabledCell.appendChild(toggle);
+
+    const checkbox = toggle.querySelector('input');
+    checkbox?.addEventListener('change', (e) => handleToggle(config, e.target.checked));
+
+    // Actions
+    const actionsCell = row.insertCell();
+    actionsCell.className = 'text-center';
+    
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'btn-group btn-group-sm';
+    
+    const editBtn = document.createElement('a');
+    editBtn.className = 'btn btn-outline-primary';
+    editBtn.setAttribute('data-bs-toggle', 'tooltip');
+    editBtn.setAttribute('data-bs-title', 'Edit');
+    if (isNormal) {
+      editBtn.href = `editor?mode=update&type=normal&id=${config.id}`;
+    } else {
+      editBtn.href = `editor?mode=update&type=agent&id=${config.id}&agentType=${config.subType}`;
+    }
+    editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+    
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'btn btn-outline-secondary';
+    renameBtn.setAttribute('data-bs-toggle', 'tooltip');
+    renameBtn.setAttribute('data-bs-title', 'Rename');
+    renameBtn.innerHTML = '<i class="bi bi-pencil-square"></i>';
+    renameBtn.addEventListener('click', () => handleRenameClick(config));
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-outline-danger';
+    deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
+    deleteBtn.setAttribute('data-bs-title', 'Delete');
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.addEventListener('click', () => handleDeleteClick(config));
+    
+    btnGroup.appendChild(editBtn);
+    btnGroup.appendChild(renameBtn);
+    btnGroup.appendChild(deleteBtn);
+    actionsCell.appendChild(btnGroup);
   }
 
   /**
