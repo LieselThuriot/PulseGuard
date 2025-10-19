@@ -15,4 +15,6 @@ public static class PulseEventIds
     public static readonly EventId Pulses = new(201, nameof(Pulses));
 
     public static readonly EventId Store = new(300, nameof(Store));
+    
+    public static readonly EventId Admin = new(1000, nameof(Admin));
 }

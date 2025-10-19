@@ -25,7 +25,7 @@ public static class AdminRoutes
         app.MapGet("api/1.0/user", static (ClaimsPrincipal user, CancellationToken token) => new UserInfo(user.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value)));
 
         var group = app.MapGroup("api/1.0/admin/configurations").WithTags("Admin").RequireAuthorization(AuthSetup.AdministratorPolicy);
-        
+
         CreateOverviewMappings(group);
         CreateNormalMappings(group.MapGroup("normal").WithTags("Admin", "NormalConfigurations"));
         CreateAgentMappings(group.MapGroup("agent").WithTags("Admin", "AgentConfigurations"));
@@ -62,7 +62,7 @@ public static class AdminRoutes
                                        .ToListAsync(token);
         });
 
-        group.MapPut("{id}/name", static async (string id, PulseUpdateRequest entry, PulseContext context, CancellationToken token) =>
+        group.MapPut("{id}/name", static async (string id, PulseUpdateRequest entry, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             if (entry is { Group: not null, Name: not null })
             {
@@ -76,6 +76,7 @@ public static class AdminRoutes
                 },
                 token);
 
+                logger.LogInformation(PulseEventIds.Admin, "Updated Pulse Entry {Id} to Group: {Group}, Name: {Name}", id, entry.Group, entry.Name);
                 return Results.NoContent();
             }
 
@@ -103,10 +104,10 @@ public static class AdminRoutes
             });
         });
 
-        agentGroup.MapPut("{id}/{type}/{enabled}", static async (string id, string type, bool enabled, PulseContext context, CancellationToken token)
-            => (await UpdateAgentState(id, type, enabled, context, token)) ? Results.NoContent() : Results.NotFound());
+        agentGroup.MapPut("{id}/{type}/{enabled}", static async (string id, string type, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token)
+            => (await UpdateAgentState(id, type, enabled, context, logger, token)) ? Results.NoContent() : Results.NotFound());
 
-        agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, CancellationToken token) =>
+        agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             if (AgentCheckTypeFastString.FromString(type) is AgentCheckType.LogAnalyticsWorkspace && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
@@ -124,10 +125,12 @@ public static class AdminRoutes
             };
 
             await context.AgentConfigurations.AddEntityAsync(config, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Created Agent Configuration {Id} of type {Type}", id, type);
             return Results.Created();
         });
 
-        agentGroup.MapPut("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, CancellationToken token) =>
+        agentGroup.MapPut("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             if (AgentCheckTypeFastString.FromString(type) is AgentCheckType.LogAnalyticsWorkspace && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
@@ -145,10 +148,12 @@ public static class AdminRoutes
             };
 
             await context.AgentConfigurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type}", id, type);
             return Results.Created();
         });
 
-        agentGroup.MapDelete("{id}/{type}", static async (string id, string type, PulseContext context, CancellationToken token) =>
+        agentGroup.MapDelete("{id}/{type}", static async (string id, string type, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             var configuration = await context.AgentConfigurations.FindAsync(id, type, token);
             
@@ -158,6 +163,8 @@ public static class AdminRoutes
             }
 
             await context.AgentConfigurations.DeleteEntityAsync(configuration.Sqid, configuration.Type, configuration.ETag, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Deleted Agent Configuration {Id} of type {Type}", id, type);
             return Results.NoContent();
         });
     }
@@ -188,7 +195,7 @@ public static class AdminRoutes
             });
         });
 
-        normalGroup.MapPost("", static async (PulseCreationRequest request, PulseStore store, PulseContext context, CancellationToken token) =>
+        normalGroup.MapPost("", static async (PulseCreationRequest request, PulseStore store, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             if (request.Type is Checks.PulseCheckType.Json or Checks.PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
             {
@@ -212,10 +219,12 @@ public static class AdminRoutes
             };
 
             await context.Configurations.AddEntityAsync(config, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Created Normal Configuration {Id} of type {Type}", sqid, request.Type);
             return Results.Created();
         });
 
-        normalGroup.MapPut("{id}", static async (string id, PulseCreationRequest request, PulseContext context, CancellationToken token) =>
+        normalGroup.MapPut("{id}", static async (string id, PulseCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             if (request.Type is Checks.PulseCheckType.Json or Checks.PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
             {
@@ -238,13 +247,15 @@ public static class AdminRoutes
             };
 
             await context.Configurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} of type {Type}", id, request.Type);
             return Results.Created();
         });
 
-        normalGroup.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, CancellationToken token)
-            => (await UpdateNormalState(id, enabled, context, token)) ? Results.NoContent() : Results.NotFound());
+        normalGroup.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token)
+            => (await UpdateNormalState(id, enabled, context, logger, token)) ? Results.NoContent() : Results.NotFound());
 
-        normalGroup.MapDelete("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+        normalGroup.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             var configuration = await context.Configurations.Where(x => x.Sqid == id).FirstOrDefaultAsync(token);
 
@@ -254,11 +265,13 @@ public static class AdminRoutes
             }
 
             await context.Configurations.DeleteEntityAsync(configuration.Group, configuration.Name, configuration.ETag, token);
+
+            logger.LogInformation(PulseEventIds.Admin, "Deleted Normal Configuration {Id}", id);
             return Results.NoContent();
         });
     }
 
-    private static async Task<bool> UpdateNormalState(string id, bool state, PulseContext context, CancellationToken token)
+    private static async Task<bool> UpdateNormalState(string id, bool state, PulseContext context, ILogger<Program> logger, CancellationToken token)
     {
         var config = await context.Configurations.FirstOrDefaultAsync(x => x.Sqid == id, token);
         if (config is null)
@@ -268,10 +281,12 @@ public static class AdminRoutes
 
         config.Enabled = state;
         await context.Configurations.UpdateEntityAsync(config, token);
+
+        logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} to Enabled: {Enabled}", id, state);
         return true;
     }
 
-    private static async Task<bool> UpdateAgentState(string id, string type, bool state, PulseContext context, CancellationToken token)
+    private static async Task<bool> UpdateAgentState(string id, string type, bool state, PulseContext context, ILogger<Program> logger, CancellationToken token)
     {
         var config = await context.AgentConfigurations.FindAsync(id, type, token);
         if (config is null)
@@ -281,6 +296,8 @@ public static class AdminRoutes
 
         config.Enabled = state;
         await context.AgentConfigurations.UpdateEntityAsync(config, token);
+
+        logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, state);
         return true;
     }
 }

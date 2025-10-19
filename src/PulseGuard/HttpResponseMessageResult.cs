@@ -17,7 +17,7 @@ public sealed class HttpResponseMessageResult(Task<HttpResponseMessage> asyncRes
         response.StatusCode = (int)responseMessage.StatusCode;
 
         var responseFeature = httpContext.Features.Get<IHttpResponseFeature>();
-        if (responseFeature != null)
+        if (responseFeature is not null)
         {
             responseFeature.ReasonPhrase = responseMessage.ReasonPhrase;
         }
