@@ -15,14 +15,23 @@ namespace PulseGuard.Routes;
 
 public static class AdminRoutes
 {
+    private const string UserEndpoint = "api/1.0/user";
+
     public static void MapAdministration(this IEndpointRouteBuilder app, bool authorized)
     {
         if (!authorized)
         {
+            EmptyUserInfo emptyUserInfoInstance = new();
+            app.MapGet(UserEndpoint, () => emptyUserInfoInstance);
             return;
         }
 
-        app.MapGet("api/1.0/user", static (ClaimsPrincipal user, CancellationToken token) => new UserInfo(user.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value)));
+        app.MapGet(UserEndpoint, static (ClaimsPrincipal user) => new UserInfo(
+                user.Identity?.Name,
+                user.FindFirstValue("firstname"),
+                user.FindFirstValue("lastname"),
+                user.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value)
+        ));
 
         var group = app.MapGroup("api/1.0/admin/configurations").WithTags("Admin").RequireAuthorization(AuthSetup.AdministratorPolicy);
 

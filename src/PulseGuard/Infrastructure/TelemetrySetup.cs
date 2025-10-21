@@ -1,6 +1,5 @@
 ﻿using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
-using System.Security.Claims;
 
 namespace PulseGuard.Infrastructure;
 
@@ -35,7 +34,7 @@ internal static class TelemetrySetup
 
         public void Initialize(ITelemetry telemetry)
         {
-            string? userId = _httpContextAccessor?.HttpContext?.User?.FindFirstValue("applicationuserid");
+            string? userId = _httpContextAccessor?.HttpContext?.User?.Identity?.Name;
 
             if (userId is null)
             {

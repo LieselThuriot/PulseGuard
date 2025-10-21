@@ -70,8 +70,33 @@
     agentTbody.innerHTML = '';
 
     // Separate configurations by type
-    const normalConfigs = filteredConfigurations.filter(c => c.type === 'Normal' || c.type === 0);
-    const agentConfigs = filteredConfigurations.filter(c => c.type === 'Agent' || c.type === 1);
+    let normalConfigs = filteredConfigurations.filter(c => c.type === 'Normal' || c.type === 0);
+    let agentConfigs = filteredConfigurations.filter(c => c.type === 'Agent' || c.type === 1);
+
+    // Sort each subset appropriately
+    const sortSubset = (configs) => {
+      return configs.sort((a, b) => {
+        let result = 0;
+        
+        if (sortColumn === 'group') {
+          result = compareValues(a.group.toLowerCase(), b.group.toLowerCase());
+          if (result !== 0) return sortDirection === 'asc' ? result : -result;
+          return compareValues(a.name.toLowerCase(), b.name.toLowerCase());
+        } else if (sortColumn === 'name') {
+          result = compareValues(a.name.toLowerCase(), b.name.toLowerCase());
+          if (result !== 0) return sortDirection === 'asc' ? result : -result;
+          return compareValues(a.group.toLowerCase(), b.group.toLowerCase());
+        } else {
+          // Default: group → name
+          result = compareValues(a.group.toLowerCase(), b.group.toLowerCase());
+          if (result !== 0) return result;
+          return compareValues(a.name.toLowerCase(), b.name.toLowerCase());
+        }
+      });
+    };
+
+    normalConfigs = sortSubset(normalConfigs);
+    agentConfigs = sortSubset(agentConfigs);
 
     // Update tab counts
     document.getElementById('normal-count').textContent = normalConfigs.length;

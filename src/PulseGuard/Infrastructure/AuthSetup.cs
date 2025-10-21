@@ -16,8 +16,8 @@ internal sealed class PulseAuthenticationSettings
     public required string Secret { get; set; }
     public string? Scopes { get; set; }
     public bool UsePkce { get; set; } = true;
-    public string ResponseMode { get; set; } = OpenIdConnectResponseMode.FormPost;
-    public string UserIdClaim { get; set; } = JwtRegisteredClaimNames.Sub;
+    public string ResponseMode { get; set; } = default!;
+    public string UserIdClaim { get; set; } = default!;
 }
 
 internal static class AuthSetup
@@ -26,6 +26,19 @@ internal static class AuthSetup
 
     public static bool ConfigureAuthentication(this IServiceCollection services, ConfigurationManager configuration)
     {
+        services.PostConfigure<PulseAuthenticationSettings>(options =>
+        {
+            if (string.IsNullOrEmpty(options.ResponseMode))
+            {
+                options.ResponseMode = OpenIdConnectResponseMode.FormPost;
+            }
+
+            if (string.IsNullOrEmpty(options.UserIdClaim))
+            {
+                options.UserIdClaim = JwtRegisteredClaimNames.Sub;
+            }
+        });
+
         var settings = configuration.GetSection("Authentication")?.Get<PulseAuthenticationSettings>();
 
         if (settings is null)
@@ -71,7 +84,7 @@ internal static class AuthSetup
                     options.MapInboundClaims = false;
                     options.ClaimActions.MapAll();
 
-                    options.TokenValidationParameters.NameClaimType = JwtRegisteredClaimNames.Sub;
+                    options.TokenValidationParameters.NameClaimType = settings.UserIdClaim;
 
                     options.SaveTokens = true;
 
@@ -93,33 +106,26 @@ internal static class AuthSetup
                         },
                         OnTokenValidated = ctx =>
                         {
-                            ClaimsPrincipal? principal = ctx.Principal;
-                            if (principal?.Identity is not ClaimsIdentity identity)
+                            if (ctx.Principal?.Identity is ClaimsIdentity identity && !string.IsNullOrEmpty(identity.Name))
                             {
-                                return Task.CompletedTask;
-                            }
+                                return Enrich();
 
-                            string? userId = principal.FindFirstValue(settings.UserIdClaim);
-                            if (string.IsNullOrEmpty(userId))
-                            {
-                                return Task.CompletedTask;
-                            }
-
-                            return Enrich();
-
-                            async Task Enrich()
-                            {
-                                PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
-                                User? user = await db.Users.FindAsync(userId, User.RowTypeRoles);
-
-                                if (user is not null)
+                                async Task Enrich()
                                 {
-                                    IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                                                                        .Select(r => new Claim(identity.RoleClaimType, r));
+                                    PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
+                                    User? user = await db.Users.FindAsync(identity.Name, User.RowTypeRoles);
 
-                                    identity.AddClaims(roleClaims);
+                                    if (user is not null)
+                                    {
+                                        IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                                                            .Select(r => new Claim(identity.RoleClaimType, r));
+
+                                        identity.AddClaims(roleClaims);
+                                    }
                                 }
                             }
+
+                            return Task.CompletedTask;
                         }
                     };
                 });

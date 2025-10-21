@@ -24,6 +24,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(PulseAgentReport))]
 [JsonSerializable(typeof(ApplicationInsightsQueryResponse))]
 [JsonSerializable(typeof(UserInfo))]
+[JsonSerializable(typeof(EmptyUserInfo))]
 
 [JsonSerializable(typeof(Admin.PulseEntryType))]
 [JsonSerializable(typeof(Admin.PulseEntry))]
@@ -37,7 +38,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Entities.UniqueIdentifier))]
 [JsonSerializable(typeof(Entities.Webhook))]
 [JsonSerializable(typeof(Entities.ArchivedPulseCheckResult))]
-public partial class PulseSerializerContext : JsonSerializerContext;
+public sealed partial class PulseSerializerContext : JsonSerializerContext;
 
 internal static class SerializerExtensions
 {
