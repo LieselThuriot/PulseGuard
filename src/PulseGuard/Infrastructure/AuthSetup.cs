@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using PulseGuard.Entities;
@@ -47,7 +48,8 @@ internal static class AuthSetup
         }
 
         string? pathBase = configuration["PathBase"];
-        const string accessDeniedPath = "/AccessDenied";
+        string accessDeniedPath = pathBase + "/AccessDenied";
+
         services.AddAuthorization(options => options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator")))
                 .AddAuthentication(options =>
                 {
@@ -71,7 +73,9 @@ internal static class AuthSetup
                 {
                     options.AccessDeniedPath = accessDeniedPath;
 
+                    options.AuthenticationMethod = OpenIdConnectRedirectBehavior.FormPost;
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
                     options.Authority = settings.Authority;
                     options.ClientId = settings.Id;
                     options.ClientSecret = settings.Secret;

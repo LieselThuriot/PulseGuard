@@ -52,12 +52,13 @@ public static class Routes
 
     private static void MapViews(WebApplication app, bool authorized, IEndpointRouteBuilder routes)
     {
+        var noRedirectPaths = SearchValues.Create(["/api/", "/assets/", "/signin-oidc", "/signout-oidc"], StringComparison.OrdinalIgnoreCase);
         app.Use((context, next) =>
         {
             if (context.Request.Path.HasValue)
             {
                 string path = context.Request.Path.Value;
-                if (path.EndsWith('/') || path.StartsWith("/api/") || path.StartsWith("/assets/"))
+                if (path.EndsWith('/') || path.AsSpan().ContainsAny(noRedirectPaths))
                 {
                     return next();
                 }
