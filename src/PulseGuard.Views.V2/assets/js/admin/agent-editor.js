@@ -7,10 +7,6 @@
   const agentType = urlParams.get('agentType'); // for agent update mode
 
   let isUpdateMode = mode === 'update';
-  // Determine type from page URL
-  const isPulsePage = window.location.pathname.includes('pulse-editor');
-  const isAgentPage = window.location.pathname.includes('agent-editor');
-  let currentType = isPulsePage ? 'pulse' : (isAgentPage ? 'agent' : 'pulse');
   let pulseConfigurations = [];
 
   // Initialize
@@ -25,35 +21,26 @@
     updatePageTitle();
     setupEventListeners();
 
+    // Load pulse configurations for parent selection
+    loadPulseConfigurations();
+
     if (isUpdateMode) {
-      hideTypeSelector();
       loadConfigurationForEdit();
     } else {
       hideLoading();
-      hideTypeSelector();
-      if (isAgentPage) {
-        loadPulseConfigurations(); // For agent parent selection
-      }
-      showForm(currentType);
     }
   }
 
   function updatePageTitle() {
-    const title = isUpdateMode ? 'Update Configuration' : 'Create Configuration';
+    const title = isUpdateMode ? 'Update Agent Configuration' : 'Create Agent Configuration';
     document.getElementById('page-title').textContent = title;
     document.title = `PulseGuard - ${title}`;
   }
 
   function setupEventListeners() {
-    // Pulse form
-    document.getElementById('pulse-form')?.addEventListener('submit', handlePulseSubmit);
-    document.getElementById('pulse-type')?.addEventListener('change', handlePulseTypeChange);
-    document.getElementById('add-pulse-header')?.addEventListener('click', () => addHeaderRow('pulse'));
-
-    // Agent form
     document.getElementById('agent-form')?.addEventListener('submit', handleAgentSubmit);
     document.getElementById('agent-type')?.addEventListener('change', handleAgentTypeChange);
-    document.getElementById('add-agent-header')?.addEventListener('click', () => addHeaderRow('agent'));
+    document.getElementById('add-agent-header')?.addEventListener('click', addHeaderRow);
 
     // Delete button in header
     document.getElementById('header-delete-btn')?.addEventListener('click', handleDeleteClick);
@@ -67,40 +54,6 @@
         e.target.closest('.input-group').remove();
       }
     });
-  }
-
-  function showTypeSelector() {
-    document.getElementById('type-selector')?.classList.remove('d-none');
-  }
-
-  function hideTypeSelector() {
-    document.getElementById('type-selector')?.classList.add('d-none');
-  }
-
-  function showForm(formType) {
-    document.getElementById('pulse-form')?.classList.add('d-none');
-    document.getElementById('agent-form')?.classList.add('d-none');
-
-    if (formType === 'pulse') {
-      document.getElementById('pulse-form')?.classList.remove('d-none');
-    } else {
-      document.getElementById('agent-form')?.classList.remove('d-none');
-    }
-  }
-
-  function handlePulseTypeChange(e) {
-    const checkType = e.target.value;
-    const comparisonGroup = document.getElementById('pulse-comparison-group');
-    const comparisonInput = document.getElementById('pulse-comparison');
-
-    if (checkType === 'Json' || checkType === 'Contains') {
-      comparisonGroup?.classList.remove('d-none');
-      comparisonInput.required = true;
-    } else {
-      comparisonGroup?.classList.add('d-none');
-      comparisonInput.required = false;
-      comparisonInput.value = '';
-    }
   }
 
   function handleAgentTypeChange(e) {
@@ -118,10 +71,10 @@
     }
   }
 
-  function addHeaderRow(formType) {
-    const container = document.getElementById(`${formType}-headers-container`);
+  function addHeaderRow() {
+    const container = document.getElementById('agent-headers-container');
     const newRow = document.createElement('div');
-    newRow.className = `input-group mb-2 ${formType}-header-row`;
+    newRow.className = 'input-group mb-2 agent-header-row';
     newRow.innerHTML = `
       <input type="text" class="form-control header-name" placeholder="Header name">
       <input type="text" class="form-control header-value" placeholder="Header value">
@@ -132,9 +85,9 @@
     container.appendChild(newRow);
   }
 
-  function collectHeaders(formType) {
+  function collectHeaders() {
     const headers = {};
-    document.querySelectorAll(`.${formType}-header-row`).forEach(row => {
+    document.querySelectorAll('.agent-header-row').forEach(row => {
       const name = row.querySelector('.header-name')?.value.trim();
       const value = row.querySelector('.header-value')?.value.trim();
       if (name && value) {
@@ -142,40 +95,6 @@
       }
     });
     return Object.keys(headers).length > 0 ? headers : null;
-  }
-
-  function handlePulseSubmit(e) {
-    e.preventDefault();
-
-    const groupValue = document.getElementById('pulse-group').value.trim();
-    const nameValue = document.getElementById('pulse-name').value.trim();
-
-    // Validate required fields
-    if (!nameValue) {
-      showToast('Error', 'Name is required', 'danger');
-      return;
-    }
-
-    const data = {
-      type: document.getElementById('pulse-type').value,
-      group: groupValue, // Can be empty string, but not null
-      name: nameValue,
-      location: document.getElementById('pulse-location').value.trim(),
-      timeout: parseInt(document.getElementById('pulse-timeout').value),
-      degrationTimeout: document.getElementById('pulse-degration-timeout').value 
-        ? parseInt(document.getElementById('pulse-degration-timeout').value) 
-        : null,
-      enabled: document.getElementById('pulse-enabled').checked,
-      ignoreSslErrors: document.getElementById('pulse-ignore-ssl').checked,
-      comparisonValue: document.getElementById('pulse-comparison').value.trim() || null,
-      headers: collectHeaders('pulse')
-    };
-
-    if (isUpdateMode) {
-      updatePulseConfiguration(id, data);
-    } else {
-      createPulseConfiguration(data);
-    }
   }
 
   function handleAgentSubmit(e) {
@@ -187,7 +106,7 @@
       location: document.getElementById('agent-location').value.trim(),
       applicationName: document.getElementById('agent-app-name').value.trim() || null,
       enabled: document.getElementById('agent-enabled').checked,
-      headers: collectHeaders('agent')
+      headers: collectHeaders()
     };
 
     if (isUpdateMode) {
@@ -197,56 +116,8 @@
     }
   }
 
-  function createPulseConfiguration(data) {
-    showSubmitLoading('pulse', true);
-
-    fetch('../../api/1.0/admin/configurations/pulse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to create configuration');
-          });
-        }
-        showToast('Success', 'Configuration created successfully', 'success');
-        setTimeout(() => window.location.href = '../#pulse', 1500);
-      })
-      .catch(error => {
-        console.error('Error creating configuration:', error);
-        showToast('Error', 'Failed to create configuration: ' + error.message, 'danger');
-        showSubmitLoading('pulse', false);
-      });
-  }
-
-  function updatePulseConfiguration(configId, data) {
-    showSubmitLoading('pulse', true);
-
-    fetch(`../../api/1.0/admin/configurations/pulse/${configId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to update configuration');
-          });
-        }
-        showToast('Success', 'Configuration updated successfully', 'success');
-        setTimeout(() => window.location.href = '../#pulse', 1500);
-      })
-      .catch(error => {
-        console.error('Error updating configuration:', error);
-        showToast('Error', 'Failed to update configuration: ' + error.message, 'danger');
-        showSubmitLoading('pulse', false);
-      });
-  }
-
   function createAgentConfiguration(pulseId, data) {
-    showSubmitLoading('agent', true);
+    showSubmitLoading(true);
 
     const agentType = data.type; // Use the type from the form data
     fetch(`../../api/1.0/admin/configurations/agent/${pulseId}/${agentType}`, {
@@ -266,12 +137,12 @@
       .catch(error => {
         console.error('Error creating agent configuration:', error);
         showToast('Error', 'Failed to create agent configuration: ' + error.message, 'danger');
-        showSubmitLoading('agent', false);
+        showSubmitLoading(false);
       });
   }
 
   function updateAgentConfiguration(configId, data) {
-    showSubmitLoading('agent', true);
+    showSubmitLoading(true);
 
     const agentType = data.type; // Use the type from the form data
     fetch(`../../api/1.0/admin/configurations/agent/${configId}/${agentType}`, {
@@ -291,7 +162,7 @@
       .catch(error => {
         console.error('Error updating agent configuration:', error);
         showToast('Error', 'Failed to update agent configuration: ' + error.message, 'danger');
-        showSubmitLoading('agent', false);
+        showSubmitLoading(false);
       });
   }
 
@@ -323,16 +194,7 @@
   function loadConfigurationForEdit() {
     showLoading();
 
-    const endpoint = currentType === 'pulse' 
-      ? `../../api/1.0/admin/configurations/pulse/${id}`
-      : `../../api/1.0/admin/configurations/agent/${id}/${agentType}`;
-
-    // Load pulse configurations for agent parent selector
-    if (isAgentPage) {
-      loadPulseConfigurations();
-    }
-
-    fetch(endpoint)
+    fetch(`../../api/1.0/admin/configurations/agent/${id}/${agentType}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Configuration not found');
@@ -340,50 +202,13 @@
         return response.json();
       })
       .then(config => {
-        if (currentType === 'pulse') {
-          populatePulseForm(config);
-          showForm('pulse');
-        } else {
-          populateAgentForm(config, agentType); // Pass agentType to the function
-          showForm('agent');
-        }
-
+        populateAgentForm(config, agentType);
         hideLoading();
       })
       .catch(error => {
         console.error('Error loading configuration:', error);
         showError('Failed to load configuration: ' + error.message);
       });
-  }
-
-  function populatePulseForm(config) {
-    // Populate all fields from PulseCreationRequest
-    document.getElementById('pulse-group').value = config.group || '';
-    document.getElementById('pulse-name').value = config.name || '';
-    document.getElementById('pulse-type').value = config.type || '';
-    document.getElementById('pulse-location').value = config.location || '';
-    document.getElementById('pulse-timeout').value = config.timeout || 30;
-    document.getElementById('pulse-degration-timeout').value = config.degrationTimeout || '';
-    document.getElementById('pulse-enabled').checked = config.enabled ?? true;
-    document.getElementById('pulse-ignore-ssl').checked = config.ignoreSslErrors ?? false;
-    document.getElementById('pulse-comparison').value = config.comparisonValue || '';
-
-    // Trigger the type change to show/hide comparison value field
-    handlePulseTypeChange({ target: { value: config.type } });
-
-    // Populate headers
-    populateHeaders('pulse', config.headers);
-
-    // Hide group and name fields in update mode (they can't be changed)
-    const groupNameRow = document.getElementById('pulse-group')?.closest('.row');
-    if (groupNameRow) {
-      groupNameRow.classList.add('d-none');
-    }
-
-    // Show delete button in header for update mode
-    showDeleteButton();
-
-    document.getElementById('pulse-submit-text').textContent = 'Update Configuration';
   }
 
   function populateAgentForm(config, agentType) {
@@ -398,7 +223,7 @@
     handleAgentTypeChange({ target: { value: agentType } });
 
     // Populate headers
-    populateHeaders('agent', config.headers);
+    populateHeaders(config.headers);
 
     // Hide pulse selector in update mode and set the value
     const pulseIdSelect = document.getElementById('agent-pulse-id');
@@ -420,8 +245,8 @@
     document.getElementById('agent-submit-text').textContent = 'Update Configuration';
   }
 
-  function populateHeaders(formType, headers) {
-    const container = document.getElementById(`${formType}-headers-container`);
+  function populateHeaders(headers) {
+    const container = document.getElementById('agent-headers-container');
     // Always clear existing header rows first
     container.innerHTML = '';
 
@@ -433,7 +258,7 @@
     // Add a row for each header
     Object.entries(headers).forEach(([name, value]) => {
       const row = document.createElement('div');
-      row.className = `input-group mb-2 ${formType}-header-row`;
+      row.className = 'input-group mb-2 agent-header-row';
       row.innerHTML = `
         <input type="text" class="form-control header-name" placeholder="Header name" value="${escapeHtml(name)}">
         <input type="text" class="form-control header-value" placeholder="Header value" value="${escapeHtml(value)}">
@@ -451,8 +276,8 @@
     return div.innerHTML;
   }
 
-  function showSubmitLoading(formType, loading) {
-    const form = document.getElementById(`${formType}-form`);
+  function showSubmitLoading(loading) {
+    const form = document.getElementById('agent-form');
     const submitBtn = form?.querySelector('button[type="submit"]');
     
     if (submitBtn) {
@@ -468,21 +293,18 @@
 
   function showLoading() {
     document.getElementById('loading-spinner')?.classList.remove('d-none');
-    document.getElementById('pulse-form')?.classList.add('d-none');
     document.getElementById('agent-form')?.classList.add('d-none');
-    document.getElementById('type-selector')?.classList.add('d-none');
     document.getElementById('error-message')?.classList.add('d-none');
   }
 
   function hideLoading() {
     document.getElementById('loading-spinner')?.classList.add('d-none');
+    document.getElementById('agent-form')?.classList.remove('d-none');
   }
 
   function showError(message) {
     document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('pulse-form')?.classList.add('d-none');
     document.getElementById('agent-form')?.classList.add('d-none');
-    document.getElementById('type-selector')?.classList.add('d-none');
     const errorDiv = document.getElementById('error-message');
     if (errorDiv) {
       errorDiv.classList.remove('d-none');
@@ -514,17 +336,14 @@
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
   }
+
   function handleDeleteConfirm() {
     if (!isUpdateMode || !id) {
       showToast('Error', 'Cannot delete in create mode', 'danger');
       return;
     }
 
-    const isPulse = currentType === 'pulse';
-    
-    const url = isPulse 
-      ? `../../api/1.0/admin/configurations/pulse/${id}`
-      : `../../api/1.0/admin/configurations/agent/${id}/${agentType}`;
+    const url = `../../api/1.0/admin/configurations/agent/${id}/${agentType}`;
 
     // Disable the delete button
     const deleteBtn = document.getElementById('delete-confirm');
@@ -552,9 +371,8 @@
 
         showToast('Success', 'Configuration deleted successfully', 'success');
         
-        // Redirect back to admin list after a short delay with appropriate hash
-        const redirectHash = currentType === 'pulse' ? '#pulse' : '#agent';
-        setTimeout(() => window.location.href = `../${redirectHash}`, 1500);
+        // Redirect back to admin list after a short delay
+        setTimeout(() => window.location.href = '../#agent', 1500);
       })
       .catch((error) => {
         console.error('Error deleting configuration:', error);

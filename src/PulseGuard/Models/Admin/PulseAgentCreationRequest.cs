@@ -1,13 +1,10 @@
-﻿using PulseGuard.Agents;
-
-namespace PulseGuard.Models.Admin;
-#nullable disable
+﻿namespace PulseGuard.Models.Admin;
 
 public sealed class PulseAgentCreationRequest
 {
     public required string Location { get; set; }
 
-    public string ApplicationName { get; set; }
+    public required string ApplicationName { get; set; }
     public bool Enabled { get; set; } = true;
-    public Dictionary<string, string> Headers { get; set; }
+    public Dictionary<string, string>? Headers { get; set; }
 }

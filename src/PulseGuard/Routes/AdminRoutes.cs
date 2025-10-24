@@ -1,4 +1,5 @@
 ﻿using Azure;
+using Azure.Core;
 using Azure.Data.Tables;
 using PulseGuard.Agents;
 using PulseGuard.Checks;
@@ -33,11 +34,13 @@ public static class AdminRoutes
                 user.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value)
         ));
 
-        var group = app.MapGroup("api/1.0/admin/configurations").WithTags("Admin").RequireAuthorization(AuthSetup.AdministratorPolicy);
+        var group = app.MapGroup("api/1.0/admin").RequireAuthorization(AuthSetup.AdministratorPolicy);
+        var configurations = group.MapGroup("configurations").WithTags("Admin", "Overview");
 
-        CreateOverviewMappings(group);
-        CreateNormalMappings(group.MapGroup("normal").WithTags("Admin", "NormalConfigurations"));
-        CreateAgentMappings(group.MapGroup("agent").WithTags("Admin", "AgentConfigurations"));
+        CreateOverviewMappings(configurations);
+        CreateNormalMappings(configurations.MapGroup("pulse").WithTags("Admin", "PulseConfigurations"));
+        CreateAgentMappings(configurations.MapGroup("agent").WithTags("Admin", "AgentConfigurations"));
+        CreateWebhookMappings(group.MapGroup("webhooks").WithTags("Admin", "Webhooks"));
     }
 
     private static void CreateOverviewMappings(RouteGroupBuilder group)
@@ -90,6 +93,101 @@ public static class AdminRoutes
             }
 
             return Results.BadRequest();
+        });
+    }
+
+    private static void CreateWebhookMappings(RouteGroupBuilder group)
+    {
+        group.MapGet("", static async (PulseContext context, CancellationToken token) =>
+        {
+            var webhooks = await context.Webhooks.ToListAsync(token);
+            var entries = webhooks.Select(x => new WebhookEntry(x.Id, x.Group, x.Name, x.Location, x.Enabled));
+
+            return Results.Ok(entries);
+        });
+
+        group.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+        {
+            var webhook = await context.Webhooks.Where(x => x.Id == id).FirstOrDefaultAsync(token);
+
+            if (webhook is null)
+            {
+                return Results.NotFound();
+            }
+
+            WebhookEntry entry = new(webhook.Id, webhook.Group, webhook.Name, webhook.Location, webhook.Enabled);
+
+            return Results.Ok(entry);
+        });
+
+        group.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var webhook = await context.Webhooks.Where(x => x.Id == id).FirstOrDefaultAsync(token);
+
+            if (webhook is null)
+            {
+                return Results.NotFound();
+            }
+
+            await context.Webhooks.DeleteEntityAsync(webhook.Id, webhook.Secret, webhook.ETag, token);
+            logger.LogInformation(PulseEventIds.Admin, "Deleted Webhook Entry {Id}", id);
+
+            return Results.NoContent();
+        });
+
+        group.MapPut("{id}", static async (string id, WebhookUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var webhook = await context.Webhooks.Where(x => x.Id == id).FirstOrDefaultAsync(token);
+
+            if (webhook is null)
+            {
+                return Results.NotFound();
+            }
+
+            webhook.Group = request.Group;
+            webhook.Name = request.Name;
+            webhook.Location = request.Location;
+            webhook.Enabled = request.Enabled;
+
+            await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
+            logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+
+            return Results.NoContent();
+        });
+
+        group.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var webhook = await context.Webhooks.Where(x => x.Id == id).FirstOrDefaultAsync(token);
+
+            if (webhook is null)
+            {
+                return Results.NotFound();
+            }
+
+            webhook.Enabled = enabled;
+
+            await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
+            logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+
+            return Results.NoContent();
+        });
+
+        group.MapPost("", static async (WebhookCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            Webhook webhook = new()
+            {
+                Id = Guid.CreateVersion7().ToString("N"),
+                Secret = request.Secret,
+                Group = request.Group,
+                Name = request.Name,
+                Location = request.Location,
+                Enabled = request.Enabled
+            };
+
+            await context.Webhooks.AddEntityAsync(webhook, token);
+            logger.LogInformation(PulseEventIds.Admin, "Created Webhook Entry {Id}", webhook.Id);
+
+            return Results.Created();
         });
     }
 
@@ -165,7 +263,7 @@ public static class AdminRoutes
         agentGroup.MapDelete("{id}/{type}", static async (string id, string type, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             var configuration = await context.AgentConfigurations.FindAsync(id, type, token);
-            
+
             if (configuration is null)
             {
                 return Results.NotFound();

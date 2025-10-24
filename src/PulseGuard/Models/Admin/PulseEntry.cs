@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PulseGuard.Models.Admin;
+﻿namespace PulseGuard.Models.Admin;
 
 public enum PulseEntryType
 {

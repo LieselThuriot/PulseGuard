@@ -31,6 +31,9 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Admin.PulseUpdateRequest))]
 [JsonSerializable(typeof(Admin.PulseCreationRequest))]
 [JsonSerializable(typeof(Admin.PulseAgentCreationRequest))]
+[JsonSerializable(typeof(Admin.WebhookEntry))]
+[JsonSerializable(typeof(Admin.WebhookUpdateRequest))]
+[JsonSerializable(typeof(Admin.WebhookCreationRequest))]
 
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]

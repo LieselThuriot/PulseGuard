@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>PulseGuard - Configuration Editor</title>
+  <title>PulseGuard - Pulse Configuration Editor</title>
 
   <link rel="icon" type="image/x-icon" href="../../favicon.ico" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
@@ -23,7 +23,7 @@
         <span class="navbar-brand-title">PulseGuard</span>
       </a>
       <div class="d-flex flex-row align-items-center">
-        <a href="../" class="btn btn-outline-secondary me-2">
+        <a href="../#pulse" class="btn btn-outline-secondary me-2">
           <i class="bi bi-list-ul"></i> Configurations
         </a>
 
@@ -52,7 +52,7 @@
         <div class="card shadow-sm">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-              <i class="bi bi-pencil-square"></i> <span id="page-title">Configuration Editor</span>
+              <i class="bi bi-activity"></i> <span id="page-title">Pulse Configuration Editor</span>
             </div>
             <button type="button" class="btn btn-sm btn-danger d-none" id="header-delete-btn" data-bs-toggle="tooltip" data-bs-title="Delete Configuration">
               <i class="bi bi-trash"></i> Delete
@@ -67,23 +67,6 @@
 
             <div id="error-message" class="alert alert-danger d-none" role="alert">
               <i class="bi bi-exclamation-triangle-fill"></i> <span id="error-text"></span>
-            </div>
-
-            <!-- Configuration Type Selector (only for create mode) -->
-            <div id="type-selector" class="mb-4">
-              <label class="form-label fw-bold">Configuration Type</label>
-              <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="config-type" id="type-pulse" value="pulse" checked>
-                <label class="btn btn-outline-primary" for="type-pulse">
-                  <i class="bi bi-activity"></i> Pulse Check
-                </label>
-
-                <input type="radio" class="btn-check" name="config-type" id="type-agent" value="agent">
-                <label class="btn btn-outline-info" for="type-agent">
-                  <i class="bi bi-robot"></i> Agent Check
-                </label>
-              </div>
-              <div class="form-text">Agent checks require a pulse check to be created first.</div>
             </div>
 
             <!-- Pulse Configuration Form -->
@@ -174,76 +157,11 @@
               </div>
 
               <div class="d-flex justify-content-between">
-                <a href="../" class="btn btn-secondary">
+                <a href="../#pulse" class="btn btn-secondary">
                   <i class="bi bi-x-circle"></i> Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
                   <i class="bi bi-save"></i> <span id="pulse-submit-text">Save Configuration</span>
-                </button>
-              </div>
-            </form>
-
-            <!-- Agent Configuration Form -->
-            <form id="agent-form" class="d-none">
-              <h5 class="mb-3">
-                <i class="bi bi-robot"></i> Agent Check Configuration
-              </h5>
-
-              <div class="mb-3" id="agent-pulse-selector">
-                <label for="agent-pulse-id" class="form-label">Parent Pulse Check <span class="text-danger">*</span></label>
-                <select class="form-select" id="agent-pulse-id" required>
-                  <option value="">-- Select Pulse Check --</option>
-                </select>
-                <div class="form-text">Select the pulse check this agent configuration belongs to</div>
-              </div>
-
-              <div class="mb-3">
-                <label for="agent-type" class="form-label">Agent Type <span class="text-danger">*</span></label>
-                <select class="form-select" id="agent-type" required>
-                  <option value="">-- Select Agent Type --</option>
-                  <option value="ApplicationInsights">Application Insights</option>
-                  <option value="LogAnalyticsWorkspace">Log Analytics Workspace</option>
-                </select>
-                <div class="form-text">Type of agent monitoring to configure</div>
-              </div>
-
-              <div class="mb-3">
-                <label for="agent-location" class="form-label">Location <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="agent-location" required>
-                <div class="form-text">Resource location or connection string</div>
-              </div>
-
-              <div class="mb-3 d-none" id="agent-app-name-group">
-                <label for="agent-app-name" class="form-label">Application Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="agent-app-name">
-                <div class="form-text">Required for Log Analytics Workspace</div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Headers</label>
-                <div id="agent-headers-container">
-                  <!-- Headers will be added dynamically -->
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="add-agent-header">
-                  <i class="bi bi-plus-circle"></i> Add Header
-                </button>
-              </div>
-
-              <div class="mb-3">
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="agent-enabled" checked>
-                  <label class="form-check-label" for="agent-enabled">
-                    Enabled
-                  </label>
-                </div>
-              </div>
-
-              <div class="d-flex justify-content-between">
-                <a href="../" class="btn btn-secondary">
-                  <i class="bi bi-x-circle"></i> Cancel
-                </a>
-                <button type="submit" class="btn btn-primary">
-                  <i class="bi bi-save"></i> <span id="agent-submit-text">Save Configuration</span>
                 </button>
               </div>
             </form>
@@ -264,7 +182,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p>Are you sure you want to delete this configuration?</p>
+          <p>Are you sure you want to delete this pulse configuration?</p>
           <p class="text-danger mb-0">
             <i class="bi bi-exclamation-triangle"></i>
             <strong>This action cannot be undone!</strong>
@@ -286,7 +204,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap-show-toast@1.2.1/src/bootstrap-show-toast.min.js"></script>
 
   <script src="../../assets/js/theme.js?{MAGIC_HASH}"></script>
-  <script src="../../assets/js/admin-editor.js?{MAGIC_HASH}"></script>
+  <script src="../../assets/js/admin/pulse-editor.js?{MAGIC_HASH}"></script>
 </body>
 
 </html>
