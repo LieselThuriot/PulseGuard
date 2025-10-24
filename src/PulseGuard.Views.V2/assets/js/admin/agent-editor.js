@@ -242,7 +242,7 @@
     // Show delete button in header for update mode
     showDeleteButton();
 
-    document.getElementById('agent-submit-text').textContent = 'Update Configuration';
+    document.getElementById('agent-submit-text').textContent = 'Update Agent Configuration';
   }
 
   function populateHeaders(headers) {
@@ -285,7 +285,7 @@
       if (loading) {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
       } else {
-        const text = isUpdateMode ? 'Update Configuration' : 'Save Configuration';
+        const text = isUpdateMode ? 'Update Agent Configuration' : 'Create Agent Configuration';
         submitBtn.innerHTML = `<i class="bi bi-save"></i> ${text}`;
       }
     }

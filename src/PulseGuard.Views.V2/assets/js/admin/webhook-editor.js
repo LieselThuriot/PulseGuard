@@ -137,7 +137,7 @@
    */
   function initCreateMode() {
     document.getElementById('page-title').textContent = 'Create Webhook';
-    document.getElementById('submit-text').textContent = 'Create';
+    document.getElementById('submit-text').textContent = 'Create Webhook';
     hideLoading();
     showForm();
   }
@@ -147,7 +147,7 @@
    */
   function initUpdateMode() {
     document.getElementById('page-title').textContent = 'Update Webhook';
-    document.getElementById('submit-text').textContent = 'Update';
+    document.getElementById('submit-text').textContent = 'Update Webhook';
     
     // Show delete button in header
     showDeleteButton();

@@ -204,7 +204,7 @@
     // Show delete button in header for update mode
     showDeleteButton();
 
-    document.getElementById('submit-text').textContent = 'Update Configuration';
+    document.getElementById('submit-text').textContent = 'Update User';
   }
 
   function escapeHtml(text) {
@@ -222,7 +222,7 @@
       if (loading) {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
       } else {
-        const text = isUpdateMode ? 'Update Configuration' : 'Save Configuration';
+        const text = isUpdateMode ? 'Update User' : 'Create User';
         submitBtn.innerHTML = `<i class="bi bi-save"></i> ${text}`;
       }
     }
