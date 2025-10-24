@@ -98,6 +98,12 @@
                     <i class="bi bi-webhook"></i> Webhooks <span class="badge bg-success ms-1" id="webhook-count">0</span>
                   </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-pane"
+                    type="button" role="tab" aria-controls="user-pane" aria-selected="false">
+                    <i class="bi bi-people-fill"></i> Users <span class="badge bg-warning ms-1" id="user-count">0</span>
+                  </button>
+                </li>
               </ul>
 
               <!-- Tabs Content -->
@@ -181,6 +187,28 @@
                       </thead>
                       <tbody id="webhook-table">
                         <!-- Webhooks will be inserted here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div class="tab-pane fade" id="user-pane" role="tabpanel" aria-labelledby="user-tab" tabindex="0">
+                  <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                      <thead>
+                        <tr>
+                          <th scope="col">
+                            <a href="#" id="sort-user-id" class="text-decoration-none text-body">
+                              User ID <i class="bi bi-chevron-expand"></i>
+                            </a>
+                          </th>
+                          <th scope="col">Roles</th>
+                          <th scope="col" class="text-center" style="width: 200px;">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="user-table">
+                        <!-- Users will be inserted here -->
                       </tbody>
                     </table>
                   </div>
@@ -307,6 +335,45 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-danger" id="delete-webhook-confirm">
+            <i class="bi bi-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Delete Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteUserModalLabel">
+            <i class="bi bi-exclamation-triangle text-danger"></i> Confirm Delete
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="delete-user-id" />
+          
+          <p>Are you sure you want to delete this user?</p>
+          <div class="alert alert-warning">
+            <strong>User:</strong>
+            <div class="mt-2">
+              <i class="bi bi-person-fill"></i>
+              <strong id="delete-user-display-id"></strong>
+            </div>
+            <div class="mt-2">
+              <strong>Roles:</strong> <span id="delete-user-display-roles"></span>
+            </div>
+          </div>
+          <p class="text-danger mb-0">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>This action cannot be undone!</strong>
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="delete-user-confirm">
             <i class="bi bi-trash"></i> Delete
           </button>
         </div>

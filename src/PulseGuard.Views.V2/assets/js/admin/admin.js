@@ -20,16 +20,25 @@
    * @property {boolean} enabled
    */
 
+  /**
+   * @typedef {Object} User
+   * @property {string} id
+   * @property {string[]} roles
+   */
+
   let configurations = [];
   let filteredConfigurations = [];
   let webhooks = [];
   let filteredWebhooks = [];
+  let users = [];
+  let filteredUsers = [];
   let sortColumn = null; // null means use default sort
   let sortDirection = 'asc';
 
   // Initialize
   loadConfigurations();
   loadWebhooks();
+  loadUsers();
   initializeTabs();
 
   // Event Listeners
@@ -41,6 +50,7 @@
   document.getElementById('rename-save')?.addEventListener('click', handleRenameSave);
   document.getElementById('delete-confirm')?.addEventListener('click', handleDeleteConfirm);
   document.getElementById('delete-webhook-confirm')?.addEventListener('click', handleWebhookDeleteConfirm);
+  document.getElementById('delete-user-confirm')?.addEventListener('click', handleUserDeleteConfirm);
 
   /**
    * Initialize tab state management
@@ -52,6 +62,8 @@
       activateTab('agent-tab');
     } else if (hash === '#webhook-tab' || hash === '#webhook') {
       activateTab('webhook-tab');
+    } else if (hash === '#user-tab' || hash === '#user') {
+      activateTab('user-tab');
     } else if (hash === '#pulse-tab' || hash === '#pulse' || hash === '#normal-tab' || hash === '#normal') {
       activateTab('pulse-tab');
     }
@@ -72,6 +84,10 @@
       window.location.hash = 'webhook';
       updateCreateButton();
     });
+    document.getElementById('user-tab')?.addEventListener('shown.bs.tab', () => {
+      window.location.hash = 'user';
+      updateCreateButton();
+    });
   }
 
   /**
@@ -85,11 +101,14 @@
     const pulseTab = document.getElementById('pulse-tab');
     const agentTab = document.getElementById('agent-tab');
     const webhookTab = document.getElementById('webhook-tab');
+    const userTab = document.getElementById('user-tab');
 
     if (agentTab?.classList.contains('active') || agentTab?.getAttribute('aria-selected') === 'true') {
       createBtn.href = 'agent-editor?mode=create';
     } else if (webhookTab?.classList.contains('active') || webhookTab?.getAttribute('aria-selected') === 'true') {
       createBtn.href = 'webhook-editor?mode=create';
+    } else if (userTab?.classList.contains('active') || userTab?.getAttribute('aria-selected') === 'true') {
+      createBtn.href = 'user-editor?mode=create';
     } else {
       createBtn.href = 'pulse-editor?mode=create';
     }
@@ -151,6 +170,28 @@
       .catch((error) => {
         console.error('Error loading webhooks:', error);
         showError('Failed to load webhooks: ' + error.message);
+      });
+  }
+
+  /**
+   * Loads users from the API
+   */
+  function loadUsers() {
+    fetch('../api/1.0/admin/users')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        users = data;
+        filteredUsers = [...users];
+        renderUsers();
+      })
+      .catch((error) => {
+        console.error('Error loading users:', error);
+        showError('Failed to load users: ' + error.message);
       });
   }
 
@@ -463,6 +504,100 @@
     deleteBtn.setAttribute('data-bs-title', 'Delete');
     deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
     deleteBtn.addEventListener('click', () => handleWebhookDeleteClick(webhook));
+    
+    btnGroup.appendChild(editBtn);
+    btnGroup.appendChild(deleteBtn);
+    actionsCell.appendChild(btnGroup);
+  }
+
+  /**
+   * Renders the users table
+   */
+  function renderUsers() {
+    const userTbody = document.getElementById('user-table');
+    
+    if (!userTbody) {
+      console.error('Error getting user table element');
+      return;
+    }
+
+    // Clear table
+    userTbody.innerHTML = '';
+
+    // Sort users by ID
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+      return compareValues(a.id.toLowerCase(), b.id.toLowerCase());
+    });
+
+    // Update tab count
+    const userCount = document.getElementById('user-count');
+    if (userCount) userCount.textContent = sortedUsers.length;
+
+    // Render users
+    if (sortedUsers.length === 0) {
+      const row = userTbody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 3;
+      cell.className = 'text-center py-4 text-muted';
+      cell.textContent = 'No users found';
+    } else {
+      sortedUsers.forEach(user => renderUserRow(userTbody, user));
+    }
+
+    // Initialize tooltips for the newly created buttons
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  }
+
+  /**
+   * Renders a single user row
+   * @param {HTMLTableSectionElement} tbody
+   * @param {User} user
+   */
+  function renderUserRow(tbody, user) {
+    const row = tbody.insertRow();
+
+    // User ID
+    const idCell = row.insertCell();
+    idCell.textContent = user.id;
+
+    // Roles
+    const rolesCell = row.insertCell();
+    if (user.roles && user.roles.length > 0) {
+      const badgeContainer = document.createElement('div');
+      badgeContainer.className = 'd-flex flex-wrap gap-1';
+      user.roles.forEach(role => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary';
+        badge.textContent = role;
+        badgeContainer.appendChild(badge);
+      });
+      rolesCell.appendChild(badgeContainer);
+    } else {
+      rolesCell.textContent = 'No roles';
+      rolesCell.className = 'text-muted';
+    }
+
+    // Actions
+    const actionsCell = row.insertCell();
+    actionsCell.className = 'text-center';
+    
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'btn-group btn-group-sm';
+    
+    const editBtn = document.createElement('a');
+    editBtn.className = 'btn btn-outline-primary';
+    editBtn.href = `user-editor?mode=update&id=${encodeURIComponent(user.id)}`;
+    editBtn.setAttribute('data-bs-toggle', 'tooltip');
+    editBtn.setAttribute('data-bs-title', 'Edit');
+    editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-outline-danger';
+    deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
+    deleteBtn.setAttribute('data-bs-title', 'Delete');
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.addEventListener('click', () => handleUserDeleteClick(user));
     
     btnGroup.appendChild(editBtn);
     btnGroup.appendChild(deleteBtn);
@@ -825,6 +960,75 @@
       })
       .catch((error) => {
         console.error('Error deleting webhook:', error);
+        showToast('Error', error.message, 'danger');
+      })
+      .finally(() => {
+        // Re-enable the delete button
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+        }
+      });
+  }
+
+  /**
+   * Handles the user delete click
+   * @param {User} user
+   */
+  function handleUserDeleteClick(user) {
+    // Store user ID for deletion
+    document.getElementById('delete-user-id').value = user.id;
+
+    // Populate modal
+    document.getElementById('delete-user-display-id').textContent = user.id;
+    const rolesText = user.roles && user.roles.length > 0 ? user.roles.join(', ') : 'No roles';
+    document.getElementById('delete-user-display-roles').textContent = rolesText;
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    modal.show();
+  }
+
+  /**
+   * Handles the user delete confirmation
+   */
+  function handleUserDeleteConfirm() {
+    const userId = document.getElementById('delete-user-id').value;
+
+    // Disable the delete button
+    const deleteBtn = document.getElementById('delete-user-confirm');
+    if (deleteBtn) {
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+    }
+
+    fetch(`../api/1.0/admin/users/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then(text => {
+            throw new Error(text || 'Failed to delete user');
+          });
+        }
+
+        // Remove from local data
+        users = users.filter(u => u.id !== userId);
+        filteredUsers = filteredUsers.filter(u => u.id !== userId);
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+        modal?.hide();
+
+        // Re-render
+        renderUsers();
+        showToast('Success', 'User deleted successfully', 'success');
+      })
+      .catch((error) => {
+        console.error('Error deleting user:', error);
         showToast('Error', error.message, 'danger');
       })
       .finally(() => {

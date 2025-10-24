@@ -41,6 +41,76 @@ public static class AdminRoutes
         CreateNormalMappings(configurations.MapGroup("pulse").WithTags("Admin", "PulseConfigurations"));
         CreateAgentMappings(configurations.MapGroup("agent").WithTags("Admin", "AgentConfigurations"));
         CreateWebhookMappings(group.MapGroup("webhooks").WithTags("Admin", "Webhooks"));
+        CreateUserMappings(group.MapGroup("users").WithTags("Admin", "Users"));
+    }
+
+    private static void CreateUserMappings(RouteGroupBuilder group)
+    {
+        group.MapGet("", static async (PulseContext context, CancellationToken token) =>
+        {
+            var users = await context.Users.Where(x => x.RowType == User.RowTypeRoles).ToListAsync(token);
+            var entries = users.Select(x => new UserEntry(x));
+            return Results.Ok(entries);
+        });
+
+        group.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+        {
+            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+
+            if (user is null)
+            {
+                return Results.NotFound();
+            }
+
+            UserEntry result = new(user);
+            return Results.Ok(result);
+        });
+
+        group.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+
+            if (user is null)
+            {
+                return Results.NotFound();
+            }
+
+            await context.Users.DeleteEntityAsync(user.UserId, user.RowType, user.ETag, token);
+            logger.LogInformation(PulseEventIds.Admin, "Deleted User {id}", user.UserId);
+
+            return Results.NoContent();
+        });
+
+        group.MapPut("{id}", static async (string id, UserCreateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+
+            if (user is null)
+            {
+                return Results.NotFound();
+            }
+
+            user.Value = request.GetRoles();
+            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+            logger.LogInformation(PulseEventIds.Admin, "Updated User {id}", user.UserId);
+
+            return Results.NoContent();
+        });
+
+        group.MapPost("", static async (UserEntry request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            User user = new()
+            {
+                UserId = request.Id,
+                RowType = User.RowTypeRoles,
+                Value = request.GetRoles()
+            };
+
+            await context.Users.AddEntityAsync(user, token);
+            logger.LogInformation(PulseEventIds.Admin, "Created User {id}", user.UserId);
+
+            return Results.Created();
+        });
     }
 
     private static void CreateOverviewMappings(RouteGroupBuilder group)
