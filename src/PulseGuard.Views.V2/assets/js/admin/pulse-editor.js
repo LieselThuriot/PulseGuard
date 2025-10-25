@@ -7,12 +7,39 @@
 
   let isUpdateMode = mode === 'update';
 
+  // Constants
+  const HEADER_ROW_CLASS = 'pulse-header-row';
+
+  // Cache DOM elements
+  const elements = {
+    pageTitle: document.getElementById('page-title'),
+    pulseForm: document.getElementById('pulse-form'),
+    pulseType: document.getElementById('pulse-type'),
+    pulseGroup: document.getElementById('pulse-group'),
+    pulseName: document.getElementById('pulse-name'),
+    pulseLocation: document.getElementById('pulse-location'),
+    pulseTimeout: document.getElementById('pulse-timeout'),
+    pulseDegrationTimeout: document.getElementById('pulse-degration-timeout'),
+    pulseComparison: document.getElementById('pulse-comparison'),
+    pulseComparisonGroup: document.getElementById('pulse-comparison-group'),
+    pulseEnabled: document.getElementById('pulse-enabled'),
+    pulseFlakyDetection: document.getElementById('pulse-flaky-detection'),
+    pulseHeadersContainer: document.getElementById('pulse-headers-container'),
+    addPulseHeaderBtn: document.getElementById('add-pulse-header'),
+    headerDeleteBtn: document.getElementById('header-delete-btn'),
+    deleteConfirmBtn: document.getElementById('delete-confirm'),
+    submitBtn: document.getElementById('submit-btn'),
+    loadingSpinner: document.getElementById('loading-spinner'),
+    errorMessage: document.getElementById('error-message'),
+    errorText: document.getElementById('error-text')
+  };
+
   // Initialize
   initialize();
 
   function initialize() {
     if (isUpdateMode && !id) {
-      showError('Invalid parameters for update mode');
+      AdminCommon.showErrorMessage('Invalid parameters for update mode', 'error-message', 'error-text', ['loading-spinner', 'pulse-form']);
       return;
     }
 
@@ -22,26 +49,22 @@
     if (isUpdateMode) {
       loadConfigurationForEdit();
     } else {
-      hideLoading();
+      AdminCommon.hideLoading('loading-spinner', ['pulse-form']);
     }
   }
 
   function updatePageTitle() {
     const title = isUpdateMode ? 'Update Pulse Configuration' : 'Create Pulse Configuration';
-    document.getElementById('page-title').textContent = title;
+    if (elements.pageTitle) elements.pageTitle.textContent = title;
     document.title = `PulseGuard - ${title}`;
   }
 
   function setupEventListeners() {
-    document.getElementById('pulse-form')?.addEventListener('submit', handlePulseSubmit);
-    document.getElementById('pulse-type')?.addEventListener('change', handlePulseTypeChange);
-    document.getElementById('add-pulse-header')?.addEventListener('click', addHeaderRow);
-
-    // Delete button in header
-    document.getElementById('header-delete-btn')?.addEventListener('click', handleDeleteClick);
-
-    // Delete confirmation
-    document.getElementById('delete-confirm')?.addEventListener('click', handleDeleteConfirm);
+    elements.pulseForm?.addEventListener('submit', handlePulseSubmit);
+    elements.pulseType?.addEventListener('change', handlePulseTypeChange);
+    elements.addPulseHeaderBtn?.addEventListener('click', addHeaderRow);
+    elements.headerDeleteBtn?.addEventListener('click', handleDeleteClick);
+    elements.deleteConfirmBtn?.addEventListener('click', handleDeleteConfirm);
 
     // Header removal (delegated)
     document.addEventListener('click', (e) => {
@@ -53,23 +76,24 @@
 
   function handlePulseTypeChange(e) {
     const checkType = e.target.value;
-    const comparisonGroup = document.getElementById('pulse-comparison-group');
-    const comparisonInput = document.getElementById('pulse-comparison');
 
     if (checkType === 'Json' || checkType === 'Contains') {
-      comparisonGroup?.classList.remove('d-none');
-      comparisonInput.required = true;
+      elements.pulseComparisonGroup?.classList.remove('d-none');
+      if (elements.pulseComparison) elements.pulseComparison.required = true;
     } else {
-      comparisonGroup?.classList.add('d-none');
-      comparisonInput.required = false;
-      comparisonInput.value = '';
+      elements.pulseComparisonGroup?.classList.add('d-none');
+      if (elements.pulseComparison) {
+        elements.pulseComparison.required = false;
+        elements.pulseComparison.value = '';
+      }
     }
   }
 
   function addHeaderRow() {
-    const container = document.getElementById('pulse-headers-container');
+    if (!elements.pulseHeadersContainer) return;
+    
     const newRow = document.createElement('div');
-    newRow.className = 'input-group mb-2 pulse-header-row';
+    newRow.className = `input-group mb-2 ${HEADER_ROW_CLASS}`;
     newRow.innerHTML = `
       <input type="text" class="form-control header-name" placeholder="Header name">
       <input type="text" class="form-control header-value" placeholder="Header value">
@@ -77,12 +101,12 @@
         <i class="bi bi-trash"></i>
       </button>
     `;
-    container.appendChild(newRow);
+    elements.pulseHeadersContainer.appendChild(newRow);
   }
 
   function collectHeaders() {
     const headers = {};
-    document.querySelectorAll('.pulse-header-row').forEach(row => {
+    document.querySelectorAll(`.${HEADER_ROW_CLASS}`).forEach(row => {
       const name = row.querySelector('.header-name')?.value.trim();
       const value = row.querySelector('.header-value')?.value.trim();
       if (name && value) {
@@ -97,22 +121,42 @@
 
     const groupValue = document.getElementById('pulse-group').value.trim();
     const nameValue = document.getElementById('pulse-name').value.trim();
+    const locationValue = document.getElementById('pulse-location').value.trim();
+    const timeoutValue = parseInt(document.getElementById('pulse-timeout').value);
+    const degrationTimeoutValue = document.getElementById('pulse-degration-timeout').value;
 
     // Validate required fields
     if (!nameValue) {
-      showToast('Error', 'Name is required', 'danger');
+      AdminCommon.showError('Name is required');
       return;
+    }
+
+    if (!locationValue) {
+      AdminCommon.showError('Location is required');
+      return;
+    }
+
+    // Validate URL format
+    if (!AdminCommon.validateUrl(locationValue, 'Location')) {
+      return;
+    }
+
+    // Validate degradation timeout if provided
+    if (degrationTimeoutValue && degrationTimeoutValue !== '') {
+      const degrationTimeout = parseInt(degrationTimeoutValue);
+      if (degrationTimeout >= timeoutValue) {
+        AdminCommon.showError('Degradation Timeout must be less than Timeout');
+        return;
+      }
     }
 
     const data = {
       type: document.getElementById('pulse-type').value,
-      group: groupValue, // Can be empty string, but not null
+      group: groupValue,
       name: nameValue,
-      location: document.getElementById('pulse-location').value.trim(),
-      timeout: parseInt(document.getElementById('pulse-timeout').value),
-      degrationTimeout: document.getElementById('pulse-degration-timeout').value 
-        ? parseInt(document.getElementById('pulse-degration-timeout').value) 
-        : null,
+      location: locationValue,
+      timeout: timeoutValue,
+      degrationTimeout: degrationTimeoutValue ? parseInt(degrationTimeoutValue) : null,
       enabled: document.getElementById('pulse-enabled').checked,
       ignoreSslErrors: document.getElementById('pulse-ignore-ssl').checked,
       comparisonValue: document.getElementById('pulse-comparison').value.trim() || null,
@@ -126,72 +170,71 @@
     }
   }
 
-  function createPulseConfiguration(data) {
+  async function createPulseConfiguration(data) {
     showSubmitLoading(true);
 
-    fetch('../../api/1.0/admin/configurations/pulse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to create configuration');
-          });
-        }
-        showToast('Success', 'Configuration created successfully', 'success');
-        setTimeout(() => window.location.href = '../#pulse', 1500);
-      })
-      .catch(error => {
-        console.error('Error creating configuration:', error);
-        showToast('Error', 'Failed to create configuration: ' + error.message, 'danger');
-        showSubmitLoading(false);
+    try {
+      const response = await fetch('../../api/1.0/admin/configurations/pulse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to create configuration');
+      }
+
+      AdminCommon.showSuccess('Configuration created successfully');
+      setTimeout(() => window.location.href = '../#pulse', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error creating configuration:', error);
+      AdminCommon.showError('Failed to create configuration: ' + error.message);
+      showSubmitLoading(false);
+    }
   }
 
-  function updatePulseConfiguration(configId, data) {
+  async function updatePulseConfiguration(configId, data) {
     showSubmitLoading(true);
 
-    fetch(`../../api/1.0/admin/configurations/pulse/${configId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to update configuration');
-          });
-        }
-        showToast('Success', 'Configuration updated successfully', 'success');
-        setTimeout(() => window.location.href = '../#pulse', 1500);
-      })
-      .catch(error => {
-        console.error('Error updating configuration:', error);
-        showToast('Error', 'Failed to update configuration: ' + error.message, 'danger');
-        showSubmitLoading(false);
+    try {
+      const response = await fetch(`../../api/1.0/admin/configurations/pulse/${configId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to update configuration');
+      }
+
+      AdminCommon.showSuccess('Configuration updated successfully');
+      setTimeout(() => window.location.href = '../#pulse', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error updating configuration:', error);
+      AdminCommon.showError('Failed to update configuration: ' + error.message);
+      showSubmitLoading(false);
+    }
   }
 
-  function loadConfigurationForEdit() {
-    showLoading();
+  async function loadConfigurationForEdit() {
+    AdminCommon.showLoading('loading-spinner', ['pulse-form', 'error-message']);
 
-    fetch(`../../api/1.0/admin/configurations/pulse/${id}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Configuration not found');
-        }
-        return response.json();
-      })
-      .then(config => {
-        populatePulseForm(config);
-        hideLoading();
-      })
-      .catch(error => {
-        console.error('Error loading configuration:', error);
-        showError('Failed to load configuration: ' + error.message);
-      });
+    try {
+      const response = await fetch(`../../api/1.0/admin/configurations/pulse/${id}`);
+      
+      if (!response.ok) {
+        throw new Error('Configuration not found');
+      }
+      
+      const config = await response.json();
+      populatePulseForm(config);
+      AdminCommon.hideLoading('loading-spinner', ['pulse-form']);
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+      AdminCommon.showErrorMessage('Failed to load configuration: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'pulse-form']);
+    }
   }
 
   function populatePulseForm(config) {
@@ -202,8 +245,8 @@
     document.getElementById('pulse-location').value = config.location || '';
     document.getElementById('pulse-timeout').value = config.timeout || 30;
     document.getElementById('pulse-degration-timeout').value = config.degrationTimeout || '';
-    document.getElementById('pulse-enabled').checked = config.enabled ?? true;
-    document.getElementById('pulse-ignore-ssl').checked = config.ignoreSslErrors ?? false;
+    document.getElementById('pulse-enabled').checked = config.enabled;
+    document.getElementById('pulse-ignore-ssl').checked = config.ignoreSslErrors;
     document.getElementById('pulse-comparison').value = config.comparisonValue || '';
 
     // Trigger the type change to show/hide comparison value field
@@ -225,7 +268,9 @@
   }
 
   function populateHeaders(headers) {
-    const container = document.getElementById('pulse-headers-container');
+    const container = elements.pulseHeadersContainer;
+    if (!container) return;
+    
     // Always clear existing header rows first
     container.innerHTML = '';
 
@@ -237,10 +282,10 @@
     // Add a row for each header
     Object.entries(headers).forEach(([name, value]) => {
       const row = document.createElement('div');
-      row.className = 'input-group mb-2 pulse-header-row';
+      row.className = `input-group mb-2 ${HEADER_ROW_CLASS}`;
       row.innerHTML = `
-        <input type="text" class="form-control header-name" placeholder="Header name" value="${escapeHtml(name)}">
-        <input type="text" class="form-control header-value" placeholder="Header value" value="${escapeHtml(value)}">
+        <input type="text" class="form-control header-name" placeholder="Header name" value="${AdminCommon.escapeHtml(name)}">
+        <input type="text" class="form-control header-value" placeholder="Header value" value="${AdminCommon.escapeHtml(value)}">
         <button class="btn btn-outline-danger remove-header" type="button">
           <i class="bi bi-trash"></i>
         </button>
@@ -249,65 +294,24 @@
     });
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  // Use AdminCommon utilities - removed duplicate functions:
+  // - escapeHtml -> AdminCommon.escapeHtml
+  // - showLoading/hideLoading -> AdminCommon.showLoading/hideLoading
+  // - showError -> AdminCommon.showErrorMessage
+  // - showToast -> AdminCommon.showSuccess/showError/showWarning
+  // - showDeleteButton -> AdminCommon.showDeleteButton
 
   function showSubmitLoading(loading) {
-    const form = document.getElementById('pulse-form');
-    const submitBtn = form?.querySelector('button[type="submit"]');
+    const form = elements.pulseForm;
     
-    if (submitBtn) {
-      submitBtn.disabled = loading;
-      if (loading) {
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-      } else {
-        const text = isUpdateMode ? 'Update Pulse Configuration' : 'Create Pulse Configuration';
-        submitBtn.innerHTML = `<i class="bi bi-save"></i> ${text}`;
-      }
-    }
-  }
-
-  function showLoading() {
-    document.getElementById('loading-spinner')?.classList.remove('d-none');
-    document.getElementById('pulse-form')?.classList.add('d-none');
-    document.getElementById('error-message')?.classList.add('d-none');
-  }
-
-  function hideLoading() {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('pulse-form')?.classList.remove('d-none');
-  }
-
-  function showError(message) {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('pulse-form')?.classList.add('d-none');
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-      errorDiv.classList.remove('d-none');
-      document.getElementById('error-text').textContent = message;
-    }
-  }
-
-  function showToast(title, message, type) {
-    if (typeof bootstrap !== 'undefined' && bootstrap.showToast) {
-      bootstrap.showToast({
-        header: title,
-        body: message,
-        toastClass: `toast-${type}`
-      });
+    if (form) {
+      const text = isUpdateMode ? 'Update Pulse Configuration' : 'Create Pulse Configuration';
+      AdminCommon.setSubmitLoading(form, loading, text);
     }
   }
 
   function showDeleteButton() {
-    const deleteBtn = document.getElementById('header-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.classList.remove('d-none');
-      // Initialize tooltip
-      new bootstrap.Tooltip(deleteBtn);
-    }
+    AdminCommon.showDeleteButton('header-delete-btn');
   }
 
   function handleDeleteClick() {
@@ -316,7 +320,7 @@
     modal.show();
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (!isUpdateMode || !id) {
       showToast('Error', 'Cannot delete in create mode', 'danger');
       return;
@@ -331,38 +335,36 @@
       deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
     }
 
-    fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete configuration');
-          });
-        }
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-        modal?.hide();
-
-        showToast('Success', 'Configuration deleted successfully', 'success');
-        
-        // Redirect back to admin list after a short delay
-        setTimeout(() => window.location.href = '../#pulse', 1500);
-      })
-      .catch((error) => {
-        console.error('Error deleting configuration:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete configuration');
+      }
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+      modal?.hide();
+
+      AdminCommon.showSuccess('Configuration deleted successfully');
+      
+      // Redirect back to admin list after a short delay
+      setTimeout(() => window.location.href = '../#pulse', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error deleting configuration:', error);
+      AdminCommon.showError(error.message);
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 })();

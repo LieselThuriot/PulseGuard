@@ -1,38 +1,324 @@
 /* Import base index styles */
 @import url('./index.css');
 
-/* Admin-specific styles */
-
-.gap-2 {
-  gap: 0.5rem;
+/* ============================================
+   Admin CSS Variables
+   ============================================ */
+:root {
+  --admin-gap-sm: 0.5rem;
+  --admin-gap-md: 1rem;
+  --admin-gap-lg: 1.5rem;
+  
+  --admin-switch-width: 2.5rem;
+  --admin-switch-height: 1.25rem;
+  
+  --admin-btn-sm-padding-y: 0.25rem;
+  --admin-btn-sm-padding-x: 0.5rem;
+  --admin-btn-sm-font-size: 0.875rem;
+  
+  --admin-search-max-width: 400px;
+  
+  --admin-table-icon-size: 0.75rem;
+  --admin-table-icon-opacity: 0.6;
+  --admin-table-icon-opacity-hover: 1;
+  
+  --admin-toast-bg-opacity: 0.5;
 }
 
+/* ============================================
+   Layout & Structure
+   ============================================ */
+.admin-container {
+  padding: var(--admin-gap-md);
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+.admin-table tbody tr {
+  vertical-align: middle;
+}
+
+.admin-table .form-check-input {
+  cursor: pointer;
+  width: var(--admin-switch-width);
+  height: var(--admin-switch-height);
+}
+
+.admin-table .btn-sm {
+  --bs-btn-padding-y: var(--admin-btn-sm-padding-y);
+  --bs-btn-padding-x: var(--admin-btn-sm-padding-x);
+  --bs-btn-font-size: var(--admin-btn-sm-font-size);
+}
+
+.admin-table th a:hover {
+  text-decoration: underline !important;
+}
+
+.admin-table th a i {
+  font-size: var(--admin-table-icon-size);
+  opacity: var(--admin-table-icon-opacity);
+  transition: opacity 0.2s ease;
+}
+
+.admin-table th a:hover i {
+  opacity: var(--admin-table-icon-opacity-hover);
+}
+
+.admin-table .badge {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* ============================================
+   Forms & Inputs
+   ============================================ */
+.admin-search-input {
+  max-width: var(--admin-search-max-width);
+}
+
+.admin-form-label-required::after {
+  content: ' *';
+  color: var(--bs-danger);
+}
+
+.admin-form-group {
+  margin-bottom: var(--admin-gap-md);
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  margin-top: var(--admin-gap-lg);
+}
+
+/* ============================================
+   Buttons & Actions
+   ============================================ */
+.admin-btn-group {
+  gap: var(--admin-gap-sm);
+}
+
+.admin-action-buttons {
+  display: flex;
+  gap: var(--admin-gap-sm);
+  align-items: center;
+}
+
+/* ============================================
+   Cards & Panels
+   ============================================ */
+.admin-card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.375rem;
+}
+
+.admin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--admin-gap-md);
+  background-color: var(--bs-light);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* ============================================
+   Toasts & Notifications
+   ============================================ */
+.toast-success {
+  --bs-toast-header-bg: RGBA(var(--bs-success-rgb), var(--admin-toast-bg-opacity));
+}
+
+.toast-danger {
+  --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), var(--admin-toast-bg-opacity));
+}
+
+.toast-warning {
+  --bs-toast-header-bg: RGBA(var(--bs-warning-rgb), var(--admin-toast-bg-opacity));
+}
+
+.toast-info {
+  --bs-toast-header-bg: RGBA(var(--bs-info-rgb), var(--admin-toast-bg-opacity));
+}
+
+/* ============================================
+   Loading States
+   ============================================ */
+.admin-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--admin-gap-lg);
+  min-height: 200px;
+}
+
+.admin-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+  border-radius: 0.25rem;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   Modals
+   ============================================ */
+.admin-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.admin-delete-warning {
+  padding: var(--admin-gap-md);
+  background-color: rgba(var(--bs-warning-rgb), 0.1);
+  border-left: 4px solid var(--bs-warning);
+  border-radius: 0.25rem;
+  margin: var(--admin-gap-md) 0;
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+.admin-tabs .nav-link {
+  color: var(--bs-body-color);
+  transition: all 0.2s ease;
+}
+
+.admin-tabs .nav-link:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.admin-tabs .nav-link.active {
+  font-weight: 600;
+}
+
+.admin-tabs .badge {
+  margin-left: 0.5rem;
+}
+
+/* ============================================
+   Empty States
+   ============================================ */
+.admin-empty-state {
+  text-align: center;
+  padding: var(--admin-gap-lg);
+  color: var(--bs-secondary);
+}
+
+.admin-empty-state-icon {
+  font-size: 3rem;
+  opacity: 0.3;
+  margin-bottom: var(--admin-gap-md);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.gap-2 {
+  gap: var(--admin-gap-sm);
+}
+
+.admin-text-muted-light {
+  color: var(--bs-secondary);
+  font-size: 0.875rem;
+}
+
+.admin-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+.admin-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-focus-visible:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .admin-search-input {
+    max-width: 100%;
+  }
+  
+  .admin-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .admin-table {
+    font-size: 0.875rem;
+  }
+  
+  .admin-btn-group {
+    flex-direction: column;
+  }
+}
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+[data-bs-theme="dark"] {
+  --admin-skeleton: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+}
+
+[data-bs-theme="dark"] .admin-skeleton {
+  background: var(--admin-skeleton);
+}
+
+[data-bs-theme="dark"] .admin-card-header {
+  background-color: var(--bs-dark);
+  border-bottom-color: var(--bs-border-color);
+}
+
+/* ============================================
+   Legacy Compatibility (Deprecated)
+   TODO: Replace these selectors in HTML files
+   ============================================ */
 #configurations-table tbody tr {
   vertical-align: middle;
 }
 
 #configurations-table .form-check-input {
   cursor: pointer;
-  width: 2.5rem;
-  height: 1.25rem;
+  width: var(--admin-switch-width);
+  height: var(--admin-switch-height);
 }
 
 #configurations-table .btn-sm {
-  --bs-btn-padding-y: 0.25rem;
-  --bs-btn-padding-x: 0.5rem;
-  --bs-btn-font-size: 0.875rem;
+  --bs-btn-padding-y: var(--admin-btn-sm-padding-y);
+  --bs-btn-padding-x: var(--admin-btn-sm-padding-x);
+  --bs-btn-font-size: var(--admin-btn-sm-font-size);
 }
 
 #search-input {
-  max-width: 400px;
-}
-
-.toast-success {
-  --bs-toast-header-bg: RGBA(var(--bs-success-rgb), 0.5);
-}
-
-.toast-danger {
-  --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
+  max-width: var(--admin-search-max-width);
 }
 
 .table th a:hover {
@@ -40,10 +326,10 @@
 }
 
 .table th a i {
-  font-size: 0.75rem;
-  opacity: 0.6;
+  font-size: var(--admin-table-icon-size);
+  opacity: var(--admin-table-icon-opacity);
 }
 
 .table th a:hover i {
-  opacity: 1;
+  opacity: var(--admin-table-icon-opacity-hover);
 }

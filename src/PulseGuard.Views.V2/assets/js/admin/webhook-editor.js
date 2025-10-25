@@ -20,7 +20,7 @@
       } else if (mode === 'update' && webhookId) {
         initUpdateMode();
       } else {
-        showError('Invalid mode or missing webhook ID');
+        AdminCommon.showErrorMessage('Invalid mode or missing webhook ID', 'error-message', 'error-text', ['loading-spinner', 'webhook-form']);
       }
     });
 
@@ -34,22 +34,21 @@
   /**
    * Load configurations to get unique groups and names
    */
-  function loadConfigurations() {
-    return fetch('../../api/1.0/admin/configurations')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load configurations');
-        }
-        return response.json();
-      })
-      .then((data) => {
-        configurations = data;
-        populateGroupAndNameSelects();
-      })
-      .catch((error) => {
-        console.error('Error loading configurations:', error);
-        // Don't fail the whole page if configurations can't be loaded
-      });
+  async function loadConfigurations() {
+    try {
+      const response = await fetch('../../api/1.0/admin/configurations');
+      
+      if (!response.ok) {
+        throw new Error('Failed to load configurations');
+      }
+      
+      const data = await response.json();
+      configurations = data;
+      populateGroupAndNameSelects();
+    } catch (error) {
+      console.error('Error loading configurations:', error);
+      // Don't fail the whole page if configurations can't be loaded
+    }
   }
 
   /**
@@ -69,7 +68,7 @@
     groupSelect.innerHTML = `
       <option value="">(no group)</option>
       <option value="*">(all)</option>
-      ${uniqueGroups.map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`).join('')}
+      ${uniqueGroups.map(group => `<option value="${AdminCommon.escapeHtml(group)}">${AdminCommon.escapeHtml(group)}</option>`).join('')}
     `;
 
     // Populate name select with all names initially
@@ -106,7 +105,7 @@
     nameSelect.innerHTML = `
       <option value="">(no name)</option>
       <option value="*">(all)</option>
-      ${availableNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}
+      ${availableNames.map(name => `<option value="${AdminCommon.escapeHtml(name)}">${AdminCommon.escapeHtml(name)}</option>`).join('')}
     `;
 
     // Restore previous selection if it's still available
@@ -123,14 +122,8 @@
     populateNameSelect(selectedGroup);
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  // Use AdminCommon utilities - removed duplicate functions:
+  // escapeHtml, showLoading, hideLoading, showError, showToast
 
   /**
    * Initialize create mode
@@ -138,7 +131,7 @@
   function initCreateMode() {
     document.getElementById('page-title').textContent = 'Create Webhook';
     document.getElementById('submit-text').textContent = 'Create Webhook';
-    hideLoading();
+    AdminCommon.hideLoading('loading-spinner', ['webhook-form']);
     showForm();
   }
 
@@ -162,26 +155,25 @@
   /**
    * Load webhook data for update mode
    */
-  function loadWebhook() {
-    showLoading();
+  async function loadWebhook() {
+    AdminCommon.showLoading('loading-spinner', ['webhook-form', 'error-message']);
 
-    fetch(`../../api/1.0/admin/webhooks/${webhookId}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load webhook');
-        }
-        return response.json();
-      })
-      .then((data) => {
-        currentWebhook = data;
-        populateForm(data);
-        hideLoading();
-        showForm();
-      })
-      .catch((error) => {
-        console.error('Error loading webhook:', error);
-        showError('Failed to load webhook: ' + error.message);
-      });
+    try {
+      const response = await fetch(`../../api/1.0/admin/webhooks/${webhookId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load webhook');
+      }
+      
+      const data = await response.json();
+      currentWebhook = data;
+      populateForm(data);
+      AdminCommon.hideLoading('loading-spinner', ['webhook-form']);
+      showForm();
+    } catch (error) {
+      console.error('Error loading webhook:', error);
+      AdminCommon.showErrorMessage('Failed to load webhook: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'webhook-form']);
+    }
   }
 
   /**
@@ -211,8 +203,13 @@
     const location = document.getElementById('webhook-location').value.trim();
     const enabled = document.getElementById('webhook-enabled').checked;
 
+    // Validate webhook URL
     if (!location) {
-      showToast('Error', 'Webhook URL is required', 'danger');
+      AdminCommon.showError('Webhook URL is required');
+      return;
+    }
+
+    if (!AdminCommon.validateUrl(location, 'Webhook URL')) {
       return;
     }
 
@@ -227,11 +224,12 @@
   /**
    * Create a new webhook
    */
-  function createWebhook(group, name, location, enabled) {
+  async function createWebhook(group, name, location, enabled) {
     const secret = document.getElementById('webhook-secret').value.trim();
 
+    // Validate secret
     if (!secret) {
-      showToast('Error', 'Secret is required', 'danger');
+      AdminCommon.showError('Secret is required');
       return;
     }
 
@@ -239,87 +237,82 @@
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
 
-    fetch('../../api/1.0/admin/webhooks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        secret: secret,
-        group: group,
-        name: name,
-        location: location,
-        enabled: enabled
-      })
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to create webhook');
-          });
-        }
-        showToast('Success', 'Webhook created successfully', 'success');
-        setTimeout(() => {
-          window.location.href = '../#webhook';
-        }, 1000);
-      })
-      .catch((error) => {
-        console.error('Error creating webhook:', error);
-        showToast('Error', error.message, 'danger');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Create';
+    try {
+      const response = await fetch('../../api/1.0/admin/webhooks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          secret: secret,
+          group: group,
+          name: name,
+          location: location,
+          enabled: enabled
+        })
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to create webhook');
+      }
+
+      AdminCommon.showSuccess('Webhook created successfully');
+      setTimeout(() => {
+        window.location.href = '../#webhook';
+      }, AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error creating webhook:', error);
+      AdminCommon.showError(error.message);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Create';
+    }
   }
 
   /**
    * Update an existing webhook
    */
-  function updateWebhook(group, name, location, enabled) {
+  async function updateWebhook(group, name, location, enabled) {
     const submitBtn = document.querySelector('#webhook-form button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
 
-    fetch(`../../api/1.0/admin/webhooks/${webhookId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        group: group,
-        name: name,
-        location: location,
-        enabled: enabled
-      })
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to update webhook');
-          });
-        }
-        showToast('Success', 'Webhook updated successfully', 'success');
-        setTimeout(() => {
-          window.location.href = '../#webhook';
-        }, 1000);
-      })
-      .catch((error) => {
-        console.error('Error updating webhook:', error);
-        showToast('Error', error.message, 'danger');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Update';
+    try {
+      const response = await fetch(`../../api/1.0/admin/webhooks/${webhookId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          group: group,
+          name: name,
+          location: location,
+          enabled: enabled
+        })
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to update webhook');
+      }
+
+      AdminCommon.showSuccess('Webhook updated successfully');
+      setTimeout(() => {
+        window.location.href = '../#webhook';
+      }, AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error updating webhook:', error);
+      AdminCommon.showError(error.message);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Update';
+    }
   }
 
   /**
    * Show delete button
    */
   function showDeleteButton() {
-    const deleteBtn = document.getElementById('header-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.classList.remove('d-none');
-      // Initialize tooltip
-      new bootstrap.Tooltip(deleteBtn);
-    }
+    AdminCommon.showDeleteButton('header-delete-btn');
   }
 
   /**
@@ -355,82 +348,46 @@
   /**
    * Handle webhook deletion
    */
-  function handleDelete() {
+  async function handleDelete() {
     const deleteBtn = document.getElementById('delete-confirm');
     deleteBtn.disabled = true;
     deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
 
-    fetch(`../../api/1.0/admin/webhooks/${webhookId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete webhook');
-          });
+    try {
+      const response = await fetch(`../../api/1.0/admin/webhooks/${webhookId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
-
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-        modal?.hide();
-
-        showToast('Success', 'Webhook deleted successfully', 'success');
-        setTimeout(() => {
-          window.location.href = '../#webhook';
-        }, 1000);
-      })
-      .catch((error) => {
-        console.error('Error deleting webhook:', error);
-        showToast('Error', error.message, 'danger');
-        deleteBtn.disabled = false;
-        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete webhook');
+      }
+
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+      modal?.hide();
+
+      AdminCommon.showSuccess('Webhook deleted successfully');
+      setTimeout(() => {
+        window.location.href = '../#webhook';
+      }, AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error deleting webhook:', error);
+      AdminCommon.showError(error.message);
+      deleteBtn.disabled = false;
+      deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    }
   }
 
   /**
    * Show loading state
    */
-  function showLoading() {
-    document.getElementById('loading-spinner')?.classList.remove('d-none');
-    document.getElementById('webhook-form')?.classList.add('d-none');
-    document.getElementById('error-message')?.classList.add('d-none');
-  }
-
-  /**
-   * Hide loading state
-   */
-  function hideLoading() {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-  }
-
   /**
    * Show form
    */
   function showForm() {
     document.getElementById('webhook-form')?.classList.remove('d-none');
-  }
-
-  /**
-   * Show error message
-   */
-  function showError(message) {
-    hideLoading();
-    document.getElementById('error-text').textContent = message;
-    document.getElementById('error-message')?.classList.remove('d-none');
-  }
-
-  /**
-   * Show toast notification
-   */
-  function showToast(title, message, type) {
-    if (typeof bootstrap !== 'undefined' && bootstrap.showToast) {
-      bootstrap.showToast({
-        header: title,
-        body: message,
-        toastClass: `toast-${type}`
-      });
-    }
   }
 })();

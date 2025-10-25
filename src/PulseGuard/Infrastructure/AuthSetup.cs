@@ -19,6 +19,7 @@ internal sealed class PulseAuthenticationSettings
     public bool UsePkce { get; set; } = true;
     public string ResponseMode { get; set; } = default!;
     public string UserIdClaim { get; set; } = default!;
+    public bool UpsertUnknownUsers { get; set; } = true;
 }
 
 internal static class AuthSetup
@@ -49,6 +50,7 @@ internal static class AuthSetup
 
         string? pathBase = configuration["PathBase"];
         string accessDeniedPath = pathBase + "/AccessDenied";
+        bool upsertUnknownUsers = settings.UpsertUnknownUsers;
 
         services.AddAuthorization(options => options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator")))
                 .AddAuthentication(options =>
@@ -125,6 +127,15 @@ internal static class AuthSetup
                                                                             .Select(r => new Claim(identity.RoleClaimType, r));
 
                                         identity.AddClaims(roleClaims);
+                                    }
+                                    else if (upsertUnknownUsers)
+                                    {
+                                        await db.Users.UpsertEntityAsync(new User
+                                        {
+                                            UserId = identity.Name!,
+                                            RowType = User.RowTypeRoles
+                                        },
+                                        Azure.Data.Tables.TableUpdateMode.Merge);
                                     }
                                 }
                             }

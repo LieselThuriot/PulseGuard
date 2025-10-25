@@ -9,12 +9,15 @@
   let isUpdateMode = mode === 'update';
   let pulseConfigurations = [];
 
+  // Constants
+  const HEADER_ROW_CLASS = 'agent-header-row';
+
   // Initialize
   initialize();
 
   function initialize() {
     if (isUpdateMode && !id) {
-      showError('Invalid parameters for update mode');
+      AdminCommon.showErrorMessage('Invalid parameters for update mode', 'error-message', 'error-text', ['loading-spinner', 'agent-form']);
       return;
     }
 
@@ -27,7 +30,7 @@
     if (isUpdateMode) {
       loadConfigurationForEdit();
     } else {
-      hideLoading();
+      AdminCommon.hideLoading('loading-spinner', ['agent-form']);
     }
   }
 
@@ -74,7 +77,7 @@
   function addHeaderRow() {
     const container = document.getElementById('agent-headers-container');
     const newRow = document.createElement('div');
-    newRow.className = 'input-group mb-2 agent-header-row';
+    newRow.className = `input-group mb-2 ${HEADER_ROW_CLASS}`;
     newRow.innerHTML = `
       <input type="text" class="form-control header-name" placeholder="Header name">
       <input type="text" class="form-control header-value" placeholder="Header value">
@@ -87,7 +90,7 @@
 
   function collectHeaders() {
     const headers = {};
-    document.querySelectorAll('.agent-header-row').forEach(row => {
+    document.querySelectorAll(`.${HEADER_ROW_CLASS}`).forEach(row => {
       const name = row.querySelector('.header-name')?.value.trim();
       const value = row.querySelector('.header-value')?.value.trim();
       if (name && value) {
@@ -101,10 +104,27 @@
     e.preventDefault();
 
     const pulseId = document.getElementById('agent-pulse-id').value;
+    const locationValue = document.getElementById('agent-location').value.trim();
+    const appNameValue = document.getElementById('agent-app-name').value.trim();
+
+    // Get agent type - use form value if available (create mode), otherwise use URL param (update mode)
+    const agentTypeValue = document.getElementById('agent-type').value || agentType;
+
+    // Validate required fields
+    if (!locationValue) {
+      AdminCommon.showError('Location is required');
+      return;
+    }
+
+    // Validate URL format for ApplicationInsights
+    if (agentTypeValue === 'ApplicationInsights' && !AdminCommon.validateUrl(locationValue, 'Application Insights Endpoint')) {
+      return;
+    }
+
     const data = {
-      type: document.getElementById('agent-type').value,
-      location: document.getElementById('agent-location').value.trim(),
-      applicationName: document.getElementById('agent-app-name').value.trim() || null,
+      type: agentTypeValue,
+      location: locationValue,
+      applicationName: appNameValue || null,
       enabled: document.getElementById('agent-enabled').checked,
       headers: collectHeaders()
     };
@@ -131,12 +151,12 @@
             throw new Error(text || 'Failed to create agent configuration');
           });
         }
-        showToast('Success', 'Agent configuration created successfully', 'success');
-        setTimeout(() => window.location.href = '../#agent', 1500);
+        AdminCommon.showSuccess('Agent configuration created successfully');
+        setTimeout(() => window.location.href = '../#agent', AdminCommon.REDIRECT_DELAY);
       })
       .catch(error => {
         console.error('Error creating agent configuration:', error);
-        showToast('Error', 'Failed to create agent configuration: ' + error.message, 'danger');
+        AdminCommon.showError('Failed to create agent configuration: ' + error.message);
         showSubmitLoading(false);
       });
   }
@@ -156,26 +176,38 @@
             throw new Error(text || 'Failed to update agent configuration');
           });
         }
-        showToast('Success', 'Agent configuration updated successfully', 'success');
-        setTimeout(() => window.location.href = '../#agent', 1500);
+        AdminCommon.showSuccess('Agent configuration updated successfully');
+        setTimeout(() => window.location.href = '../#agent', AdminCommon.REDIRECT_DELAY);
       })
       .catch(error => {
         console.error('Error updating agent configuration:', error);
-        showToast('Error', 'Failed to update agent configuration: ' + error.message, 'danger');
+        AdminCommon.showError('Failed to update agent configuration: ' + error.message);
         showSubmitLoading(false);
       });
   }
 
-  function loadPulseConfigurations() {
-    fetch('../../api/1.0/admin/configurations')
-      .then(response => response.ok ? response.json() : Promise.reject('Failed to load configurations'))
-      .then(data => {
-        pulseConfigurations = data.filter(c => c.type === 'Normal' || c.type === 0); // Pulse type
-        populateAgentPulseSelector();
-      })
-      .catch(error => {
-        console.error('Error loading configurations:', error);
-      });
+  /**
+   * Loads pulse configurations to populate parent pulse selector
+   */
+  async function loadPulseConfigurations() {
+    try {
+      const response = await fetch('../../api/1.0/admin/configurations');
+      if (!response.ok) {
+        throw new Error('Failed to load configurations');
+      }
+      const data = await response.json();
+      pulseConfigurations = data.filter(c => c.type === 'Normal'); // Filter for Normal/Pulse type
+      populateAgentPulseSelector();
+    } catch (error) {
+      console.error('Error loading configurations:', error);
+      AdminCommon.showError('Failed to load pulse checks. Please refresh the page.');
+      
+      // Disable form to prevent submission without parent pulse
+      const submitBtn = document.querySelector('#agent-form button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
+    }
   }
 
   function populateAgentPulseSelector() {
@@ -192,7 +224,7 @@
   }
 
   function loadConfigurationForEdit() {
-    showLoading();
+    AdminCommon.showLoading('loading-spinner', ['agent-form', 'error-message']);
 
     fetch(`../../api/1.0/admin/configurations/agent/${id}/${agentType}`)
       .then(response => {
@@ -203,11 +235,11 @@
       })
       .then(config => {
         populateAgentForm(config, agentType);
-        hideLoading();
+        AdminCommon.hideLoading('loading-spinner', ['agent-form']);
       })
       .catch(error => {
         console.error('Error loading configuration:', error);
-        showError('Failed to load configuration: ' + error.message);
+        AdminCommon.showErrorMessage('Failed to load configuration: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'agent-form']);
       });
   }
 
@@ -217,7 +249,7 @@
     document.getElementById('agent-type').value = agentType || '';
     document.getElementById('agent-location').value = config.location || '';
     document.getElementById('agent-app-name').value = config.applicationName || '';
-    document.getElementById('agent-enabled').checked = config.enabled ?? true;
+    document.getElementById('agent-enabled').checked = config.enabled;
 
     // Trigger the type change to show/hide application name field
     handleAgentTypeChange({ target: { value: agentType } });
@@ -257,78 +289,31 @@
 
     // Add a row for each header
     Object.entries(headers).forEach(([name, value]) => {
-      const row = document.createElement('div');
-      row.className = 'input-group mb-2 agent-header-row';
-      row.innerHTML = `
-        <input type="text" class="form-control header-name" placeholder="Header name" value="${escapeHtml(name)}">
-        <input type="text" class="form-control header-value" placeholder="Header value" value="${escapeHtml(value)}">
+      const newRow = document.createElement('div');
+      newRow.className = `input-group mb-2 ${HEADER_ROW_CLASS}`;
+      newRow.innerHTML = `
+        <input type="text" class="form-control header-name" placeholder="Header name" value="${AdminCommon.escapeHtml(name)}">
+        <input type="text" class="form-control header-value" placeholder="Header value" value="${AdminCommon.escapeHtml(value)}">
         <button class="btn btn-outline-danger remove-header" type="button">
           <i class="bi bi-trash"></i>
         </button>
       `;
-      container.appendChild(row);
+      container.appendChild(newRow);
     });
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
+  // Use AdminCommon utilities - removed duplicate functions
   function showSubmitLoading(loading) {
     const form = document.getElementById('agent-form');
-    const submitBtn = form?.querySelector('button[type="submit"]');
     
-    if (submitBtn) {
-      submitBtn.disabled = loading;
-      if (loading) {
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-      } else {
-        const text = isUpdateMode ? 'Update Agent Configuration' : 'Create Agent Configuration';
-        submitBtn.innerHTML = `<i class="bi bi-save"></i> ${text}`;
-      }
-    }
-  }
-
-  function showLoading() {
-    document.getElementById('loading-spinner')?.classList.remove('d-none');
-    document.getElementById('agent-form')?.classList.add('d-none');
-    document.getElementById('error-message')?.classList.add('d-none');
-  }
-
-  function hideLoading() {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('agent-form')?.classList.remove('d-none');
-  }
-
-  function showError(message) {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('agent-form')?.classList.add('d-none');
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-      errorDiv.classList.remove('d-none');
-      document.getElementById('error-text').textContent = message;
-    }
-  }
-
-  function showToast(title, message, type) {
-    if (typeof bootstrap !== 'undefined' && bootstrap.showToast) {
-      bootstrap.showToast({
-        header: title,
-        body: message,
-        toastClass: `toast-${type}`
-      });
+    if (form) {
+      const text = isUpdateMode ? 'Update Agent Configuration' : 'Create Agent Configuration';
+      AdminCommon.setSubmitLoading(form, loading, text);
     }
   }
 
   function showDeleteButton() {
-    const deleteBtn = document.getElementById('header-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.classList.remove('d-none');
-      // Initialize tooltip
-      new bootstrap.Tooltip(deleteBtn);
-    }
+    AdminCommon.showDeleteButton('header-delete-btn');
   }
 
   function handleDeleteClick() {
@@ -339,7 +324,7 @@
 
   function handleDeleteConfirm() {
     if (!isUpdateMode || !id) {
-      showToast('Error', 'Cannot delete in create mode', 'danger');
+      AdminCommon.showError('Cannot delete in create mode');
       return;
     }
 
@@ -369,14 +354,14 @@
         const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
         modal?.hide();
 
-        showToast('Success', 'Configuration deleted successfully', 'success');
+        AdminCommon.showSuccess('Configuration deleted successfully');
         
         // Redirect back to admin list after a short delay
-        setTimeout(() => window.location.href = '../#agent', 1500);
+        setTimeout(() => window.location.href = '../#agent', AdminCommon.REDIRECT_DELAY);
       })
       .catch((error) => {
         console.error('Error deleting configuration:', error);
-        showToast('Error', error.message, 'danger');
+        AdminCommon.showError(error.message);
       })
       .finally(() => {
         // Re-enable the delete button

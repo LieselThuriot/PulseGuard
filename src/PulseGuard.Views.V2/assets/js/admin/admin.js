@@ -34,6 +34,9 @@
   let filteredUsers = [];
   let sortColumn = null; // null means use default sort
   let sortDirection = 'asc';
+  let tooltipInstances = []; // Track tooltip instances to prevent memory leaks
+  let activeRequests = { configs: null, webhooks: null, users: null }; // Track active fetch requests
+  let loadRetryCount = { configs: 0, webhooks: 0, users: 0 }; // Track retry attempts
 
   // Initialize
   loadConfigurations();
@@ -41,8 +44,11 @@
   loadUsers();
   initializeTabs();
 
+  // Create debounced search handler (300ms delay)
+  const debouncedSearch = debounce(handleSearch, 300);
+
   // Event Listeners
-  document.getElementById('search-input')?.addEventListener('input', handleSearch);
+  document.getElementById('search-input')?.addEventListener('input', debouncedSearch);
   document.getElementById('filter-disabled')?.addEventListener('change', handleFilter);
   document.getElementById('sort-type')?.addEventListener('click', (e) => { e.preventDefault(); handleSort('type'); });
   document.getElementById('sort-group')?.addEventListener('click', (e) => { e.preventDefault(); handleSort('group'); });
@@ -129,70 +135,113 @@
   /**
    * Loads configurations from the API
    */
-  function loadConfigurations() {
+  async function loadConfigurations() {
+    // Cancel previous request if still pending
+    if (activeRequests.configs) {
+      activeRequests.configs.abort();
+    }
+
+    const controller = new AbortController();
+    activeRequests.configs = controller;
+
     showLoading();
 
-    fetch('../api/1.0/admin/configurations')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        configurations = data;
-        filteredConfigurations = [...configurations];
-        hideLoading();
-        renderConfigurations();
-      })
-      .catch((error) => {
-        console.error('Error loading configurations:', error);
-        showError('Failed to load configurations: ' + error.message);
-      });
+    try {
+      const response = await fetch('../api/1.0/admin/configurations', { signal: controller.signal });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      
+      const data = await response.json();
+      configurations = data;
+      filteredConfigurations = [...configurations];
+      loadRetryCount.configs = 0; // Reset retry count on success
+      activeRequests.configs = null;
+      hideLoading();
+      renderConfigurations();
+    } catch (error) {
+      activeRequests.configs = null;
+      if (error.name === 'AbortError') {
+        console.log('Configuration load aborted');
+        return;
+      }
+      console.error('Error loading configurations:', error);
+      showError('Failed to load configurations: ' + error.message);
+      showRetryButton('configs', loadConfigurations);
+    }
   }
 
   /**
    * Loads webhooks from the API
    */
-  function loadWebhooks() {
-    fetch('../api/1.0/admin/webhooks')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        webhooks = data;
-        filteredWebhooks = [...webhooks];
-        renderWebhooks();
-      })
-      .catch((error) => {
-        console.error('Error loading webhooks:', error);
-        showError('Failed to load webhooks: ' + error.message);
-      });
+  async function loadWebhooks() {
+    // Cancel previous request if still pending
+    if (activeRequests.webhooks) {
+      activeRequests.webhooks.abort();
+    }
+
+    const controller = new AbortController();
+    activeRequests.webhooks = controller;
+
+    try {
+      const response = await fetch('../api/1.0/admin/webhooks', { signal: controller.signal });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      
+      const data = await response.json();
+      webhooks = data;
+      filteredWebhooks = [...webhooks];
+      loadRetryCount.webhooks = 0; // Reset retry count on success
+      activeRequests.webhooks = null;
+      renderWebhooks();
+    } catch (error) {
+      activeRequests.webhooks = null;
+      if (error.name === 'AbortError') {
+        console.log('Webhook load aborted');
+        return;
+      }
+      console.error('Error loading webhooks:', error);
+      showError('Failed to load webhooks: ' + error.message);
+    }
   }
 
   /**
    * Loads users from the API
    */
-  function loadUsers() {
-    fetch('../api/1.0/admin/users')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        users = data;
-        filteredUsers = [...users];
-        renderUsers();
-      })
-      .catch((error) => {
-        console.error('Error loading users:', error);
-        showError('Failed to load users: ' + error.message);
-      });
+  async function loadUsers() {
+    // Cancel previous request if still pending
+    if (activeRequests.users) {
+      activeRequests.users.abort();
+    }
+
+    const controller = new AbortController();
+    activeRequests.users = controller;
+
+    try {
+      const response = await fetch('../api/1.0/admin/users', { signal: controller.signal });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      
+      const data = await response.json();
+      users = data;
+      filteredUsers = [...users];
+      loadRetryCount.users = 0; // Reset retry count on success
+      activeRequests.users = null;
+      renderUsers();
+    } catch (error) {
+      activeRequests.users = null;
+      if (error.name === 'AbortError') {
+        console.log('User load aborted');
+        return;
+      }
+      console.error('Error loading users:', error);
+      showError('Failed to load users: ' + error.message);
+    }
   }
 
   /**
@@ -212,8 +261,8 @@
     agentTbody.innerHTML = '';
 
     // Separate configurations by type
-    let pulseConfigs = filteredConfigurations.filter(c => c.type === 'Normal' || c.type === 0);
-    let agentConfigs = filteredConfigurations.filter(c => c.type === 'Agent' || c.type === 1);
+    let pulseConfigs = filteredConfigurations.filter(c => c.type === 'Normal');
+    let agentConfigs = filteredConfigurations.filter(c => c.type === 'Agent');
 
     // Sort each subset appropriately
     const sortSubset = (configs) => {
@@ -266,9 +315,13 @@
       agentConfigs.forEach(config => renderConfigRow(agentTbody, config));
     }
 
+    // Dispose old tooltips to prevent memory leaks
+    tooltipInstances.forEach(tooltip => tooltip.dispose());
+    tooltipInstances = [];
+
     // Initialize tooltips for the newly created buttons
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
   }
 
   /**
@@ -282,7 +335,7 @@
 
     // Group
     const groupCell = row.insertCell();
-    groupCell.textContent = config.group || '(no group)';
+    groupCell.textContent = (!config.group || config.group === '') ? '(no group)' : config.group;
 
     // Name
     const nameCell = row.insertCell();
@@ -325,7 +378,7 @@
           break;
       }
       
-      subTypeCell.innerHTML = `<span class="badge ${subTypeBadge}"><i class="bi ${subTypeIcon}"></i> ${config.subType}</span>`;
+      subTypeCell.innerHTML = `<span class="badge ${subTypeBadge}"><i class="bi ${subTypeIcon}"></i> ${escapeHtml(config.subType)}</span>`;
     } else {
       subTypeCell.textContent = '';
     }
@@ -337,7 +390,7 @@
     toggle.className = 'form-check form-switch d-inline-block';
     toggle.innerHTML = `
       <input class="form-check-input" type="checkbox" role="switch" 
-             id="toggle-${config.id}" ${config.enabled ? 'checked' : ''}>
+             id="toggle-${escapeHtml(config.id)}" ${config.enabled ? 'checked' : ''}>
     `;
     enabledCell.appendChild(toggle);
 
@@ -356,9 +409,9 @@
     editBtn.setAttribute('data-bs-toggle', 'tooltip');
     editBtn.setAttribute('data-bs-title', 'Edit');
     if (isNormal) {
-      editBtn.href = `pulse-editor?mode=update&id=${config.id}`;
+      editBtn.href = `pulse-editor?mode=update&id=${encodeURIComponent(config.id)}`;
     } else {
-      editBtn.href = `agent-editor?mode=update&id=${config.id}&agentType=${config.subType}`;
+      editBtn.href = `agent-editor?mode=update&id=${encodeURIComponent(config.id)}&agentType=${encodeURIComponent(config.subType)}`;
     }
     editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
     
@@ -431,9 +484,13 @@
       sortedWebhooks.forEach(webhook => renderWebhookRow(webhookTbody, webhook));
     }
 
+    // Dispose old tooltips to prevent memory leaks
+    tooltipInstances.forEach(tooltip => tooltip.dispose());
+    tooltipInstances = [];
+
     // Initialize tooltips for the newly created buttons
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
   }
 
   /**
@@ -477,7 +534,7 @@
     toggle.className = 'form-check form-switch d-inline-block';
     toggle.innerHTML = `
       <input class="form-check-input" type="checkbox" role="switch" 
-             id="toggle-webhook-${webhook.id}" ${webhook.enabled ? 'checked' : ''}>
+             id="toggle-webhook-${escapeHtml(webhook.id)}" ${webhook.enabled ? 'checked' : ''}>
     `;
     enabledCell.appendChild(toggle);
 
@@ -495,7 +552,7 @@
     editBtn.className = 'btn btn-outline-primary';
     editBtn.setAttribute('data-bs-toggle', 'tooltip');
     editBtn.setAttribute('data-bs-title', 'Edit');
-    editBtn.href = `webhook-editor?mode=update&id=${webhook.id}#webhook`;
+    editBtn.href = `webhook-editor?mode=update&id=${encodeURIComponent(webhook.id)}#webhook`;
     editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
     
     const deleteBtn = document.createElement('button');
@@ -544,9 +601,13 @@
       sortedUsers.forEach(user => renderUserRow(userTbody, user));
     }
 
+    // Dispose old tooltips to prevent memory leaks
+    tooltipInstances.forEach(tooltip => tooltip.dispose());
+    tooltipInstances = [];
+
     // Initialize tooltips for the newly created buttons
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
   }
 
   /**
@@ -609,39 +670,40 @@
    * @param {PulseConfiguration} config
    * @param {boolean} enabled
    */
-  function handleToggle(config, enabled) {
+  async function handleToggle(config, enabled) {
     const isNormal = config.type === 'Normal' || config.type === 0;
-    const typeText = isNormal ? 'normal' : 'agent';
+    const typeText = isNormal ? 'pulse' : 'agent';
     const url = isNormal 
       ? `../api/1.0/admin/configurations/${typeText}/${config.id}/${enabled}`
       : `../api/1.0/admin/configurations/${typeText}/${config.id}/${config.subType}/${enabled}`;
     
-    fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to update configuration');
-        }
-        config.enabled = enabled;
-        showToast(
-          'Success',
-          `Configuration ${enabled ? 'enabled' : 'disabled'} successfully`,
-          'success'
-        );
-      })
-      .catch((error) => {
-        console.error('Error updating configuration:', error);
-        showToast('Error', 'Failed to update configuration: ' + error.message, 'danger');
-        // Revert checkbox
-        const checkbox = document.getElementById(`toggle-${config.id}`);
-        if (checkbox) {
-          checkbox.checked = !enabled;
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update configuration');
+      }
+
+      config.enabled = enabled;
+      showToast(
+        'Success',
+        `Configuration ${enabled ? 'enabled' : 'disabled'} successfully`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error updating configuration:', error);
+      showToast('Error', 'Failed to update configuration: ' + error.message, 'danger');
+      // Revert checkbox
+      const checkbox = document.getElementById(`toggle-${config.id}`);
+      if (checkbox) {
+        checkbox.checked = !enabled;
+      }
+    }
   }
 
   /**
@@ -662,7 +724,7 @@
   /**
    * Handles saving the rename
    */
-  function handleRenameSave() {
+  async function handleRenameSave() {
     const id = document.getElementById('rename-id').value;
     const type = parseInt(document.getElementById('rename-type').value);
     const group = document.getElementById('rename-group').value.trim();
@@ -673,50 +735,50 @@
       return;
     }
 
-    fetch(`../api/1.0/admin/configurations/${id}/name`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        group: group,
-        name: name
-      })
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to rename configuration');
-        }
-
-        // Update local data - update ALL configurations with this ID (both normal and agent)
-        configurations.forEach(config => {
-          if (config.id === id) {
-            config.group = group;
-            config.name = name;
-          }
-        });
-
-        // Update filtered configurations as well
-        filteredConfigurations.forEach(config => {
-          if (config.id === id) {
-            config.group = group;
-            config.name = name;
-          }
-        });
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('renameModal'));
-        modal?.hide();
-
-        // Re-sort and re-render (maintains current sort state)
-        sortConfigurations();
-        renderConfigurations();
-        showToast('Success', 'Configuration renamed successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error renaming configuration:', error);
-        showToast('Error', 'Failed to rename configuration: ' + error.message, 'danger');
+    try {
+      const response = await fetch(`../api/1.0/admin/configurations/${id}/name`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          group: group,
+          name: name
+        })
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename configuration');
+      }
+
+      // Update local data - update ALL configurations with this ID (both normal and agent)
+      configurations.forEach(config => {
+        if (config.id === id) {
+          config.group = group;
+          config.name = name;
+        }
+      });
+
+      // Update filtered configurations as well
+      filteredConfigurations.forEach(config => {
+        if (config.id === id) {
+          config.group = group;
+          config.name = name;
+        }
+      });
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('renameModal'));
+      modal?.hide();
+
+      // Re-sort and re-render (maintains current sort state)
+      sortConfigurations();
+      renderConfigurations();
+      showToast('Success', 'Configuration renamed successfully', 'success');
+    } catch (error) {
+      console.error('Error renaming configuration:', error);
+      showToast('Error', 'Failed to rename configuration: ' + error.message, 'danger');
+    }
   }
 
   /**
@@ -791,13 +853,13 @@
   /**
    * Handles the delete confirmation
    */
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     const id = document.getElementById('delete-id').value;
     const type = document.getElementById('delete-type').value;
     const subType = document.getElementById('delete-subtype').value;
     
     const isNormal = type === 'Normal' || type === '0';
-    const typeText = isNormal ? 'normal' : 'agent';
+    const typeText = isNormal ? 'pulse' : 'agent';
     const url = isNormal 
       ? `../api/1.0/admin/configurations/${typeText}/${id}`
       : `../api/1.0/admin/configurations/${typeText}/${id}/${subType}`;
@@ -809,42 +871,40 @@
       deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
     }
 
-    fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete configuration');
-          });
-        }
-
-        // Remove from local data
-        configurations = configurations.filter(c => !(c.id === id && c.type === type));
-        filteredConfigurations = filteredConfigurations.filter(c => !(c.id === id && c.type === type));
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-        modal?.hide();
-
-        // Re-render
-        renderConfigurations();
-        showToast('Success', 'Configuration deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error deleting configuration:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete configuration');
+      }
+
+      // Remove from local data
+      configurations = configurations.filter(c => !(c.id === id && c.type === type));
+      filteredConfigurations = filteredConfigurations.filter(c => !(c.id === id && c.type === type));
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+      modal?.hide();
+
+      // Re-render
+      renderConfigurations();
+      showToast('Success', 'Configuration deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting configuration:', error);
+      showToast('Error', error.message, 'danger');
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 
   /**
@@ -923,7 +983,7 @@
   /**
    * Handles the webhook delete confirmation
    */
-  function handleWebhookDeleteConfirm() {
+  async function handleWebhookDeleteConfirm() {
     const webhookId = document.getElementById('delete-webhook-id').value;
 
     // Disable the delete button
@@ -933,42 +993,40 @@
       deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
     }
 
-    fetch(`../api/1.0/admin/webhooks/${webhookId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete webhook');
-          });
-        }
-
-        // Remove from local data
-        webhooks = webhooks.filter(w => w.id !== webhookId);
-        filteredWebhooks = filteredWebhooks.filter(w => w.id !== webhookId);
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteWebhookModal'));
-        modal?.hide();
-
-        // Re-render
-        renderWebhooks();
-        showToast('Success', 'Webhook deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error deleting webhook:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(`../api/1.0/admin/webhooks/${webhookId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete webhook');
+      }
+
+      // Remove from local data
+      webhooks = webhooks.filter(w => w.id !== webhookId);
+      filteredWebhooks = filteredWebhooks.filter(w => w.id !== webhookId);
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteWebhookModal'));
+      modal?.hide();
+
+      // Re-render
+      renderWebhooks();
+      showToast('Success', 'Webhook deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting webhook:', error);
+      showToast('Error', error.message, 'danger');
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 
   /**
@@ -1055,19 +1113,16 @@
   }
 
   /**
-   * Applies search and filter
+   * Applies search and filter globally across configurations, webhooks, and users
    */
   function applyFilters() {
     const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
     const showDisabledOnly = document.getElementById('filter-disabled')?.checked || false;
 
     filteredConfigurations = configurations.filter((config) => {
-      const isNormal = config.type === 'Normal' || config.type === 0;
-      const typeText = isNormal ? 'normal' : 'agent';
       const matchesSearch = !searchTerm ||
         config.group.toLowerCase().includes(searchTerm) ||
-        config.name.toLowerCase().includes(searchTerm) ||
-        typeText.includes(searchTerm);
+        config.name.toLowerCase().includes(searchTerm);
 
       const matchesFilter = !showDisabledOnly || !config.enabled;
 
@@ -1085,9 +1140,19 @@
       return matchesSearch && matchesFilter;
     });
 
+    filteredUsers = users.filter((user) => {
+      if (!searchTerm) return true;
+
+      const userIdMatch = user.id.toLowerCase().includes(searchTerm);
+      const rolesMatch = user.roles && user.roles.some(role => role.toLowerCase().includes(searchTerm));
+
+      return userIdMatch || rolesMatch;
+    });
+
     sortConfigurations();
     renderConfigurations();
     renderWebhooks();
+    renderUsers();
   }
 
   /**
@@ -1226,6 +1291,39 @@
   }
 
   /**
+   * Shows retry button for failed data loads
+   * @param {string} type - 'configs', 'webhooks', or 'users'
+   * @param {Function} retryCallback - Function to call on retry
+   */
+  function showRetryButton(type, retryCallback) {
+    const errorDiv = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+    
+    if (!errorDiv || !errorText) return;
+
+    // Check retry count to prevent infinite retries
+    if (loadRetryCount[type] >= 3) {
+      errorText.textContent += ' (Maximum retry attempts reached. Please refresh the page.)';
+      return;
+    }
+
+    // Add retry button if it doesn't exist
+    let retryBtn = errorDiv.querySelector('.retry-btn');
+    if (!retryBtn) {
+      retryBtn = document.createElement('button');
+      retryBtn.className = 'btn btn-primary btn-sm ms-3 retry-btn';
+      retryBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Retry';
+      errorDiv.appendChild(retryBtn);
+    }
+
+    retryBtn.onclick = () => {
+      loadRetryCount[type]++;
+      retryBtn.remove();
+      retryCallback();
+    };
+  }
+
+  /**
    * Shows a toast notification
    * @param {string} title
    * @param {string} message
@@ -1239,5 +1337,31 @@
         toastClass: `toast-${type}`
       });
     }
+  }
+
+  /**
+   * Escape HTML to prevent XSS attacks
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Debounce function to limit function execution rate
+   * @param {Function} func - Function to debounce
+   * @param {number} delay - Delay in milliseconds
+   * @returns {Function} Debounced function
+   */
+  function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
   }
 })();

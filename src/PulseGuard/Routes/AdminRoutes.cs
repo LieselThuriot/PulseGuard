@@ -8,6 +8,7 @@ using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Models.Admin;
 using PulseGuard.Services;
+using System.Configuration;
 using System.Security.Claims;
 using TableStorage;
 using TableStorage.Linq;
@@ -377,6 +378,11 @@ public static class AdminRoutes
             if (request.Type is Checks.PulseCheckType.Json or Checks.PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
             {
                 return Results.BadRequest($"ComparisonValue is required for {request.Type} type.");
+            }
+
+            if (request.DegrationTimeout >= request.Timeout)
+            {
+                return Results.BadRequest("DegrationTimeout must be less than Timeout.");
             }
 
             string sqid = await store.GenerateSqid(request.Group, request.Name, token);

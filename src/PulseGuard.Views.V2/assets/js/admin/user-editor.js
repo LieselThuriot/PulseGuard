@@ -12,7 +12,7 @@
 
   function initialize() {
     if (isUpdateMode && !id) {
-      showError('Invalid parameters for update mode');
+      AdminCommon.showErrorMessage('Invalid parameters for update mode', 'error-message', 'error-text', ['loading-spinner', 'user-form']);
       return;
     }
 
@@ -22,7 +22,7 @@
     if (isUpdateMode) {
       loadUserForEdit();
     } else {
-      hideLoading();
+      AdminCommon.hideLoading('loading-spinner', ['user-form']);
       // Add one empty role field for create mode
       addRoleField();
     }
@@ -54,7 +54,7 @@
         if (roleFields.length > 1) {
           e.target.closest('.input-group').remove();
         } else {
-          showToast('Error', 'At least one role is required', 'danger');
+          AdminCommon.showError('At least one role is required');
         }
       }
     });
@@ -65,7 +65,7 @@
     const newField = document.createElement('div');
     newField.className = 'input-group mb-2';
     newField.innerHTML = `
-      <input type="text" class="form-control role-field" placeholder="Role name" value="${escapeHtml(value)}" required>
+      <input type="text" class="form-control role-field" placeholder="Role name" value="${AdminCommon.escapeHtml(value)}" required>
       <button class="btn btn-outline-danger remove-role" type="button">
         <i class="bi bi-trash"></i>
       </button>
@@ -90,20 +90,15 @@
     const userId = document.getElementById('user-id').value.trim();
     const roles = collectRoles();
 
-    // Validate required fields
+    // Validate user ID
     if (!userId) {
-      showToast('Error', 'User ID is required', 'danger');
+      AdminCommon.showError('User ID is required');
       return;
     }
 
+    // Validate roles array
     if (roles.length === 0) {
-      showToast('Error', 'At least one role is required', 'danger');
-      return;
-    }
-
-    // Check for empty strings in roles
-    if (roles.some(role => role === '')) {
-      showToast('Error', 'Roles cannot be empty strings', 'danger');
+      AdminCommon.showError('At least one role is required');
       return;
     }
 
@@ -119,72 +114,71 @@
     }
   }
 
-  function createUser(data) {
+  async function createUser(data) {
     showSubmitLoading(true);
 
-    fetch('../../api/1.0/admin/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to create user');
-          });
-        }
-        showToast('Success', 'User created successfully', 'success');
-        setTimeout(() => window.location.href = '../#user', 1500);
-      })
-      .catch(error => {
-        console.error('Error creating user:', error);
-        showToast('Error', 'Failed to create user: ' + error.message, 'danger');
-        showSubmitLoading(false);
+    try {
+      const response = await fetch('../../api/1.0/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to create user');
+      }
+
+      AdminCommon.showSuccess('User created successfully');
+      setTimeout(() => window.location.href = '../#user', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      AdminCommon.showError('Failed to create user: ' + error.message);
+      showSubmitLoading(false);
+    }
   }
 
-  function updateUser(userId, data) {
+  async function updateUser(userId, data) {
     showSubmitLoading(true);
 
-    fetch(`../../api/1.0/admin/users/${userId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to update user');
-          });
-        }
-        showToast('Success', 'User updated successfully', 'success');
-        setTimeout(() => window.location.href = '../#user', 1500);
-      })
-      .catch(error => {
-        console.error('Error updating user:', error);
-        showToast('Error', 'Failed to update user: ' + error.message, 'danger');
-        showSubmitLoading(false);
+    try {
+      const response = await fetch(`../../api/1.0/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to update user');
+      }
+
+      AdminCommon.showSuccess('User updated successfully');
+      setTimeout(() => window.location.href = '../#user', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      AdminCommon.showError('Failed to update user: ' + error.message);
+      showSubmitLoading(false);
+    }
   }
 
-  function loadUserForEdit() {
-    showLoading();
+  async function loadUserForEdit() {
+    AdminCommon.showLoading('loading-spinner', ['user-form', 'error-message']);
 
-    fetch(`../../api/1.0/admin/users/${id}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('User not found');
-        }
-        return response.json();
-      })
-      .then(user => {
-        populateForm(user);
-        hideLoading();
-      })
-      .catch(error => {
-        console.error('Error loading user:', error);
-        showError('Failed to load user: ' + error.message);
-      });
+    try {
+      const response = await fetch(`../../api/1.0/admin/users/${id}`);
+      
+      if (!response.ok) {
+        throw new Error('User not found');
+      }
+
+      const user = await response.json();
+      populateForm(user);
+      AdminCommon.hideLoading('loading-spinner', ['user-form']);
+    } catch (error) {
+      console.error('Error loading user:', error);
+      AdminCommon.showErrorMessage('Failed to load user: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'user-form']);
+    }
   }
 
   function populateForm(user) {
@@ -207,65 +201,20 @@
     document.getElementById('submit-text').textContent = 'Update User';
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  // Use AdminCommon utilities - removed duplicate functions:
+  // escapeHtml, showLoading, hideLoading, showError, showToast
 
   function showSubmitLoading(loading) {
     const form = document.getElementById('user-form');
-    const submitBtn = form?.querySelector('button[type="submit"]');
+    const text = isUpdateMode ? 'Update User' : 'Create User';
     
-    if (submitBtn) {
-      submitBtn.disabled = loading;
-      if (loading) {
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-      } else {
-        const text = isUpdateMode ? 'Update User' : 'Create User';
-        submitBtn.innerHTML = `<i class="bi bi-save"></i> ${text}`;
-      }
-    }
-  }
-
-  function showLoading() {
-    document.getElementById('loading-spinner')?.classList.remove('d-none');
-    document.getElementById('user-form')?.classList.add('d-none');
-    document.getElementById('error-message')?.classList.add('d-none');
-  }
-
-  function hideLoading() {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('user-form')?.classList.remove('d-none');
-  }
-
-  function showError(message) {
-    document.getElementById('loading-spinner')?.classList.add('d-none');
-    document.getElementById('user-form')?.classList.add('d-none');
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-      errorDiv.classList.remove('d-none');
-      document.getElementById('error-text').textContent = message;
-    }
-  }
-
-  function showToast(title, message, type) {
-    if (typeof bootstrap !== 'undefined' && bootstrap.showToast) {
-      bootstrap.showToast({
-        header: title,
-        body: message,
-        toastClass: `toast-${type}`
-      });
+    if (form) {
+      AdminCommon.setSubmitLoading(form, loading, loading ? 'Saving...' : text);
     }
   }
 
   function showDeleteButton() {
-    const deleteBtn = document.getElementById('header-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.classList.remove('d-none');
-      // Initialize tooltip
-      new bootstrap.Tooltip(deleteBtn);
-    }
+    AdminCommon.showDeleteButton('header-delete-btn');
   }
 
   function handleDeleteClick() {
@@ -274,9 +223,9 @@
     modal.show();
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (!isUpdateMode || !id) {
-      showToast('Error', 'Cannot delete in create mode', 'danger');
+      AdminCommon.showError('Cannot delete in create mode');
       return;
     }
 
@@ -289,38 +238,36 @@
       deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
     }
 
-    fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete user');
-          });
-        }
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-        modal?.hide();
-
-        showToast('Success', 'User deleted successfully', 'success');
-        
-        // Redirect back to admin list after a short delay
-        setTimeout(() => window.location.href = '../#user', 1500);
-      })
-      .catch((error) => {
-        console.error('Error deleting user:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete user');
+      }
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+      modal?.hide();
+
+      AdminCommon.showSuccess('User deleted successfully');
+      
+      // Redirect back to admin list after a short delay
+      setTimeout(() => window.location.href = '../#user', AdminCommon.REDIRECT_DELAY);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      AdminCommon.showError(error.message);
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 })();
