@@ -76,7 +76,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
-            await context.Users.DeleteEntityAsync(user.UserId, user.RowType, user.ETag, token);
+            await context.Users.DeleteEntityAsync(user, token);
             logger.LogInformation(PulseEventIds.Admin, "Deleted User {id}", user.UserId);
 
             return Results.NoContent();
@@ -200,7 +200,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
-            await context.Webhooks.DeleteEntityAsync(webhook.Id, webhook.Secret, webhook.ETag, token);
+            await context.Webhooks.DeleteEntityAsync(webhook, token);
             logger.LogInformation(PulseEventIds.Admin, "Deleted Webhook Entry {Id}", id);
 
             return Results.NoContent();
@@ -340,7 +340,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
-            await context.AgentConfigurations.DeleteEntityAsync(configuration.Sqid, configuration.Type, configuration.ETag, token);
+            await context.AgentConfigurations.DeleteEntityAsync(configuration, token);
 
             logger.LogInformation(PulseEventIds.Admin, "Deleted Agent Configuration {Id} of type {Type}", id, type);
             return Results.NoContent();
@@ -447,7 +447,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
-            await context.Configurations.DeleteEntityAsync(configuration.Group, configuration.Name, configuration.ETag, token);
+            await context.Configurations.DeleteEntityAsync(configuration, token);
 
             logger.LogInformation(PulseEventIds.Admin, "Deleted Normal Configuration {Id}", id);
             return Results.NoContent();

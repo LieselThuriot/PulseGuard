@@ -1,4 +1,6 @@
-﻿namespace PulseGuard;
+﻿using PulseGuard.Agents.Implementations;
+
+namespace PulseGuard;
 
 public static class PulseEventIds
 {
@@ -10,6 +12,7 @@ public static class PulseEventIds
     public static readonly EventId ContainsCheck = new(104, nameof(ContainsCheck));
 
     public static readonly EventId ApplicationInsightsAgent = new(150, nameof(ApplicationInsightsAgent));
+    public static readonly EventId LogAnalyticsWorkspaceAgent = new(151, nameof(LogAnalyticsWorkspaceAgent));
 
     public static readonly EventId Webhooks = new(200, nameof(Webhooks));
     public static readonly EventId Pulses = new(201, nameof(Pulses));

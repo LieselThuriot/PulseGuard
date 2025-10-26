@@ -1,7 +1,7 @@
 ﻿using Azure;
 using Azure.Identity;
-using Azure.Monitor.Query;
-using Azure.Monitor.Query.Models;
+using Azure.Monitor.Query.Logs;
+using Azure.Monitor.Query.Logs.Models;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 
@@ -19,7 +19,7 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<
             LogsQueryClient client = new(credential);
 
             DateTimeOffset now = DateTimeOffset.UtcNow;
-            QueryTimeRange timeRange = new(now.AddMinutes(-10), now);
+            LogsQueryTimeRange timeRange = new(now.AddMinutes(-10), now);
 
             LogsQueryOptions options = new()
             {
@@ -59,7 +59,7 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, ex, "Agent check failed due to deserialization error");
+            _logger.LogWarning(PulseEventIds.LogAnalyticsWorkspaceAgent, ex, "Agent check failed");
         }
 
         return PulseAgentReport.Fail(Options);
