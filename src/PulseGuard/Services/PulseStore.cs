@@ -154,7 +154,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
                     _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
 
-                    ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.FindAsync(year, sqid, token);
+                    ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.Where(x => x.Year == year && x.Sqid == sqid)
+                                                                                                .FirstOrDefaultAsync(token);
 
                     archive ??= new()
                     {
@@ -197,7 +198,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
                     _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
 
-                    ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.FindAsync(year, sqid, token);
+                    ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.Where(x => x.Year == year && x.Sqid == sqid)
+                                                                                                     .FirstOrDefaultAsync(token);
 
                     archive ??= new()
                     {
