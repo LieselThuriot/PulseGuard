@@ -136,8 +136,7 @@ internal static class AuthSetup
                                         await db.Users.UpsertEntityAsync(new User
                                         {
                                             UserId = identity.Name!,
-                                            RowType = User.RowTypeRoles,
-                                            Value = ""
+                                            RowType = User.RowTypeRoles
                                         },
                                         Azure.Data.Tables.TableUpdateMode.Merge);
                                     }

@@ -23,8 +23,6 @@
       loadUserForEdit();
     } else {
       AdminCommon.hideLoading('loading-spinner', ['user-form']);
-      // Add one empty role field for create mode
-      addRoleField();
     }
   }
 
@@ -47,15 +45,7 @@
     // Role removal (delegated)
     document.addEventListener('click', (e) => {
       if (e.target.closest('.remove-role')) {
-        const container = document.getElementById('roles-container');
-        const roleFields = container.querySelectorAll('.role-field');
-        
-        // Only allow removal if there's more than one role field
-        if (roleFields.length > 1) {
-          e.target.closest('.input-group').remove();
-        } else {
-          AdminCommon.showError('At least one role is required');
-        }
+        e.target.closest('.input-group').remove();
       }
     });
   }
@@ -93,12 +83,6 @@
     // Validate user ID
     if (!userId) {
       AdminCommon.showError('User ID is required');
-      return;
-    }
-
-    // Validate roles array
-    if (roles.length === 0) {
-      AdminCommon.showError('At least one role is required');
       return;
     }
 
@@ -191,8 +175,6 @@
 
     if (user.roles && user.roles.length > 0) {
       user.roles.forEach(role => addRoleField(role));
-    } else {
-      addRoleField(); // Add one empty field if no roles
     }
 
     // Show delete button in header for update mode
