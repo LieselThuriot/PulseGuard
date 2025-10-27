@@ -78,6 +78,7 @@
     e.preventDefault();
 
     const userId = document.getElementById('user-id').value.trim();
+    const nickname = document.getElementById('user-nickname').value.trim();
     const roles = collectRoles();
 
     // Validate user ID
@@ -87,22 +88,22 @@
     }
 
     const data = {
-      id: userId,
-      roles: roles
+      nickname: nickname || null,
+      roles: roles.length > 0 ? roles : null
     };
 
     if (isUpdateMode) {
       updateUser(id, data);
     } else {
-      createUser(data);
+      createUser(userId, data);
     }
   }
 
-  async function createUser(data) {
+  async function createUser(userId, data) {
     showSubmitLoading(true);
 
     try {
-      const response = await fetch('../../api/1.0/admin/users', {
+      const response = await fetch(`../../api/1.0/admin/users/${encodeURIComponent(userId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -168,6 +169,8 @@
   function populateForm(user) {
     document.getElementById('user-id').value = user.id || '';
     document.getElementById('user-id').disabled = true; // Can't change user ID in update mode
+
+    document.getElementById('user-nickname').value = user.nickname || '';
 
     // Populate roles
     const container = document.getElementById('roles-container');

@@ -119,24 +119,20 @@ internal static class AuthSetup
                                 async Task Enrich()
                                 {
                                     PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
-                                    User? user = await db.Users.FindAsync(identity.Name, User.RowTypeRoles);
+                                    UserInfos user = new(await db.Users.Where(x => x.UserId == identity.Name).ToListAsync());
 
-                                    if (user is not null)
+                                    if (user.IsKnown)
                                     {
-                                        if (!string.IsNullOrEmpty(user.Value))
-                                        {
-                                            IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                                                                                .Select(r => new Claim(identity.RoleClaimType, r));
-
-                                            identity.AddClaims(roleClaims);
-                                        }
+                                        identity.AddClaims(user.Roles.Select(r => new Claim(identity.RoleClaimType, r)));
                                     }
-                                    else if (upsertUnknownUsers)
+                                    
+                                    if (user.IsKnown || upsertUnknownUsers)
                                     {
                                         await db.Users.UpsertEntityAsync(new User
                                         {
-                                            UserId = identity.Name!,
-                                            RowType = User.RowTypeRoles
+                                            UserId = identity.Name,
+                                            RowType = User.RowTypeLastVisited,
+                                            Value = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()
                                         },
                                         Azure.Data.Tables.TableUpdateMode.Merge);
                                     }

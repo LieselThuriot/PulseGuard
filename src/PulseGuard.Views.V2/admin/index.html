@@ -204,7 +204,9 @@
                               User ID <i class="bi bi-chevron-expand" aria-hidden="true"></i>
                             </a>
                           </th>
+                          <th scope="col">Name</th>
                           <th scope="col">Roles</th>
+                          <th scope="col">Last Visited</th>
                           <th scope="col" class="text-center" style="width: 200px;">Actions</th>
                         </tr>
                       </thead>
@@ -376,6 +378,37 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Cancel and close modal">Cancel</button>
           <button type="button" class="btn btn-danger" id="delete-user-confirm" aria-label="Confirm deletion of user">
             <i class="bi bi-trash" aria-hidden="true"></i> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Rename Modal -->
+  <div class="modal fade" id="renameUserModal" tabindex="-1" aria-labelledby="renameUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="renameUserModalLabel">
+            <i class="bi bi-pencil-square"></i> Rename User
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="rename-user-form">
+            <input type="hidden" id="rename-user-id" />
+            
+            <div class="mb-3">
+              <label for="rename-user-nickname" class="form-label">Name</label>
+              <input type="text" class="form-control" id="rename-user-nickname" aria-describedby="rename-user-nickname-help">
+              <div class="form-text" id="rename-user-nickname-help">Optional display name for the user</div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Cancel and close modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="rename-user-save" aria-label="Save user changes">
+            <i class="bi bi-save" aria-hidden="true"></i> Save Changes
           </button>
         </div>
       </div>

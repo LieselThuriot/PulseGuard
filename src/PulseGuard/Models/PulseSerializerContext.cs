@@ -35,7 +35,8 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Admin.WebhookUpdateRequest))]
 [JsonSerializable(typeof(Admin.WebhookCreationRequest))]
 [JsonSerializable(typeof(Admin.UserEntry))]
-[JsonSerializable(typeof(Admin.UserCreateRequest))]
+[JsonSerializable(typeof(Admin.UserCreateOrUpdateRequest))]
+[JsonSerializable(typeof(Admin.RenameUserRequest))]
 
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]

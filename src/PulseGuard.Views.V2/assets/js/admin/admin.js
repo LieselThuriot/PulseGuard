@@ -54,6 +54,7 @@
   document.getElementById('sort-group')?.addEventListener('click', (e) => { e.preventDefault(); handleSort('group'); });
   document.getElementById('sort-name')?.addEventListener('click', (e) => { e.preventDefault(); handleSort('name'); });
   document.getElementById('rename-save')?.addEventListener('click', handleRenameSave);
+  document.getElementById('rename-user-save')?.addEventListener('click', handleUserRenameSave);
   document.getElementById('delete-confirm')?.addEventListener('click', handleDeleteConfirm);
   document.getElementById('delete-webhook-confirm')?.addEventListener('click', handleWebhookDeleteConfirm);
   document.getElementById('delete-user-confirm')?.addEventListener('click', handleUserDeleteConfirm);
@@ -594,7 +595,7 @@
     if (sortedUsers.length === 0) {
       const row = userTbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 3;
+      cell.colSpan = 5;
       cell.className = 'text-center py-4 text-muted';
       cell.textContent = 'No users found';
     } else {
@@ -622,6 +623,15 @@
     const idCell = row.insertCell();
     idCell.textContent = user.id;
 
+    // Nickname
+    const nicknameCell = row.insertCell();
+    if (user.nickname) {
+      nicknameCell.textContent = user.nickname;
+    } else {
+      nicknameCell.textContent = '-';
+      nicknameCell.className = 'text-muted';
+    }
+
     // Roles
     const rolesCell = row.insertCell();
     if (user.roles && user.roles.length > 0) {
@@ -639,6 +649,16 @@
       rolesCell.className = 'text-muted';
     }
 
+    // Last Visited
+    const lastVisitedCell = row.insertCell();
+    if (user.lastVisited) {
+      const date = new Date(user.lastVisited);
+      lastVisitedCell.textContent = date.toLocaleString();
+    } else {
+      lastVisitedCell.textContent = 'Never';
+      lastVisitedCell.className = 'text-muted';
+    }
+
     // Actions
     const actionsCell = row.insertCell();
     actionsCell.className = 'text-center';
@@ -653,6 +673,13 @@
     editBtn.setAttribute('data-bs-title', 'Edit');
     editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
     
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'btn btn-outline-secondary';
+    renameBtn.setAttribute('data-bs-toggle', 'tooltip');
+    renameBtn.setAttribute('data-bs-title', 'Rename');
+    renameBtn.innerHTML = '<i class="bi bi-pencil-square"></i>';
+    renameBtn.addEventListener('click', () => handleUserRenameClick(user));
+    
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn-outline-danger';
     deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
@@ -661,6 +688,7 @@
     deleteBtn.addEventListener('click', () => handleUserDeleteClick(user));
     
     btnGroup.appendChild(editBtn);
+    btnGroup.appendChild(renameBtn);
     btnGroup.appendChild(deleteBtn);
     actionsCell.appendChild(btnGroup);
   }
@@ -1030,6 +1058,67 @@
   }
 
   /**
+   * Handles the user rename click
+   * @param {User} user
+   */
+  function handleUserRenameClick(user) {
+    document.getElementById('rename-user-id').value = user.id;
+    document.getElementById('rename-user-nickname').value = user.nickname || '';
+
+    const modal = new bootstrap.Modal(document.getElementById('renameUserModal'));
+    modal.show();
+  }
+
+  /**
+   * Handles saving the user rename
+   */
+  async function handleUserRenameSave() {
+    const id = document.getElementById('rename-user-id').value;
+    const nickname = document.getElementById('rename-user-nickname').value.trim();
+
+    try {
+      const response = await fetch(`../api/1.0/admin/users/${encodeURIComponent(id)}/name`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: nickname || null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename user');
+      }
+
+      // Update local data
+      users.forEach(user => {
+        if (user.id === id) {
+          user.nickname = nickname || null;
+        }
+      });
+
+      // Update filtered users as well
+      filteredUsers.forEach(user => {
+        if (user.id === id) {
+          user.nickname = nickname || null;
+        }
+      });
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('renameUserModal'));
+      modal?.hide();
+
+      // Re-render
+      renderUsers();
+      showToast('Success', 'User renamed successfully', 'success');
+    } catch (error) {
+      console.error('Error renaming user:', error);
+      showToast('Error', 'Failed to rename user: ' + error.message, 'danger');
+    }
+  }
+
+  /**
    * Handles the user delete click
    * @param {User} user
    */
@@ -1038,7 +1127,8 @@
     document.getElementById('delete-user-id').value = user.id;
 
     // Populate modal
-    document.getElementById('delete-user-display-id').textContent = user.id;
+    const displayId = user.nickname ? `${user.id} (${user.nickname})` : user.id;
+    document.getElementById('delete-user-display-id').textContent = displayId;
     const rolesText = user.roles && user.roles.length > 0 ? user.roles.join(', ') : 'No roles';
     document.getElementById('delete-user-display-roles').textContent = rolesText;
 
@@ -1144,9 +1234,10 @@
       if (!searchTerm) return true;
 
       const userIdMatch = user.id.toLowerCase().includes(searchTerm);
+      const nicknameMatch = user.nickname && user.nickname.toLowerCase().includes(searchTerm);
       const rolesMatch = user.roles && user.roles.some(role => role.toLowerCase().includes(searchTerm));
 
-      return userIdMatch || rolesMatch;
+      return userIdMatch || nicknameMatch || rolesMatch;
     });
 
     sortConfigurations();

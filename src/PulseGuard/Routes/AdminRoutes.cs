@@ -1,5 +1,4 @@
 ﻿using Azure;
-using Azure.Core;
 using Azure.Data.Tables;
 using PulseGuard.Agents;
 using PulseGuard.Checks;
@@ -8,7 +7,6 @@ using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Models.Admin;
 using PulseGuard.Services;
-using System.Configuration;
 using System.Security.Claims;
 using TableStorage;
 using TableStorage.Linq;
@@ -47,18 +45,16 @@ public static class AdminRoutes
 
     private static void CreateUserMappings(RouteGroupBuilder group)
     {
-        group.MapGet("", static async (PulseContext context, CancellationToken token) =>
-        {
-            var users = await context.Users.Where(x => x.RowType == User.RowTypeRoles).ToListAsync(token);
-            var entries = users.Select(x => new UserEntry(x));
-            return Results.Ok(entries);
-        });
+        group.MapGet("", static (PulseContext context) => context.Users
+                                                                 .GroupBy(x => x.UserId)
+                                                                 .Select(x => new UserInfos([.. x]))
+                                                                 .Select(x => new UserEntry(x)));
 
         group.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
         {
-            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+            var user = new UserInfos(await context.Users.Where(x => x.UserId == id).ToListAsync(token));
 
-            if (user is null)
+            if (!user.IsKnown)
             {
                 return Results.NotFound();
             }
@@ -69,48 +65,91 @@ public static class AdminRoutes
 
         group.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
 
-            if (user is null)
+            if (users.Count is 0)
             {
                 return Results.NotFound();
             }
 
-            await context.Users.DeleteEntityAsync(user, token);
-            logger.LogInformation(PulseEventIds.Admin, "Deleted User {id}", user.UserId);
+            foreach (var user in users)
+            {
+                await context.Users.DeleteEntityAsync(user, token);
+                logger.LogInformation(PulseEventIds.Admin, "Deleted User {id} with type {type}", user.UserId, user.RowType);
+            }
 
             return Results.NoContent();
         });
 
-        group.MapPut("{id}", static async (string id, UserCreateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        group.MapPut("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            var user = await context.Users.FindAsync(id, User.RowTypeRoles, token);
+            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
 
-            if (user is null)
+            if (users.Count is 0)
             {
                 return Results.NotFound();
             }
 
-            user.Value = request.GetRoles();
-            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-            logger.LogInformation(PulseEventIds.Admin, "Updated User {id}", user.UserId);
+            await SyncUser(request.GetRoles(), User.RowTypeRoles, token);
+            await SyncUser(request.Nickname, User.RowTypeNickname, token);
 
             return Results.NoContent();
+
+            async Task SyncUser(string? value, string rowType, CancellationToken token)
+            {
+                User user = users.FirstOrDefault(x => x.RowType == rowType) ?? new()
+                {
+                    UserId = id,
+                    RowType = rowType
+                };
+
+                user.Value = value;
+                await context.Users.UpsertEntityAsync(user, TableUpdateMode.Replace, token);
+                logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", id, rowType);
+            }
         });
 
-        group.MapPost("", static async (UserEntry request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        group.MapPut("{id}/name", static async (string id, RenameUserRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            User user = new()
+            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
+
+            if (users.Count is 0)
             {
-                UserId = request.Id,
-                RowType = User.RowTypeRoles,
-                Value = request.GetRoles()
+                return Results.NotFound();
+            }
+
+            User user = users.FirstOrDefault(x => x.RowType == User.RowTypeNickname) ?? new()
+            {
+                UserId = id,
+                RowType = User.RowTypeNickname
             };
 
-            await context.Users.AddEntityAsync(user, token);
-            logger.LogInformation(PulseEventIds.Admin, "Created User {id}", user.UserId);
+            user.Value = request.Name;
+            await context.Users.UpsertEntityAsync(user, TableUpdateMode.Replace, token);
+            logger.LogInformation(PulseEventIds.Admin, "Renamed User {id}", id);
+
+            return Results.NoContent();
+        });
+
+        group.MapPost("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            await CreateEntry(id, request.GetRoles(), User.RowTypeRoles, context, logger, token);
+            await CreateEntry(id, request.Nickname, User.RowTypeNickname, context, logger, token);
 
             return Results.Created();
+
+            static async Task CreateEntry(string id, string? value, string roleType, PulseContext context, ILogger logger, CancellationToken token)
+            {
+                User user = new()
+                {
+                    UserId = id,
+                    RowType = roleType,
+                    Value = value
+                };
+
+                await context.Users.AddEntityAsync(user, token);
+                logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
+            }
         });
     }
 

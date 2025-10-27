@@ -1,22 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿using PulseGuard.Entities;
 
 namespace PulseGuard.Models.Admin;
 
-[method: JsonConstructor]
-public sealed record UserEntry(string Id, IEnumerable<string> Roles)
+public sealed record UserEntry(string Id, string? Nickname, IEnumerable<string> Roles, DateTimeOffset? LastVisited)
 {
-    public UserEntry(Entities.User user) : this(user.UserId, user.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [])
-    {
-
-    }
-
-    public string GetRoles()
-    {
-        if (Roles is null)
-        {
-            return string.Empty;
-        }
-
-        return string.Join(",", Roles);
-    }
+    public UserEntry(UserInfos user) : this(user.Id!, user.NickName, user.Roles, user.LastVisited) { }
 }
