@@ -123,17 +123,21 @@ internal static class AuthSetup
 
                                     if (user is not null)
                                     {
-                                        IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                                                                            .Select(r => new Claim(identity.RoleClaimType, r));
+                                        if (!string.IsNullOrEmpty(user.Value))
+                                        {
+                                            IEnumerable<Claim> roleClaims = user.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                                                                .Select(r => new Claim(identity.RoleClaimType, r));
 
-                                        identity.AddClaims(roleClaims);
+                                            identity.AddClaims(roleClaims);
+                                        }
                                     }
                                     else if (upsertUnknownUsers)
                                     {
                                         await db.Users.UpsertEntityAsync(new User
                                         {
                                             UserId = identity.Name!,
-                                            RowType = User.RowTypeRoles
+                                            RowType = User.RowTypeRoles,
+                                            Value = ""
                                         },
                                         Azure.Data.Tables.TableUpdateMode.Merge);
                                     }
