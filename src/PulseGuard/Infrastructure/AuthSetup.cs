@@ -119,20 +119,20 @@ internal static class AuthSetup
                                 async Task Enrich()
                                 {
                                     PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
-                                    UserInfos user = new(await db.Users.Where(x => x.UserId == identity.Name).ToListAsync());
+                                    User? user = await db.Users.FindAsync(identity.Name, User.UserInfoRowType);
 
-                                    if (user.IsKnown)
+                                    if (user is not null)
                                     {
-                                        identity.AddClaims(user.Roles.Select(r => new Claim(identity.RoleClaimType, r)));
+                                        identity.AddClaims(user.GetRoles().Select(r => new Claim(identity.RoleClaimType, r)));
                                     }
                                     
-                                    if (user.IsKnown || upsertUnknownUsers)
+                                    if (user is not null || upsertUnknownUsers)
                                     {
                                         await db.Users.UpsertEntityAsync(new User
                                         {
                                             UserId = identity.Name,
-                                            RowType = User.RowTypeLastVisited,
-                                            Value = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()
+                                            RowType = User.UserInfoRowType,
+                                            LastVisited = DateTimeOffset.UtcNow
                                         },
                                         Azure.Data.Tables.TableUpdateMode.Merge);
                                     }

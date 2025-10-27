@@ -45,16 +45,13 @@ public static class AdminRoutes
 
     private static void CreateUserMappings(RouteGroupBuilder group)
     {
-        group.MapGet("", static (PulseContext context) => context.Users
-                                                                 .GroupBy(x => x.UserId)
-                                                                 .Select(x => new UserInfos([.. x]))
-                                                                 .Select(x => new UserEntry(x)));
+        group.MapGet("", static (PulseContext context) => context.Users.Select(x => new UserEntry(x)));
 
         group.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
         {
-            var user = new UserInfos(await context.Users.Where(x => x.UserId == id).ToListAsync(token));
+            var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
 
-            if (!user.IsKnown)
+            if (user is null)
             {
                 return Results.NotFound();
             }
@@ -65,67 +62,48 @@ public static class AdminRoutes
 
         group.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
+            var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
 
-            if (users.Count is 0)
+            if (user is null)
             {
                 return Results.NotFound();
             }
 
-            foreach (var user in users)
-            {
-                await context.Users.DeleteEntityAsync(user, token);
-                logger.LogInformation(PulseEventIds.Admin, "Deleted User {id} with type {type}", user.UserId, user.RowType);
-            }
+            await context.Users.DeleteEntityAsync(user, token);
+            logger.LogInformation(PulseEventIds.Admin, "Deleted User {id} with type {type}", user.UserId, user.RowType);
 
             return Results.NoContent();
         });
 
         group.MapPut("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
+            var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
 
-            if (users.Count is 0)
+            if (user is null)
             {
                 return Results.NotFound();
             }
 
-            await SyncUser(request.GetRoles(), User.RowTypeRoles, token);
-            await SyncUser(request.Nickname, User.RowTypeNickname, token);
+            user.Roles = request.GetRoles();
+            user.Nickname = request.Nickname;
+
+            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+            logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", user.UserId, user.RowType);
 
             return Results.NoContent();
-
-            async Task SyncUser(string? value, string rowType, CancellationToken token)
-            {
-                User user = users.FirstOrDefault(x => x.RowType == rowType) ?? new()
-                {
-                    UserId = id,
-                    RowType = rowType
-                };
-
-                user.Value = value;
-                await context.Users.UpsertEntityAsync(user, TableUpdateMode.Replace, token);
-                logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", id, rowType);
-            }
         });
 
         group.MapPut("{id}/name", static async (string id, RenameUserRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            var users = await context.Users.Where(x => x.UserId == id).ToListAsync(token);
+            var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
 
-            if (users.Count is 0)
+            if (user is null)
             {
                 return Results.NotFound();
             }
 
-            User user = users.FirstOrDefault(x => x.RowType == User.RowTypeNickname) ?? new()
-            {
-                UserId = id,
-                RowType = User.RowTypeNickname
-            };
-
-            user.Value = request.Name;
-            await context.Users.UpsertEntityAsync(user, TableUpdateMode.Replace, token);
+            user.Nickname = request.Name;
+            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
             logger.LogInformation(PulseEventIds.Admin, "Renamed User {id}", id);
 
             return Results.NoContent();
@@ -133,23 +111,18 @@ public static class AdminRoutes
 
         group.MapPost("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            await CreateEntry(id, request.GetRoles(), User.RowTypeRoles, context, logger, token);
-            await CreateEntry(id, request.Nickname, User.RowTypeNickname, context, logger, token);
+            User user = new()
+            {
+                UserId = id,
+                RowType = User.UserInfoRowType,
+                Nickname = request.Nickname,
+                Roles = request.GetRoles()
+            };
+
+            await context.Users.AddEntityAsync(user, token);
+            logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
 
             return Results.Created();
-
-            static async Task CreateEntry(string id, string? value, string roleType, PulseContext context, ILogger logger, CancellationToken token)
-            {
-                User user = new()
-                {
-                    UserId = id,
-                    RowType = roleType,
-                    Value = value
-                };
-
-                await context.Users.AddEntityAsync(user, token);
-                logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
-            }
         });
     }
 
