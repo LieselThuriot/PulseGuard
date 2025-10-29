@@ -567,6 +567,11 @@
 
     currentMetrics = null;
 
+    // Reset forecast module if available
+    if (window.PulseGuardForecast) {
+      window.PulseGuardForecast.reset();
+    }
+
     const detailCardElements = getDetailCardElements();
 
     toggleSpinner(detailCardElements.spinner, spinning);
@@ -596,6 +601,11 @@
    */
   function handleData(data, overlays, metrics) {
     currentMetrics = metrics;
+
+    // Pass data to forecast module if available
+    if (window.PulseGuardForecast && data.items) {
+      window.PulseGuardForecast.setPulseData(data.items);
+    }
 
     const detailCardElements = getDetailCardElements();
 

@@ -23,8 +23,8 @@
         <span class="navbar-brand-title">PulseGuard</span>
       </a>
       <div class="d-flex flex-row align-items-center">
-        <a href="admin/" class="btn btn-outline-secondary me-2 d-none" id="admin-panel-button" 
-           data-bs-toggle="tooltip" data-bs-title="Admin Panel">
+        <a href="admin/" class="btn btn-outline-secondary me-2 d-none" id="admin-panel-button" data-bs-toggle="tooltip"
+          data-bs-title="Admin Panel">
           <i class="bi bi-list-ul"></i> Configurations
         </a>
 
@@ -134,6 +134,12 @@
                 data-bs-target="#live-pulse-view" aria-controls="live-pulse-view" id="detail-live-pulse-view-action"
                 title="Live Pulse View" disabled>
                 <i class="bi bi-broadcast-pin text-success bi-glow"></i>
+              </button>
+
+              <button class="btn btn-outline-secondary btn-sm ms-2" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#forecast-view" aria-controls="forecast-view" id="detail-forecast-view-action"
+                title="State Forecast" disabled>
+                <i class="bi bi-graph-up-arrow text-info"></i>
               </button>
             </div>
           </div>
@@ -401,6 +407,128 @@
     </div>
   </div>
 
+  <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="forecast-view"
+    aria-labelledby="forecast-view-label">
+    <div class="offcanvas-header">
+      <img src="assets/img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
+      <span class="navbar-brand-title">PulseGuard</span>
+      <span class="mx-2">&ndash;</span>
+      <h5 class="offcanvas-title" id="forecast-view-label">
+        <i class="bi bi-graph-up-arrow"></i> State Forecast
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="mb-3">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle"></i> Vector AutoRegression (VAR) Model with Volatility Preservation
+        </p>
+
+        <div class="card mb-3">
+          <div class="card-header">
+            <i class="bi bi-sliders"></i> Parameters
+          </div>
+          <div class="card-body">
+            <div class="row g-2">
+              <div class="col-6">
+                <label for="forecast-historical-days" class="form-label small">Historical Days</label>
+                <input type="number" class="form-control form-control-sm" id="forecast-historical-days" value="30" min="7"
+                  max="365">
+              </div>
+              <div class="col-6">
+                <label for="forecast-periods" class="form-label small">Forecast Days</label>
+                <input type="number" class="form-control form-control-sm" id="forecast-periods" value="7" min="1"
+                  max="30">
+              </div>
+              <div class="col-6">
+                <label for="forecast-maxlags" class="form-label small">Max Lags</label>
+                <input type="number" class="form-control form-control-sm" id="forecast-maxlags" value="24" min="1"
+                  max="72">
+              </div>
+              <div class="col-6">
+                <label for="forecast-volatility" class="form-label small">Volatility Scale</label>
+                <input type="number" class="form-control form-control-sm" id="forecast-volatility" value="1.0" min="0"
+                  max="2" step="0.1">
+              </div>
+              <div class="col-6">
+                <label for="forecast-pattern" class="form-label small">Pattern Strength</label>
+                <input type="number" class="form-control form-control-sm" id="forecast-pattern" value="0.5" min="0"
+                  max="1" step="0.1">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button id="forecast-generate-btn" class="btn btn-primary w-100 mb-3" disabled>
+          <span class="forecast-btn-text">
+            <i class="bi bi-play-circle"></i> Generate Forecast
+          </span>
+          <span class="forecast-btn-spinner d-none">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Generating...
+          </span>
+        </button>
+
+        <div id="forecast-error" class="alert alert-danger d-none"></div>
+
+        <div id="forecast-loading" class="text-center d-none">
+          <!-- <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 small">Generating forecast...</p> -->
+          <div id="forecast-progress-log" class="text-start small text-muted mt-2"
+            style="max-height: 150px; overflow-y: auto; font-family: monospace;"></div>
+        </div>
+
+        <div id="forecast-results" class="d-none">
+          <div class="card mb-3">
+            <div class="card-header">
+              <i class="bi bi-bar-chart"></i> Forecast Statistics
+            </div>
+            <div class="card-body">
+              <div id="forecast-stats" class="row g-2"></div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header">
+              <i class="bi bi-graph-up"></i> Overview
+            </div>
+            <div class="card-body">
+              <p class="small text-muted mb-2">
+                <i class="bi bi-hand-index"></i> Use mouse wheel to zoom, drag to pan. Double-click to reset.
+              </p>
+              <div style="position: relative; height: 400px;">
+                <canvas id="forecast-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-lightning"></i> Volatility Analysis
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>State</th>
+                      <th>Historical σ</th>
+                      <th>Forecast σ</th>
+                      <th>Change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="forecast-volatility-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
     integrity="sha256-NfRUfZNkERrKSFA0c1a8VmCplPDYtpTYj5lQmKe1R/o=" crossorigin="anonymous"></script>
 
@@ -419,6 +547,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"
     integrity="sha256-5KCI5bq5O+buR8k57rnrqoDgs5FW1L39GvnIRL6BtsQ=" crossorigin="anonymous"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"
+    integrity="sha256-/wN4amD2yTzKz+D7tsLjxnHXkwhWo2ifLzkxE9jWVew=" crossorigin="anonymous"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.0.0/lib/browser/math.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.5.3/dist/minimal/protobuf.min.js"
     integrity="sha256-swpVwpmtAtupi0yxfFAtC8g6CdKdmdjUNRf6Bwz0UN4=" crossorigin="anonymous"></script>
 
@@ -427,6 +560,7 @@
   <script src="assets/js/index.details.js?{MAGIC_HASH}"></script>
   <script src="assets/js/index.logs.js?{MAGIC_HASH}"></script>
   <script src="assets/js/index.ws.js?{MAGIC_HASH}"></script>
+  <script src="assets/js/index.forecast.js?{MAGIC_HASH}"></script>
 </body>
 
 </html>
