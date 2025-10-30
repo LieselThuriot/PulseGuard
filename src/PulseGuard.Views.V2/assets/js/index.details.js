@@ -432,8 +432,9 @@
     if (fetchAbortController) {
       fetchAbortController.abort(`Starting new request for ${sqid}.`);
     }
-
+    
     fetchAbortController = new AbortController();
+    const abortSignal = fetchAbortController.signal;
 
     const uniqueSqidOverlays = new Set(sqidOverlays || []);
     uniqueSqidOverlays.delete(sqid);
@@ -441,7 +442,7 @@
     const promises = [sqid, ...uniqueSqidOverlays].map((id) =>
       fetch(`api/1.0/pulses/details/${id}`, {
         method: "get",
-        signal: fetchAbortController.signal,
+        signal: abortSignal,
       })
         .then(async (response) => {
           if (!response.ok) {
@@ -471,7 +472,7 @@
 
     const metricsPromise = fetch(`api/1.0/metrics/${sqid}`, {
       method: "get",
-      signal: fetchAbortController.signal,
+      signal: abortSignal,
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -500,7 +501,7 @@
         /** @type {PulseDetailResultGroup[]|null} */
         const overlays = results.slice(1, -1);
 
-        if (!data) {
+        if (!data && !abortSignal.aborted) {
           let toast = {
             header: "PulseGuard",
             headerSmall: "",

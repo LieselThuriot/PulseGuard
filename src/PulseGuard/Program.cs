@@ -13,8 +13,18 @@ string storeConnectionString = builder.Configuration.GetConnectionString("PulseS
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
 
-bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
+bool isDevelopment = builder.Environment.IsDevelopment();
+builder.Services.AddPulseContext(storeConnectionString,
+    x => x.CreateTableIfNotExists = isDevelopment,
+    x =>
+    {
+        x.CreateContainerIfNotExists = isDevelopment;
+        x.Serializer = new PulseBlobSerializer();
+        x.EnableCompilationAtRuntime();
+    }
+);
 
+bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
 builder.Services.ConfigurePulseTelemetry(builder.Configuration, authorized);
 
 builder.Services.ConfigureHttpJsonOptions(x =>
@@ -24,16 +34,6 @@ builder.Services.ConfigureHttpJsonOptions(x =>
 });
 
 builder.Services.ConfigurePulseHttpClients();
-
-bool autoCreate = builder.Environment.IsDevelopment();
-builder.Services.AddPulseContext(storeConnectionString,
-x => x.CreateTableIfNotExists = autoCreate,
-x =>
-{
-    x.CreateContainerIfNotExists = autoCreate;
-    x.Serializer = new PulseBlobSerializer();
-    x.EnableCompilationAtRuntime();
-});
 builder.Services.ConfigurePulseServices();
 
 builder.Services.AddOpenApi();
@@ -49,7 +49,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-if (!app.Environment.IsDevelopment())
+if (!isDevelopment)
 {
     app.UseHttpsRedirection();
 }
