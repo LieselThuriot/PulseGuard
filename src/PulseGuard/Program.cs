@@ -9,8 +9,6 @@ using TableStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-bool autoCreate = !builder.Environment.IsDevelopment();
-
 string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
@@ -26,6 +24,8 @@ builder.Services.ConfigureHttpJsonOptions(x =>
 });
 
 builder.Services.ConfigurePulseHttpClients();
+
+bool autoCreate = builder.Environment.IsDevelopment();
 builder.Services.AddPulseContext(storeConnectionString,
 x => x.CreateTableIfNotExists = autoCreate,
 x =>
