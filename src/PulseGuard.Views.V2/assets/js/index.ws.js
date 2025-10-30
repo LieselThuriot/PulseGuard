@@ -349,6 +349,7 @@
 
   if (detailLivePulseViewAction) {
     detailLivePulseViewAction.removeAttribute("disabled");
+    new bootstrap.Tooltip(detailLivePulseViewAction);
     detailLivePulseViewAction.addEventListener("click", function () {
       const urlParams = new URLSearchParams(window.location.search);
       const sqid = urlParams.get("details");

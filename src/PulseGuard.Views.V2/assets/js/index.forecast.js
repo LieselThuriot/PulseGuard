@@ -13,6 +13,14 @@
     'TimedOut': '#95a5a6',
     'Unknown': '#3498db'
   };
+    
+  const detailForecastViewAction = document.getElementById(
+    "detail-forecast-view-action"
+  );
+
+  if (detailForecastViewAction){
+      new bootstrap.Tooltip(detailForecastViewAction);
+  }
 
   let forecastChart = null;
   let currentPulseData = null;
