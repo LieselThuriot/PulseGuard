@@ -19,6 +19,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(HealthApiResponse))]
 [JsonSerializable(typeof(StatusApiResponse))]
 [JsonSerializable(typeof(WebhookEvent))]
+[JsonSerializable(typeof(ThresholdWebhookEvent))]
 [JsonSerializable(typeof(PulseEvent))]
 [JsonSerializable(typeof(PulseEventInfo))]
 [JsonSerializable(typeof(AgentReport))]

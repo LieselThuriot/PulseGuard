@@ -75,6 +75,28 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             await _context.Pulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
             await _context.RecentPulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
 
+            var pulseCounter = await _context.PulseCounters.FindAsync(PulseCounter.FailCounter, report.Options.Sqid, token) ?? new()
+            {
+                ETag = ETag.All,
+                Counter = PulseCounter.FailCounter,
+                Sqid = report.Options.Sqid,
+                Value = 0
+            };
+
+            if (report.State is not PulseStates.Healthy)
+            {
+                pulseCounter.Value++;
+            }
+
+            await _context.PulseCounters.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
+
+            if (_options.AlertThreshold.HasValue && pulseCounter.Value == _options.AlertThreshold.GetValueOrDefault())
+            {
+                var since = DateTimeOffset.UtcNow.AddMinutes(-_options.Interval * pulseCounter.Value);
+                _logger.LogCritical(PulseEventIds.Store, "Pulse {Sqid} has reached the alert threshold with {Count} failures and started at {since}.", report.Options.Sqid, pulseCounter.Value, since);
+                await _webhookService.PostThresholdReachedAsync(pulse, since, pulseCounter.Value, report.Options, token);
+            }
+
             if (webhookTask is not null)
             {
                 await webhookTask;
