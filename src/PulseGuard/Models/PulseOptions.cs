@@ -22,12 +22,7 @@ public class PulseOptions
         set => _simultaneousPulses = Math.Max(1, value);
     }
 
-    private int _webhookDelay = 5;
-    public int WebhookDelay
-    {
-        get => _webhookDelay;
-        set => _webhookDelay = Math.Max(0, value);
-    }
-
     public string Store { get; set; } = "";
+
+    public int? AlertThreshold { get; set; }
 }
