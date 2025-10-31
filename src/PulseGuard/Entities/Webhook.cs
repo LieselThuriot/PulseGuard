@@ -11,5 +11,12 @@ public sealed partial class Webhook
     public partial string Name { get; set; }
     public partial string Location { get; set; }
     public partial bool Enabled { get; set; }
-    public partial bool SendAllChanges { get; set; }
+    public partial WebhookType Type { get; set; }
+}
+
+public enum WebhookType
+{
+    All = 0,
+    StateChange = 1,
+    ThresholdBreach = 2
 }
