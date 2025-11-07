@@ -110,6 +110,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not create user. A conflict occurred - this user may already exist.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to create user');
       }
@@ -118,7 +121,7 @@
       setTimeout(() => window.location.href = '../#user', AdminCommon.REDIRECT_DELAY);
     } catch (error) {
       console.error('Error creating user:', error);
-      AdminCommon.showError('Failed to create user: ' + error.message);
+      AdminCommon.showError(error.message);
       showSubmitLoading(false);
     }
   }
@@ -134,6 +137,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not update user. A conflict occurred - the user may have been modified by another user.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to update user');
       }
@@ -142,7 +148,7 @@
       setTimeout(() => window.location.href = '../#user', AdminCommon.REDIRECT_DELAY);
     } catch (error) {
       console.error('Error updating user:', error);
-      AdminCommon.showError('Failed to update user: ' + error.message);
+      AdminCommon.showError(error.message);
       showSubmitLoading(false);
     }
   }

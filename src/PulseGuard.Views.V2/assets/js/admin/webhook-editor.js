@@ -253,6 +253,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not create webhook. A conflict occurred - this webhook may already exist.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to create webhook');
       }
@@ -292,6 +295,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not update webhook. A conflict occurred - the webhook may have been modified by another user.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to update webhook');
       }

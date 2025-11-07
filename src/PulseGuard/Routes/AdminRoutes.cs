@@ -87,10 +87,17 @@ public static class AdminRoutes
             user.Roles = request.GetRoles();
             user.Nickname = request.Nickname;
 
-            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-            logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", user.UserId, user.RowType);
-
-            return Results.NoContent();
+            try
+            {
+                await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+                logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", user.UserId, user.RowType);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating User {id} {rowtype}", user.UserId, user.RowType);
+                return Results.Conflict();
+            }
         });
 
         group.MapPut("{id}/name", static async (string id, RenameUserRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -103,10 +110,19 @@ public static class AdminRoutes
             }
 
             user.Nickname = request.Name;
-            await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-            logger.LogInformation(PulseEventIds.Admin, "Renamed User {id}", id);
 
-            return Results.NoContent();
+            try
+            {
+                await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+                logger.LogInformation(PulseEventIds.Admin, "Renamed User {id}", id);
+
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error renaming User {id}", id);
+                return Results.Conflict();
+            }
         });
 
         group.MapPost("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -119,10 +135,18 @@ public static class AdminRoutes
                 Roles = request.GetRoles()
             };
 
-            await context.Users.AddEntityAsync(user, token);
-            logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
+            try
+            {
+                await context.Users.AddEntityAsync(user, token);
+                logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
 
-            return Results.Created();
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error creating User {id} {type}", user.UserId, user.RowType);
+                return Results.Conflict();
+            }
         });
     }
 
@@ -232,10 +256,18 @@ public static class AdminRoutes
             webhook.Location = request.Location;
             webhook.Enabled = request.Enabled;
 
-            await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
-            logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+            try
+            {
+                await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
+                logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
 
-            return Results.NoContent();
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Webhook Entry {Id}", id);
+                return Results.Conflict();
+            }
         });
 
         group.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -249,10 +281,18 @@ public static class AdminRoutes
 
             webhook.Enabled = enabled;
 
-            await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
-            logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+            try
+            {
+                await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
+                logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
 
-            return Results.NoContent();
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Webhook Entry {Id}", id);
+                return Results.Conflict();
+            }
         });
 
         group.MapPost("", static async (WebhookCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -267,10 +307,18 @@ public static class AdminRoutes
                 Enabled = request.Enabled
             };
 
-            await context.Webhooks.AddEntityAsync(webhook, token);
-            logger.LogInformation(PulseEventIds.Admin, "Created Webhook Entry {Id}", webhook.Id);
+            try
+            {
+                await context.Webhooks.AddEntityAsync(webhook, token);
+                logger.LogInformation(PulseEventIds.Admin, "Created Webhook Entry {Id}", webhook.Id);
 
-            return Results.Created();
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error creating Webhook Entry");
+                return Results.Conflict();
+            }
         });
     }
 
@@ -294,8 +342,29 @@ public static class AdminRoutes
             });
         });
 
-        agentGroup.MapPut("{id}/{type}/{enabled}", static async (string id, string type, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token)
-            => (await UpdateAgentState(id, type, enabled, context, logger, token)) ? Results.NoContent() : Results.NotFound());
+        agentGroup.MapPut("{id}/{type}/{enabled}", static async (string id, string type, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var config = await context.AgentConfigurations.FindAsync(id, type, token);
+            if (config is null)
+            {
+                return Results.NotFound();
+            }
+
+            config.Enabled = enabled;
+
+            try
+            {
+                await context.AgentConfigurations.UpdateEntityAsync(config, token);
+
+                logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, enabled);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, enabled);
+                return Results.Conflict();
+            }
+        });
 
         agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
@@ -314,10 +383,18 @@ public static class AdminRoutes
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
 
-            await context.AgentConfigurations.AddEntityAsync(config, token);
+            try
+            {
+                await context.AgentConfigurations.AddEntityAsync(config, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Created Agent Configuration {Id} of type {Type}", id, type);
-            return Results.Created();
+                logger.LogInformation(PulseEventIds.Admin, "Created Agent Configuration {Id} of type {Type}", id, type);
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error creating Agent Configuration {Id} of type {Type}", id, type);
+                return Results.Conflict();
+            }
         });
 
         agentGroup.MapPut("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -337,10 +414,18 @@ public static class AdminRoutes
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
 
-            await context.AgentConfigurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
+            try
+            {
+                await context.AgentConfigurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type}", id, type);
-            return Results.Created();
+                logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type}", id, type);
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Agent Configuration {Id} of type {Type}", id, type);
+                return Results.Conflict();
+            }
         });
 
         agentGroup.MapDelete("{id}/{type}", static async (string id, string type, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -413,10 +498,18 @@ public static class AdminRoutes
                 Headers = PulseConfiguration.CreateHeaders(request.Headers)
             };
 
-            await context.Configurations.AddEntityAsync(config, token);
+            try
+            {
+                await context.Configurations.AddEntityAsync(config, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Created Normal Configuration {Id} of type {Type}", sqid, request.Type);
-            return Results.Created();
+                logger.LogInformation(PulseEventIds.Admin, "Created Normal Configuration {Id} of type {Type}", sqid, request.Type);
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error creating Normal Configuration");
+                return Results.Conflict();
+            }
         });
 
         normalGroup.MapPut("{id}", static async (string id, PulseCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
@@ -441,14 +534,43 @@ public static class AdminRoutes
                 Headers = PulseConfiguration.CreateHeaders(request.Headers)
             };
 
-            await context.Configurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
+            try
+            {
+                await context.Configurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} of type {Type}", id, request.Type);
-            return Results.Created();
+                logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} of type {Type}", id, request.Type);
+                return Results.Created();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Normal Configuration {Id} of type {Type}", id, request.Type);
+                return Results.Conflict();
+            }
         });
 
-        normalGroup.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token)
-            => (await UpdateNormalState(id, enabled, context, logger, token)) ? Results.NoContent() : Results.NotFound());
+        normalGroup.MapPut("{id}/{enabled}", static async (string id, bool enabled, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        {
+            var config = await context.Configurations.FirstOrDefaultAsync(x => x.Sqid == id, token);
+            if (config is null)
+            {
+                return Results.NotFound();
+            }
+
+            config.Enabled = enabled;
+
+            try
+            {
+                await context.Configurations.UpdateEntityAsync(config, token);
+
+                logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} to Enabled: {Enabled}", id, enabled);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(PulseEventIds.Admin, ex, "Error updating Normal Configuration {Id} to Enabled: {Enabled}", id, enabled);
+                return Results.Conflict();
+            }
+        });
 
         normalGroup.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
@@ -464,35 +586,5 @@ public static class AdminRoutes
             logger.LogInformation(PulseEventIds.Admin, "Deleted Normal Configuration {Id}", id);
             return Results.NoContent();
         });
-    }
-
-    private static async Task<bool> UpdateNormalState(string id, bool state, PulseContext context, ILogger<Program> logger, CancellationToken token)
-    {
-        var config = await context.Configurations.FirstOrDefaultAsync(x => x.Sqid == id, token);
-        if (config is null)
-        {
-            return false;
-        }
-
-        config.Enabled = state;
-        await context.Configurations.UpdateEntityAsync(config, token);
-
-        logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} to Enabled: {Enabled}", id, state);
-        return true;
-    }
-
-    private static async Task<bool> UpdateAgentState(string id, string type, bool state, PulseContext context, ILogger<Program> logger, CancellationToken token)
-    {
-        var config = await context.AgentConfigurations.FindAsync(id, type, token);
-        if (config is null)
-        {
-            return false;
-        }
-
-        config.Enabled = state;
-        await context.AgentConfigurations.UpdateEntityAsync(config, token);
-
-        logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, state);
-        return true;
     }
 }

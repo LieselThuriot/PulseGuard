@@ -181,6 +181,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not create configuration. A conflict occurred - this configuration may already exist.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to create configuration');
       }
@@ -189,7 +192,7 @@
       setTimeout(() => window.location.href = '../#pulse', AdminCommon.REDIRECT_DELAY);
     } catch (error) {
       console.error('Error creating configuration:', error);
-      AdminCommon.showError('Failed to create configuration: ' + error.message);
+      AdminCommon.showError(error.message);
       showSubmitLoading(false);
     }
   }
@@ -205,6 +208,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('Could not update configuration. A conflict occurred - the configuration may have been modified by another user.');
+        }
         const text = await response.text();
         throw new Error(text || 'Failed to update configuration');
       }
@@ -213,7 +219,7 @@
       setTimeout(() => window.location.href = '../#pulse', AdminCommon.REDIRECT_DELAY);
     } catch (error) {
       console.error('Error updating configuration:', error);
-      AdminCommon.showError('Failed to update configuration: ' + error.message);
+      AdminCommon.showError(error.message);
       showSubmitLoading(false);
     }
   }

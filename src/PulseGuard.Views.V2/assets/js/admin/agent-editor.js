@@ -147,6 +147,9 @@
     })
       .then(response => {
         if (!response.ok) {
+          if (response.status === 409) {
+            throw new Error('Could not create agent configuration. A conflict occurred - this configuration may already exist.');
+          }
           return response.text().then(text => {
             throw new Error(text || 'Failed to create agent configuration');
           });
@@ -156,7 +159,7 @@
       })
       .catch(error => {
         console.error('Error creating agent configuration:', error);
-        AdminCommon.showError('Failed to create agent configuration: ' + error.message);
+        AdminCommon.showError(error.message);
         showSubmitLoading(false);
       });
   }
@@ -172,6 +175,9 @@
     })
       .then(response => {
         if (!response.ok) {
+          if (response.status === 409) {
+            throw new Error('Could not update agent configuration. A conflict occurred - the configuration may have been modified by another user.');
+          }
           return response.text().then(text => {
             throw new Error(text || 'Failed to update agent configuration');
           });
@@ -181,7 +187,7 @@
       })
       .catch(error => {
         console.error('Error updating agent configuration:', error);
-        AdminCommon.showError('Failed to update agent configuration: ' + error.message);
+        AdminCommon.showError(error.message);
         showSubmitLoading(false);
       });
   }
