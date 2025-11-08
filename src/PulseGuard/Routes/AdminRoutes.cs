@@ -337,6 +337,7 @@ public static class AdminRoutes
             {
                 Location = configuration.Location,
                 ApplicationName = configuration.ApplicationName,
+                SubscriptionId = configuration.SubscriptionId,
                 Enabled = configuration.Enabled,
                 Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values)
             });
@@ -368,9 +369,16 @@ public static class AdminRoutes
 
         agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            if (AgentCheckTypeFastString.FromString(type) is AgentCheckType.LogAnalyticsWorkspace && string.IsNullOrWhiteSpace(request.ApplicationName))
+            AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
+            
+            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
-                return Results.BadRequest("ApplicationName is required for LogAnalyticsWorkspace type.");
+                return Results.BadRequest("ApplicationName is required for this type of agent.");
+            }
+            
+            if (agentType is AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }
 
             PulseAgentConfiguration config = new()
@@ -379,6 +387,7 @@ public static class AdminRoutes
                 Type = type,
                 Location = request.Location,
                 ApplicationName = request.ApplicationName,
+                SubscriptionId = request.SubscriptionId,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
@@ -399,9 +408,16 @@ public static class AdminRoutes
 
         agentGroup.MapPut("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            if (AgentCheckTypeFastString.FromString(type) is AgentCheckType.LogAnalyticsWorkspace && string.IsNullOrWhiteSpace(request.ApplicationName))
+            AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
+
+            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
-                return Results.BadRequest("ApplicationName is required for LogAnalyticsWorkspace type.");
+                return Results.BadRequest("ApplicationName is required for this type of agent.");
+            }
+
+            if (agentType is AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }
 
             PulseAgentConfiguration config = new()
@@ -410,6 +426,7 @@ public static class AdminRoutes
                 Type = type,
                 Location = request.Location,
                 ApplicationName = request.ApplicationName,
+                SubscriptionId = request.SubscriptionId,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };

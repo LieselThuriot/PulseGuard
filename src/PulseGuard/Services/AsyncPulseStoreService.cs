@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace PulseGuard.Services;
 
 public readonly record struct PulseEventMessage(string Id, string PopReceipt, DateTimeOffset Created, PulseEvent? PulseEvent);
-public readonly record struct PulseAgentEventMessage(string Id, string PopReceipt, DateTimeOffset Created, PulseAgentReport? AgentReport);
+public readonly record struct PulseAgentEventMessage(string Id, string PopReceipt, DateTimeOffset Created, AgentReport? AgentReport);
 
 public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 {
@@ -48,7 +48,8 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 
             foreach (QueueMessage message in result)
             {
-                PulseAgentReport? agentEvent = PulseSerializerContext.Default.PulseAgentReport.Deserialize(message.Body);
+                AgentReport? agentEvent = PulseSerializerContext.Default.AgentReport.Deserialize(message.Body);
+
                 DateTimeOffset creation = message.InsertedOn?.ToUniversalTime() ?? DateTimeOffset.UtcNow;
                 yield return new(message.MessageId, message.PopReceipt, creation, agentEvent);
             }
@@ -74,7 +75,7 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 
-    public async Task PostAsync(IReadOnlyList<PulseAgentReport> reports, CancellationToken token)
+    public async Task PostAsync(IReadOnlyList<AgentReport> reports, CancellationToken token)
     {
         foreach (PulseAgentReport report in reports)
         {
@@ -82,9 +83,9 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
         }
     }
 
-    public Task PostAsync(PulseAgentReport report, CancellationToken token)
+    public Task PostAsync(AgentReport report, CancellationToken token)
     {
-        BinaryData data = new(PulseSerializerContext.Default.PulseAgentReport.SerializeToUtf8Bytes(report));
+        BinaryData data = new(report.GetTypeInfo().SerializeToUtf8Bytes(report));
         return _agentQueueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }

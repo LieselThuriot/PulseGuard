@@ -21,10 +21,14 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(PulseEvent))]
 [JsonSerializable(typeof(PulseEventInfo))]
+[JsonSerializable(typeof(AgentReport))]
 [JsonSerializable(typeof(PulseAgentReport))]
+[JsonSerializable(typeof(DeploymentAgentReport))]
 [JsonSerializable(typeof(ApplicationInsightsQueryResponse))]
 [JsonSerializable(typeof(UserInfo))]
 [JsonSerializable(typeof(EmptyUserInfo))]
+[JsonSerializable(typeof(PulseDeployments))]
+[JsonSerializable(typeof(PulseDeployment))]
 
 [JsonSerializable(typeof(Admin.PulseEntryType))]
 [JsonSerializable(typeof(Admin.PulseEntry))]
@@ -41,9 +45,14 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]
 [JsonSerializable(typeof(Entities.PulseConfiguration))]
+[JsonSerializable(typeof(Entities.PulseAgentConfiguration))]
 [JsonSerializable(typeof(Entities.UniqueIdentifier))]
 [JsonSerializable(typeof(Entities.Webhook))]
 [JsonSerializable(typeof(Entities.ArchivedPulseCheckResult))]
+[JsonSerializable(typeof(Entities.ArchivedPulseAgentCheckResult))]
+[JsonSerializable(typeof(Entities.DeploymentResult))]
+
+[JsonSerializable(typeof(Agents.Implementations.DeploymentMessageData))]
 public sealed partial class PulseSerializerContext : JsonSerializerContext;
 
 internal static class SerializerExtensions
@@ -51,6 +60,7 @@ internal static class SerializerExtensions
     public static string Serialize<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.Serialize(value, typeInfo);
     public static Task SerializeAsync<T>(this JsonTypeInfo<T> typeInfo, Stream stream, T value, CancellationToken token) => JsonSerializer.SerializeAsync(stream, value, typeInfo, token);
     public static byte[] SerializeToUtf8Bytes<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
+    public static byte[] SerializeToUtf8Bytes<T>(this JsonTypeInfo typeInfo, T value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
     public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, string value) => JsonSerializer.Deserialize(value, typeInfo);
     public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, ReadOnlySpan<byte> value) => JsonSerializer.Deserialize(value, typeInfo);
     public static ValueTask<T?> DeserializeAsync<T>(this JsonTypeInfo<T> typeInfo, Stream value, CancellationToken token) => JsonSerializer.DeserializeAsync(value, typeInfo, token);

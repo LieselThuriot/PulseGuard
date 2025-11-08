@@ -139,6 +139,26 @@ public static class PulseRoutes
 
             return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
         });
+
+        group.MapGet("application/{id}/deployments", async Task<Results<NotFound, Ok<PulseDeployments>>> (string id, PulseContext context, CancellationToken token) =>
+        {
+            var deployments = await context.Deployments.Where(x => x.Sqid == id)
+                                           .Select(x => new PulseDeployment(x.Author,
+                                                                            x.Status,
+                                                                            x.Start,
+                                                                            x.End,
+                                                                            x.Type,
+                                                                            x.CommitId,
+                                                                            x.BuildNumber))
+                                           .ToListAsync(token);
+
+            if (deployments.Count is 0)
+            {
+                return TypedResults.NotFound();
+            }
+
+            return TypedResults.Ok(new PulseDeployments(id, deployments));
+        });
     }
 
     private static ISelectedTableQueryable<Pulse> SelectPulseOverviewFields(TableSet<Pulse> pulses)

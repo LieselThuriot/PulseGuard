@@ -1,6 +1,4 @@
-﻿using PulseGuard.Entities;
-
-namespace PulseGuard.Services;
+﻿namespace PulseGuard.Services;
 
 public sealed class IdService
 {

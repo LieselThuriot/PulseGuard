@@ -6,9 +6,9 @@ public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<En
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 
-    public override async Task<IReadOnlyList<PulseAgentReport>> CheckAsync(CancellationToken token)
+    public override async Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
     {
-        List<PulseAgentReport> result = new(Options.Count);
+        List<AgentReport> result = new(Options.Count);
 
         foreach (var option in Options)
         {
@@ -18,7 +18,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<En
         return result;
     }
 
-    private async Task<PulseAgentReport> Query(Entities.PulseAgentConfiguration option, CancellationToken token)
+    private async Task<AgentReport> Query(Entities.PulseAgentConfiguration option, CancellationToken token)
     {
         var pulseResponseString = await Post("""
             {
@@ -52,7 +52,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<En
         }
 
         var row = insight.Tables[0].Rows[0];
-        return new(option, LargerThanZero(row.ElementAtOrDefault(0)), LargerThanZero(row.ElementAtOrDefault(1)), LargerThanZero(row.ElementAtOrDefault(2)));
+        return new PulseAgentReport(option, LargerThanZero(row.ElementAtOrDefault(0)), LargerThanZero(row.ElementAtOrDefault(1)), LargerThanZero(row.ElementAtOrDefault(2)));
     }
 
     public sealed record ApplicationInsightsQueryResponse(List<ApplicationInsightsQueryResponseTable> Tables);

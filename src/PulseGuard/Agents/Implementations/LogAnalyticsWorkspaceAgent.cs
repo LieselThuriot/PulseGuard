@@ -11,7 +11,7 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 
-    public override async Task<IReadOnlyList<PulseAgentReport>> CheckAsync(CancellationToken token)
+    public override async Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
     {
         try
         {

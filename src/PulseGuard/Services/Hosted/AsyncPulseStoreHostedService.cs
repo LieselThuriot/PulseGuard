@@ -63,7 +63,20 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             {
                 if (message.AgentReport is not null)
                 {
-                    await store.StoreAsync(message.AgentReport, message.Created, cancellationToken);
+                    switch (message.AgentReport)
+                    {
+                        case PulseAgentReport pulseAgentReport:
+                            await store.StoreAsync(pulseAgentReport, message.Created, cancellationToken);
+                            break;
+
+                        case DeploymentAgentReport deploymentAgentReport:
+                            await store.StoreAsync(deploymentAgentReport, cancellationToken);
+                            break;
+
+                        default:
+                            _logger.LogWarning(PulseEventIds.Pulses, "Unknown agent report type for message {id}: {type}", message.Id, message.AgentReport?.GetType());
+                            break;
+                    }
                 }
 
                 await _storeClient.DeleteMessageAsync(message);

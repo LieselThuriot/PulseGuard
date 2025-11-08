@@ -7,7 +7,8 @@ namespace PulseGuard.Agents;
 public enum AgentCheckType
 {
     ApplicationInsights = 1,
-    LogAnalyticsWorkspace = 2
+    LogAnalyticsWorkspace = 2,
+    Deployment = 3
 }
 
 public sealed class AgentCheckTypeJsonConverter : JsonConverter<AgentCheckType>

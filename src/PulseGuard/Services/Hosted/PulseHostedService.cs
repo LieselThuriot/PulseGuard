@@ -3,7 +3,6 @@ using PulseGuard.Agents;
 using PulseGuard.Checks;
 using PulseGuard.Entities;
 using PulseGuard.Models;
-using System.Configuration;
 using System.Diagnostics;
 using System.Net.Sockets;
 using TableStorage.Linq;
@@ -110,7 +109,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             {
                 await semaphore.WaitAsync(token);
 
-                AgentCheck check = agentFactory.Create(type, configs);
+                IAgentCheck check = agentFactory.Create(type, configs);
                 await CheckPulseAsync(check, store, token);
             }
             catch (Exception ex)
@@ -124,11 +123,11 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         }
     }
 
-    private async Task CheckPulseAsync(AgentCheck check, AsyncPulseStoreService store, CancellationToken token)
+    private async Task CheckPulseAsync(IAgentCheck check, AsyncPulseStoreService store, CancellationToken token)
     {
         try
         {
-            IReadOnlyList<PulseAgentReport> reports = await check.CheckAsync(token);
+            IReadOnlyList<AgentReport> reports = await check.CheckAsync(token);
             await store.PostAsync(reports, token);
         }
         catch (TaskCanceledException ex)

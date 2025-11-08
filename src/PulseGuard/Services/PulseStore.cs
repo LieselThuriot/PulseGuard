@@ -116,6 +116,32 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
     }
 
+    public async Task StoreAsync(DeploymentAgentReport report, CancellationToken token)
+    {
+        _logger.LogInformation(PulseEventIds.Store, "Storing deployment agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+        try
+        {
+            DeploymentResult deployment = new()
+            {
+                Sqid = report.Options.Sqid,
+                ContinuationToken = Pulse.CreateContinuationToken(report.Start),
+                Start = report.Start,
+                End = report.End,
+                Author = report.Author,
+                Status = report.Status,
+                Type = report.Type,
+                CommitId = report.CommitId,
+                BuildNumber = report.BuildNumber
+            };
+
+            await _context.Deployments.UpsertEntityAsync(deployment, token);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(PulseEventIds.Store, e, "Failed to store deployment agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+        }
+    }
+
     public Task CleanRecent(CancellationToken token)
     {
         Task cleanRecent = CleanRecentTable(token);

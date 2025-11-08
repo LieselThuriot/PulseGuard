@@ -5,12 +5,17 @@ using System.Text;
 
 namespace PulseGuard.Agents;
 
-public abstract class AgentCheck(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options)
+public interface IAgentCheck
+{
+    public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token);
+}
+
+public abstract class AgentCheck(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     public IReadOnlyList<PulseAgentConfiguration> Options { get; } = options;
 
-    public abstract Task<IReadOnlyList<PulseAgentReport>> CheckAsync(CancellationToken token);
+    public abstract Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token);
 
     protected Task<HttpResponseMessage> Post(string body, PulseAgentConfiguration options, CancellationToken token)
     {

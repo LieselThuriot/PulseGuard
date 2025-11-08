@@ -1,4 +1,6 @@
-﻿using PulseGuard.Services;
+﻿using Azure.Identity;
+using Azure.ResourceManager;
+using PulseGuard.Services;
 using Hosted = PulseGuard.Services.Hosted;
 
 namespace PulseGuard.Infrastructure;
@@ -16,6 +18,8 @@ internal static class ServicesSetup
 
         services.AddSingleton<AsyncPulseStoreService>();
         services.AddSingleton<WebhookService>();
+
+        services.AddSingleton(() => new ArmClient(new DefaultAzureCredential()));
 
         PulseEventService eventService = new();
         services.AddSingleton<IPulseEventService>(eventService);

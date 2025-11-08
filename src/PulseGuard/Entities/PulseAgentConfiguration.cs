@@ -11,6 +11,7 @@ public sealed partial class PulseAgentConfiguration
     public partial string Type { get; set; } //typeof AgentCheckType
     public partial string Location { get; set; }
     public partial string ApplicationName { get; set; }
+    public partial string SubscriptionId { get; set; }
     public partial bool Enabled { get; set; }
     public partial string Headers { get; set; }
 
