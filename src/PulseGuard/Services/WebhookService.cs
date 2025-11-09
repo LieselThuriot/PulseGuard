@@ -8,13 +8,11 @@ using System.Runtime.CompilerServices;
 
 namespace PulseGuard.Services;
 
-public readonly record struct WebhookEventMessage(string Id, string PopReceipt, WebhookEvent? WebhookEvent);
-public readonly record struct ThresholdWebhookEventMessage(string Id, string PopReceipt, ThresholdWebhookEvent? WebhookEvent);
+public readonly record struct WebhookEventMessage(string Id, string PopReceipt, WebhookEventBase? WebhookEvent);
 
 public sealed class WebhookService(IOptions<PulseOptions> options)
 {
     private readonly QueueClient _queueClient = new(options.Value.Store, "webhooks");
-    private readonly QueueClient _thresholdQueueClient = new(options.Value.Store, "threshooks");
 
     public async IAsyncEnumerable<WebhookEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
@@ -29,7 +27,7 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
             foreach (QueueMessage message in result)
             {
-                WebhookEvent? webhookEvent = PulseSerializerContext.Default.WebhookEvent.Deserialize(message.Body);
+                WebhookEventBase? webhookEvent = PulseSerializerContext.Default.WebhookEventBase.Deserialize(message.Body);
                 yield return new(message.MessageId, message.PopReceipt, webhookEvent);
             }
         }
@@ -60,36 +58,10 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
             )
         );
 
-        BinaryData data = new(PulseSerializerContext.Default.WebhookEvent.SerializeToUtf8Bytes(webhookEvent));
-        return _queueClient.SendMessageAsync(data, cancellationToken: token);
+        return PostAsync(webhookEvent, token);
     }
 
-    public async IAsyncEnumerable<ThresholdWebhookEventMessage> ReceiveThresholdMessagesAsync([EnumeratorCancellation] CancellationToken token)
-    {
-        while (!token.IsCancellationRequested)
-        {
-            QueueMessage[] result = await _thresholdQueueClient.ReceiveMessagesAsync(maxMessages: _queueClient.MaxPeekableMessages, cancellationToken: token);
-
-            if (result.Length == 0)
-            {
-                break;
-            }
-
-            foreach (QueueMessage message in result)
-            {
-                ThresholdWebhookEvent? webhookEvent = PulseSerializerContext.Default.ThresholdWebhookEvent.Deserialize(message.Body);
-                yield return new(message.MessageId, message.PopReceipt, webhookEvent);
-            }
-        }
-    }
-
-    public async Task<bool> DeleteMessageAsync(ThresholdWebhookEventMessage message)
-    {
-        Response result = await _thresholdQueueClient.DeleteMessageAsync(message.Id, message.PopReceipt, CancellationToken.None);
-        return !result.IsError;
-    }
-
-    public Task PostThresholdReachedAsync(Pulse pulse, DateTimeOffset since, int threshold, PulseConfiguration options, CancellationToken token)
+    public Task PostAsync(Pulse pulse, DateTimeOffset since, int threshold, PulseConfiguration options, CancellationToken token)
     {
         ThresholdWebhookEvent webhookEvent = new(
             pulse.Sqid,
@@ -99,7 +71,12 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
             threshold
         );
 
-        BinaryData data = new(PulseSerializerContext.Default.ThresholdWebhookEvent.SerializeToUtf8Bytes(webhookEvent));
-        return _thresholdQueueClient.SendMessageAsync(data, cancellationToken: token);
+        return PostAsync(webhookEvent, token);
+    }
+
+    private Task PostAsync(WebhookEventBase webhookEvent, CancellationToken token)
+    {
+        BinaryData data = new(PulseSerializerContext.Default.WebhookEventBase.SerializeToUtf8Bytes(webhookEvent));
+        return _queueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }

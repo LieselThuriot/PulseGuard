@@ -1,7 +1,6 @@
 ﻿using PulseGuard.Entities;
 using PulseGuard.Models;
 using SecureWebhooks;
-using System.Text.Json.Serialization.Metadata;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
@@ -23,12 +22,10 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
                 await _signalService.WaitAsync(stoppingToken);
 
                 // Our search is not optimized on table side anyway, so it's most likely cheaper to just fetch all enabled webhooks and filter in memory
-                IEnumerable<Entities.Webhook> webhooks = await _context.Webhooks.Where(x => x.Enabled).ToListAsync(stoppingToken);
+                ILookup<WebhookType, Entities.Webhook> webhooks = await _context.Webhooks.Where(x => x.Enabled)
+                                                                                         .ToLookupAsync(x => x.Type, cancellationToken: stoppingToken);
 
-                Lazy<HttpClient> client = new(() => _httpClientFactory.CreateClient("Webhooks"));
-
-                await HandleThresholdWebhooks(client, webhooks, stoppingToken);
-                await HandleWebhooks(client, webhooks, stoppingToken);
+                await HandleWebhooks(webhooks, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -37,50 +34,41 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
         }
     }
 
-    private async Task HandleThresholdWebhooks(Lazy<HttpClient> client, IEnumerable<Entities.Webhook> webhooks, CancellationToken stoppingToken)
+    private static IEnumerable<Entities.Webhook> FilterWebhooks(IEnumerable<Entities.Webhook> webhooks, string group, string name)
     {
-        await foreach (ThresholdWebhookEventMessage message in _webhookClient.ReceiveThresholdMessagesAsync(stoppingToken))
-        {
-            try
-            {
-                if (message.WebhookEvent is not null)
-                {
-                    await Handle(client.Value, message.WebhookEvent, webhooks, stoppingToken);
-                }
-
-                await _webhookClient.DeleteMessageAsync(message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(PulseEventIds.Webhooks, ex, "Error handling threshold webhook for message {id}", message.Id);
-            }
-        }
-    }
-
-    private static IEnumerable<Entities.Webhook> FilterWebhooks(IEnumerable<Entities.Webhook> webhooks, WebhookType type, string group, string name)
-    {
-        return webhooks.Where(x => (x.Type is WebhookType.All || x.Type == type) &&
-                                   (x.Group == "*" || x.Group == group) &&
-                                   (x.Name == "*" || x.Name == name));
+        return webhooks.Where(x => (x.Group == "*" || x.Group == group) && (x.Name == "*" || x.Name == name));
     }
 
     private async Task Handle(HttpClient client, ThresholdWebhookEvent webhookEvent, IEnumerable<Entities.Webhook> webhooks, CancellationToken cancellationToken)
     {
-        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, WebhookType.ThresholdBreach, webhookEvent.Group, webhookEvent.Name))
+        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name))
         {
-            await Send(client, webhook.Secret, webhook.Location, webhookEvent, PulseSerializerContext.Default.ThresholdWebhookEvent, cancellationToken);
+            await Send(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
         }
     }
 
-    private async Task HandleWebhooks(Lazy<HttpClient> client, IEnumerable<Entities.Webhook> webhooks, CancellationToken stoppingToken)
+    private async Task HandleWebhooks(ILookup<WebhookType, Entities.Webhook> webhooks, CancellationToken stoppingToken)
     {
+        Lazy<HttpClient> client = new(() => _httpClientFactory.CreateClient("Webhooks"));
+        IEnumerable<Entities.Webhook> allHooks = webhooks[WebhookType.All];
+
         await foreach (WebhookEventMessage message in _webhookClient.ReceiveMessagesAsync(stoppingToken))
         {
             try
             {
-                if (message.WebhookEvent is not null)
+                if (message.WebhookEvent is WebhookEvent webhookEvent)
                 {
-                    await Handle(client.Value, message.WebhookEvent, webhooks, stoppingToken);
+                    var relevantHooks = webhooks[WebhookType.StateChange].Concat(allHooks);
+                    await Handle(client.Value, webhookEvent, relevantHooks, stoppingToken);
+                }
+                else if (message.WebhookEvent is ThresholdWebhookEvent thresholdWebhookEvent)
+                {
+                    var relevantHooks = webhooks[WebhookType.ThresholdBreach].Concat(allHooks);
+                    await Handle(client.Value, thresholdWebhookEvent, relevantHooks, stoppingToken);
+                }
+                else
+                {
+                    _logger.LogWarning(PulseEventIds.Webhooks, "Unknown webhook event type for message {id}", message.Id);
                 }
 
                 await _webhookClient.DeleteMessageAsync(message);
@@ -94,17 +82,18 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
 
     private async Task Handle(HttpClient client, WebhookEvent webhookEvent, IEnumerable<Entities.Webhook> webhooks, CancellationToken cancellationToken)
     {
-        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, WebhookType.StateChange, webhookEvent.Group, webhookEvent.Name))
+        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name))
         {
-            await Send(client, webhook.Secret, webhook.Location, webhookEvent, PulseSerializerContext.Default.WebhookEvent, cancellationToken);
+            await Send(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
         }
     }
 
-    private async Task Send<T>(HttpClient client, string secret, string location, T webhookEvent, JsonTypeInfo<T> jsonInfo, CancellationToken cancellationToken)
+    private async Task Send<T>(HttpClient client, string secret, string location, T webhookEvent, CancellationToken cancellationToken)
+        where T : WebhookEventBase
     {
         try
         {
-            StringContent content = WebhookHelpers.CreateContentWithSecureHeader(secret, webhookEvent, jsonInfo);
+            StringContent content = WebhookHelpers.CreateContentWithSecureHeader(secret, webhookEvent, PulseSerializerContext.Default.WebhookEventBase);
             HttpRequestMessage request = new(HttpMethod.Post, location)
             {
                 Content = content
