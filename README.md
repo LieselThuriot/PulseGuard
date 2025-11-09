@@ -122,6 +122,77 @@ Configuration Notes:
 - `Location` must be the Workspace Id (GUID string).
 - Ensure the executing environment identity has `Log Analytics Reader` on the workspace.
 
+### 3. WebAppDeployment
+Purpose: Monitor Azure Web App deployment history and status.
+Mechanics:
+- Queries Azure App Service deployment records via ARM API using `ArmClient`.
+- Retrieves deployments within a 2-hour rolling window.
+- Extracts deployment metadata: author, status (NotDeployed / InProgress / Succeeded / PartiallySucceeded / Failed), start/end times.
+- Attempts to enrich deployment data with commit ID, build number, and deployment type from deployment message JSON.
+- Returns `DeploymentAgentReport` per deployment containing timestamp, status, and optional enrichments.
+Failure Modes:
+- Web App resource not found (logged as error).
+- Missing or incomplete deployment data (skipped).
+- Deserialization failures on deployment message (logged as warning, enrichments omitted).
+
+Configuration Notes:
+- `SubscriptionId` must contain the Azure subscription ID.
+- `Location` must be the resource group name.
+- `ApplicationName` must be the Web App name.
+- Ensure the executing environment identity has `Reader` role on the Web App resource.
+
+### 4. DevOpsDeployment
+Purpose: Monitor Azure DevOps environment deployment records.
+Mechanics:
+- Queries Azure DevOps Distributed Task API for environment deployment records within a 2-hour rolling window.
+- Filters by `BuildDefinitionId` to track specific pipeline deployments.
+- Enriches deployment data by calling the Builds API to retrieve author, commit ID, and build number.
+- Returns `DeploymentAgentReport` per deployment with result status, timestamps, and metadata.
+Failure Modes:
+- API call failures (non-success status codes logged as errors).
+- Missing deployment or build data (skipped or partial data returned).
+- Deserialization failures (logged as errors).
+
+Configuration Notes:
+- `Location` must be the Azure DevOps project name.
+- `ApplicationName` must be the team name.
+- `SubscriptionId` must be the environment ID (numeric).
+- `BuildDefinitionId` must be set to filter deployments by pipeline.
+- Provide Personal Access Token (PAT) with `Read` access to Environments, Deployments, and Builds in `Headers` (e.g., `Authorization:Basic <base64-encoded-PAT>`).
+
+---
+## Webhooks
+Webhooks allow external systems to be notified when pulse events occur.
+
+`Webhook` entity fields:
+- Id: unique identifier.
+- Secret: authentication token for the webhook endpoint.
+- Group / Name: filters which pulses trigger this webhook.
+- Location: target URL to POST notifications.
+- Enabled: activation flag.
+- Type: one of `WebhookType` values (All / StateChange / ThresholdBreach).
+
+### Webhook Types
+1. **All**: Triggered for any webhook type.
+2. **StateChange**: Triggered only when pulse state transitions (Healthy ↔ Unhealthy).
+3. **ThresholdBreach**: Triggered when consecutive failures reach the configured `AlertThreshold`.
+
+### Alert Threshold
+The `AlertThreshold` (configured in `PulseOptions`) defines the number of consecutive unhealthy pulse results that trigger a critical alert and webhook notification for `ThresholdBreach` webhooks.
+- When a pulse fails, its failure counter (`PulseCounter.Value`) increments.
+- When `Value` equals `AlertThreshold`, a critical log event is emitted and webhooks of type `ThresholdBreach` are invoked.
+- The webhook payload includes the pulse configuration, failure count, and timestamp of the first failure in the sequence.
+- Use this to implement escalation policies or integrate with incident management systems.
+
+Configuration Example:
+```json
+{
+  "Pulse": {
+    "AlertThreshold": 3
+  }
+}
+```
+
 ---
 ## Headers Format
 Both configuration types serialize headers as: `Name:Value;Another-Header:OtherValue` (no trailing semicolon). They are added with `TryAddWithoutValidation`.
@@ -182,6 +253,26 @@ Location=https://api.applicationinsights.io/v1/apps/<appId>/query
 ApplicationName=api-service-a
 Enabled=true
 Headers=x-api-key:XXXX
+```
+PulseAgentConfiguration (WebAppDeployment):
+```
+Sqid=web-deployments
+Type=WebAppDeployment
+SubscriptionId=<subscription-id>
+Location=my-resource-group
+ApplicationName=my-web-app
+Enabled=true
+```
+PulseAgentConfiguration (DevOpsDeployment):
+```
+Sqid=pipeline-deployments
+Type=DevOpsDeployment
+Location=MyProject
+ApplicationName=MyTeam
+SubscriptionId=123
+BuildDefinitionId=456
+Enabled=true
+Headers=Authorization:Basic <base64-encoded-PAT>
 ```
 
 ---
