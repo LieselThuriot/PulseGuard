@@ -70,8 +70,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
     {
         try
         {
-            string? buildId = deployment.Owner?.Id;
-            if (!string.IsNullOrEmpty(buildId))
+            if (deployment.Owner?.Id is int buildId)
             {
                 string buildUrl = $"https://dev.azure.com/{project}/{team}/_apis/build/builds/{buildId}?api-version=7.1";
 
@@ -106,7 +105,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
 
 public sealed record EnvironmentDeploymentRecords(List<EnvironmentDeploymentRecord>? Value);
 public sealed record EnvironmentDeploymentRecord(string Result, DateTimeOffset StartTime, DateTimeOffset FinishTime, EnvironmentDeploymentOwner Owner);
-public sealed record EnvironmentDeploymentOwner(string? Id);
+public sealed record EnvironmentDeploymentOwner(int? Id);
 
 public sealed record EnvironmentDeploymentBuildRecord(string? SourceVersion, EnvironmentDeploymentBuildRequestedfor? RequestedFor, string? BuildNumber);
 public sealed record EnvironmentDeploymentBuildRequestedfor(string? DisplayName, string? UniqueName);

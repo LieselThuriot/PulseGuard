@@ -19,7 +19,7 @@ internal static class ServicesSetup
         services.AddSingleton<AsyncPulseStoreService>();
         services.AddSingleton<WebhookService>();
 
-        services.AddSingleton(() => new ArmClient(new DefaultAzureCredential()));
+        services.AddSingleton(_ => new ArmClient(new DefaultAzureCredential()));
 
         PulseEventService eventService = new();
         services.AddSingleton<IPulseEventService>(eventService);

@@ -77,7 +77,7 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 
     public async Task PostAsync(IReadOnlyList<AgentReport> reports, CancellationToken token)
     {
-        foreach (PulseAgentReport report in reports)
+        foreach (AgentReport report in reports)
         {
             await PostAsync(report, token);
         }
@@ -85,7 +85,7 @@ public sealed class AsyncPulseStoreService(IOptions<PulseOptions> options)
 
     public Task PostAsync(AgentReport report, CancellationToken token)
     {
-        BinaryData data = new(report.GetTypeInfo().SerializeToUtf8Bytes(report));
+        BinaryData data = new(PulseSerializerContext.Default.AgentReport.SerializeToUtf8Bytes(report));
         return _agentQueueClient.SendMessageAsync(data, cancellationToken: token);
     }
 }
