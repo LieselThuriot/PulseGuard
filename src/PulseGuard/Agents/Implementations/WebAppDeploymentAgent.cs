@@ -5,7 +5,7 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class DeploymentAgent(ArmClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
+public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
 {
     [Flags]
     private enum DeploymentStatus
@@ -81,7 +81,7 @@ public sealed class DeploymentAgent(ArmClient client, IReadOnlyList<PulseAgentCo
             }
             catch (Exception innerException)
             {
-                _logger.LogError(PulseEventIds.DeploymentAgent, innerException, "Error checking deployment agent");
+                _logger.LogError(PulseEventIds.WebAppDeploymentAgent, innerException, "Error checking deployment agent");
             }
         }
 

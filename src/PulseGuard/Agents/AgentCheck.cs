@@ -27,7 +27,7 @@ public abstract class AgentCheck(HttpClient client, IReadOnlyList<PulseAgentConf
         return Send(request, options, token);
     }
 
-    private Task<HttpResponseMessage> Send(HttpRequestMessage request, PulseAgentConfiguration options, CancellationToken token)
+    protected Task<HttpResponseMessage> Send(HttpRequestMessage request, PulseAgentConfiguration options, CancellationToken token)
     {
         foreach ((string name, string value) in options.GetHeaders())
         {

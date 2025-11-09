@@ -9,8 +9,8 @@ public sealed partial class DeploymentResult
     public partial string ContinuationToken { set; get; }
     public partial DateTimeOffset Start { get; set; }
     public partial DateTimeOffset? End { get; set; }
-    public partial string Author { get; set; }
     public partial string Status { get; set; }
+    public partial string? Author { get; set; }
     public partial string? Type { get; set; }
     public partial string? CommitId { get; set; }
     public partial string? BuildNumber { get; set; }

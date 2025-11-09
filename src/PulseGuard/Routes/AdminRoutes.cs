@@ -371,12 +371,12 @@ public static class AdminRoutes
         {
             AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
             
-            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.ApplicationName))
+            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
                 return Results.BadRequest("ApplicationName is required for this type of agent.");
             }
             
-            if (agentType is AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
+            if (agentType is AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
             {
                 return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }
@@ -410,12 +410,12 @@ public static class AdminRoutes
         {
             AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
 
-            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.ApplicationName))
+            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.ApplicationName))
             {
                 return Results.BadRequest("ApplicationName is required for this type of agent.");
             }
 
-            if (agentType is AgentCheckType.Deployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
+            if (agentType is AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
             {
                 return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }

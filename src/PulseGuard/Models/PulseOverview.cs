@@ -14,4 +14,4 @@ public sealed record PulseStateItem(PulseStates State, DateTimeOffset? From, Dat
 public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerable<PulseCheckResultDetail> Items);
 public sealed record PulseMetricsResultGroup(IEnumerable<PulseAgentCheckResultDetail> Items);
 public sealed record PulseDeployments(string Id, IEnumerable<PulseDeployment> Items);
-public sealed record PulseDeployment(string Author, string Status, DateTimeOffset From, DateTimeOffset? To, string? Type, string? CommitId, string? BuildNumber);
+public sealed record PulseDeployment(string Status, DateTimeOffset From, DateTimeOffset? To, string? Author, string? Type, string? CommitId, string? BuildNumber);

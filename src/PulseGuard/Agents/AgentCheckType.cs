@@ -8,7 +8,8 @@ public enum AgentCheckType
 {
     ApplicationInsights = 1,
     LogAnalyticsWorkspace = 2,
-    Deployment = 3
+    WebAppDeployment = 3,
+    DevOpsDeployment = 4
 }
 
 public sealed class AgentCheckTypeJsonConverter : JsonConverter<AgentCheckType>

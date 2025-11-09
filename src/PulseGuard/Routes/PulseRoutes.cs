@@ -143,10 +143,10 @@ public static class PulseRoutes
         group.MapGet("application/{id}/deployments", async Task<Results<NotFound, Ok<PulseDeployments>>> (string id, PulseContext context, CancellationToken token) =>
         {
             var deployments = await context.Deployments.Where(x => x.Sqid == id)
-                                           .Select(x => new PulseDeployment(x.Author,
-                                                                            x.Status,
+                                           .Select(x => new PulseDeployment(x.Status,
                                                                             x.Start,
                                                                             x.End,
+                                                                            x.Author,
                                                                             x.Type,
                                                                             x.CommitId,
                                                                             x.BuildNumber))

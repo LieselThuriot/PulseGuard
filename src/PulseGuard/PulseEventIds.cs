@@ -11,7 +11,8 @@ public static class PulseEventIds
 
     public static readonly EventId ApplicationInsightsAgent = new(150, nameof(ApplicationInsightsAgent));
     public static readonly EventId LogAnalyticsWorkspaceAgent = new(151, nameof(LogAnalyticsWorkspaceAgent));
-    public static readonly EventId DeploymentAgent = new(152, nameof(DeploymentAgent));
+    public static readonly EventId WebAppDeploymentAgent = new(152, nameof(WebAppDeploymentAgent));
+    public static readonly EventId DevOpsDeploymentAgent = new(153, nameof(DevOpsDeploymentAgent));
 
     public static readonly EventId Webhooks = new(200, nameof(Webhooks));
     public static readonly EventId Pulses = new(201, nameof(Pulses));

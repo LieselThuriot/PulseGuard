@@ -20,7 +20,7 @@ public sealed record PulseAgentReport(PulseAgentConfiguration Options, double? C
     public static IReadOnlyList<PulseAgentReport> Fail(IReadOnlyList<PulseAgentConfiguration> options) => [.. options.Select(Fail)];
 }
 
-public sealed record DeploymentAgentReport(PulseAgentConfiguration Options, string Author, string Status, DateTimeOffset Start, DateTimeOffset End, string? Type, string? CommitId, string? BuildNumber) : AgentReport(Options)
+public sealed record DeploymentAgentReport(PulseAgentConfiguration Options, string? Author, string Status, DateTimeOffset Start, DateTimeOffset End, string? Type, string? CommitId, string? BuildNumber) : AgentReport(Options)
 {
     public override JsonTypeInfo GetTypeInfo() => PulseSerializerContext.Default.DeploymentAgentReport;
 }
