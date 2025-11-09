@@ -52,6 +52,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
 
     private async Task<EnvironmentDeploymentRecords?> GetDeployments(Entities.PulseAgentConfiguration option, string project, string team, string environmentId, CancellationToken token)
     {
+        // Requires Read access to Environments and Deployments
         string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1";
 
         HttpRequestMessage request = new(HttpMethod.Get, environmentUrl);
@@ -72,6 +73,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
         {
             if (deployment.Owner?.Id is int buildId)
             {
+                // Requires Read access to Builds
                 string buildUrl = $"https://dev.azure.com/{project}/{team}/_apis/build/builds/{buildId}?api-version=7.1";
 
                 HttpRequestMessage buildRequest = new(HttpMethod.Get, buildUrl);
