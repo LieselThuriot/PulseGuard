@@ -370,12 +370,20 @@
           subTypeIcon = 'bi-search';
           break;
         case 'ApplicationInsights':
-          subTypeBadge = 'bg-primary';
+          subTypeBadge = 'bg-info';
           subTypeIcon = 'bi-graph-up';
           break;
         case 'LogAnalyticsWorkspace':
           subTypeBadge = 'bg-primary';
           subTypeIcon = 'bi-journal-text';
+          break;
+        case 'WebAppDeployment':
+          subTypeBadge = 'bg-success';
+          subTypeIcon = 'bi-cloud-upload';
+          break;
+        case 'DevOpsDeployment':
+          subTypeBadge = 'bg-warning text-dark';
+          subTypeIcon = 'bi-git';
           break;
       }
       
@@ -858,8 +866,16 @@
           subTypeIcon = 'bi-graph-up';
           break;
         case 'LogAnalyticsWorkspace':
-          subTypeBadge = 'bg-primary';
+          subTypeBadge = 'bg-info';
           subTypeIcon = 'bi-journal-text';
+          break;
+        case 'WebAppDeployment':
+          subTypeBadge = 'bg-success';
+          subTypeIcon = 'bi-cloud-upload';
+          break;
+        case 'DevOpsDeployment':
+          subTypeBadge = 'bg-warning text-dark';
+          subTypeIcon = 'bi-git';
           break;
       }
       

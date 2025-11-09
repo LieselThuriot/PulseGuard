@@ -91,20 +91,34 @@
                                     <option value="">-- Select Agent Type --</option>
                                     <option value="ApplicationInsights">Application Insights</option>
                                     <option value="LogAnalyticsWorkspace">Log Analytics Workspace</option>
+                                    <option value="WebAppDeployment">Web App Deployment</option>
+                                    <option value="DevOpsDeployment">DevOps Deployment</option>
                                 </select>
                                 <div class="form-text">Type of agent monitoring to configure</div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="agent-location" class="form-label">Location <span class="text-danger">*</span></label>
+                                <label for="agent-location" class="form-label">
+                                    <span id="agent-location-label">Location</span> <span class="text-danger">*</span>
+                                </label>
                                 <input type="text" class="form-control" id="agent-location" required>
-                                <div class="form-text">Resource location or connection string</div>
+                                <div class="form-text" id="agent-location-help">Resource location or connection string</div>
                             </div>
 
                             <div class="mb-3 d-none" id="agent-app-name-group">
-                                <label for="agent-app-name" class="form-label">Application Name <span class="text-danger">*</span></label>
+                                <label for="agent-app-name" class="form-label">
+                                    <span id="agent-app-name-label">Application Name</span> <span class="text-danger">*</span>
+                                </label>
                                 <input type="text" class="form-control" id="agent-app-name">
-                                <div class="form-text">Required for Log Analytics Workspace</div>
+                                <div class="form-text" id="agent-app-name-help">Required for Log Analytics Workspace</div>
+                            </div>
+
+                            <div class="mb-3 d-none" id="agent-subscription-id-group">
+                                <label for="agent-subscription-id" class="form-label">
+                                    <span id="agent-subscription-id-label">Subscription Id</span> <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="agent-subscription-id">
+                                <div class="form-text" id="agent-subscription-id-help">Azure Subscription Id</div>
                             </div>
 
                             <div class="mb-3">

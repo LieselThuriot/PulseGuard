@@ -63,14 +63,69 @@
     const agentType = e.target.value;
     const appNameGroup = document.getElementById('agent-app-name-group');
     const appNameInput = document.getElementById('agent-app-name');
+    const appNameLabel = document.getElementById('agent-app-name-label');
+    const appNameHelp = document.getElementById('agent-app-name-help');
+    
+    const subscriptionIdGroup = document.getElementById('agent-subscription-id-group');
+    const subscriptionIdInput = document.getElementById('agent-subscription-id');
+    const subscriptionIdLabel = document.getElementById('agent-subscription-id-label');
+    const subscriptionIdHelp = document.getElementById('agent-subscription-id-help');
+    
+    const locationLabel = document.getElementById('agent-location-label');
+    const locationHelp = document.getElementById('agent-location-help');
 
-    if (agentType === 'LogAnalyticsWorkspace') {
-      appNameGroup?.classList.remove('d-none');
-      appNameInput.required = true;
-    } else {
-      appNameGroup?.classList.add('d-none');
-      appNameInput.required = false;
-      appNameInput.value = '';
+    // Reset all fields
+    appNameGroup?.classList.add('d-none');
+    appNameInput.required = false;
+    subscriptionIdGroup?.classList.add('d-none');
+    subscriptionIdInput.required = false;
+
+    // Configure based on agent type
+    switch (agentType) {
+      case 'LogAnalyticsWorkspace':
+        locationLabel.textContent = 'Location';
+        locationHelp.textContent = 'Log Analytics Workspace connection string';
+        appNameGroup?.classList.remove('d-none');
+        appNameInput.required = true;
+        appNameLabel.textContent = 'Application Name';
+        appNameHelp.textContent = 'Application name for Log Analytics queries';
+        break;
+
+      case 'WebAppDeployment':
+        locationLabel.textContent = 'Resource Group';
+        locationHelp.textContent = 'Azure Resource Group name';
+        appNameGroup?.classList.remove('d-none');
+        appNameInput.required = true;
+        appNameLabel.textContent = 'Application Name';
+        appNameHelp.textContent = 'Web App name';
+        subscriptionIdGroup?.classList.remove('d-none');
+        subscriptionIdInput.required = true;
+        subscriptionIdLabel.textContent = 'Subscription Id';
+        subscriptionIdHelp.textContent = 'Azure Subscription Id';
+        break;
+
+      case 'DevOpsDeployment':
+        locationLabel.textContent = 'Project';
+        locationHelp.textContent = 'Azure DevOps Project name';
+        appNameGroup?.classList.remove('d-none');
+        appNameInput.required = true;
+        appNameLabel.textContent = 'Team';
+        appNameHelp.textContent = 'Azure DevOps Team name';
+        subscriptionIdGroup?.classList.remove('d-none');
+        subscriptionIdInput.required = true;
+        subscriptionIdLabel.textContent = 'Environment Id';
+        subscriptionIdHelp.textContent = 'Azure DevOps Environment Id';
+        break;
+
+      case 'ApplicationInsights':
+        locationLabel.textContent = 'Location';
+        locationHelp.textContent = 'Application Insights endpoint URL';
+        break;
+
+      default:
+        locationLabel.textContent = 'Location';
+        locationHelp.textContent = 'Resource location or connection string';
+        break;
     }
   }
 
@@ -106,6 +161,7 @@
     const pulseId = document.getElementById('agent-pulse-id').value;
     const locationValue = document.getElementById('agent-location').value.trim();
     const appNameValue = document.getElementById('agent-app-name').value.trim();
+    const subscriptionIdValue = document.getElementById('agent-subscription-id').value.trim();
 
     // Get agent type - use form value if available (create mode), otherwise use URL param (update mode)
     const agentTypeValue = document.getElementById('agent-type').value || agentType;
@@ -125,6 +181,7 @@
       type: agentTypeValue,
       location: locationValue,
       applicationName: appNameValue || null,
+      subscriptionId: subscriptionIdValue || null,
       enabled: document.getElementById('agent-enabled').checked,
       headers: collectHeaders()
     };
@@ -255,6 +312,7 @@
     document.getElementById('agent-type').value = agentType || '';
     document.getElementById('agent-location').value = config.location || '';
     document.getElementById('agent-app-name').value = config.applicationName || '';
+    document.getElementById('agent-subscription-id').value = config.subscriptionId || '';
     document.getElementById('agent-enabled').checked = config.enabled;
 
     // Trigger the type change to show/hide application name field
