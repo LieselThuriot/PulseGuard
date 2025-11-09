@@ -37,13 +37,21 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
                 string name = option.ApplicationName;
 
                 var resourceId = WebSiteResource.CreateResourceIdentifier(subscriptionId, resourceGroupName, name);
-                var website = await _client.GetWebSiteResource(resourceId).GetAsync(default);
+                var website = await _client.GetWebSiteResource(resourceId).GetAsync(token);
+
+                if (!website.HasValue)
+                {
+                    _logger.LogError(PulseEventIds.WebAppDeploymentAgent, "Web App not found: {ResourceId}", resourceId);
+                    continue;
+                }
+
                 var deployments = website.Value.GetSiteDeployments();
                 var query = deployments.GetAllAsync(token)
                                        .Where(x => x.HasData)
                                        .Select(x => x.Data)
                                        .Where(x => x.StartOn.HasValue && x.EndOn.HasValue && x.Status.HasValue)
-                                       .TakeWhile(x => x.StartOn >= lastWeek);
+                                       .TakeWhile(x => x.StartOn >= lastWeek)
+                                       .WithCancellation(token);
 
                 await foreach (WebAppDeploymentData deployment in query)
                 {
@@ -52,21 +60,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
 
                     var status = (DeploymentStatus)deployment.Status.GetValueOrDefault();
 
-                    string? type,
-                            commit,
-                            buildNumber;
-
-                    if (!string.IsNullOrEmpty(deployment.Message) &&
-                        PulseSerializerContext.Default.DeploymentMessageData.Deserialize(deployment.Message) is DeploymentMessageData messageData)
-                    {
-                        (type, commit, buildNumber) = messageData;
-                    }
-                    else
-                    {
-                        type = null;
-                        commit = null;
-                        buildNumber = null;
-                    }
+                    (string? type, string? commit, string? buildNumber) = GetEnrichments(deployment);
 
                     DeploymentAgentReport report = new(option,
                                                        deployment.Author,
@@ -86,6 +80,24 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
         }
 
         return reports;
+    }
+
+    private (string? type, string? commit, string? buildNumber) GetEnrichments(WebAppDeploymentData deployment)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(deployment.Message) &&
+                PulseSerializerContext.Default.DeploymentMessageData.Deserialize(deployment.Message) is DeploymentMessageData messageData)
+            {
+                return (messageData.Type, messageData.CommitId, messageData.BuildNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(PulseEventIds.WebAppDeploymentAgent, ex, "Failed to deserialize deployment message: {Message}", deployment.Message);
+        }
+
+        return default;
     }
 }
 

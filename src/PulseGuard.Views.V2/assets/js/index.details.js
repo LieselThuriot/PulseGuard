@@ -45,6 +45,18 @@
 
 (async function () {
   /**
+   * Represents a single deployment
+   * @typedef {Object} PulseDeployment
+   * @property {string} status
+   * @property {string} from - ISO 8601 timestamp
+   * @property {string|null} to - ISO 8601 timestamp
+   * @property {string|null} author
+   * @property {string|null} type
+   * @property {string|null} commitId
+   * @property {string|null} buildNumber
+   */
+
+  /**
    * PulseDetailResult message: Represents a single health check result
    * @typedef {Object} PulseDetailResult
    * @property {string} state
@@ -239,6 +251,9 @@
   /** @type {PulseMetricsResultGroup|null} */
   let currentMetrics = null;
 
+  /** @type {PulseDeployment[]|null} */
+  let currentDeployments = null;
+
   /** @type {AbortController|null} */
   let fetchAbortController;
 
@@ -432,7 +447,7 @@
     if (fetchAbortController) {
       fetchAbortController.abort(`Starting new request for ${sqid}.`);
     }
-    
+
     fetchAbortController = new AbortController();
     const abortSignal = fetchAbortController.signal;
 
@@ -490,16 +505,44 @@
         }
       });
 
-    Promise.all([...promises, metricsPromise])
+    const deploymentsPromise = fetch(
+      `api/1.0/pulses/application/${sqid}/deployments`,
+      {
+        method: "get",
+        signal: abortSignal,
+      }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          // Return null if deployments not found (404 is expected when no deployments exist)
+          return null;
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        // Silently ignore aborts and errors
+        if (!(error && error.name === "AbortError")) {
+          // console.warn("Failed to fetch deployments for", sqid, error);
+        }
+        return null;
+      });
+
+    Promise.all([...promises, metricsPromise, deploymentsPromise])
       .then((results) => {
         /** @type {PulseDetailResultGroup|null} */
         const data = results[0];
 
         /** @type {PulseMetricsResultGroup|null} */
-        const metrics = results[results.length - 1];
+        const metrics = results[results.length - 2];
+
+        /** @type {{id: string, items: PulseDeployment[]}|null} */
+        const deploymentsResponse = results[results.length - 1];
+
+        /** @type {PulseDeployment[]|null} */
+        const deployments = deploymentsResponse?.items || null;
 
         /** @type {PulseDetailResultGroup[]|null} */
-        const overlays = results.slice(1, -1);
+        const overlays = results.slice(1, -2);
 
         if (!data && !abortSignal.aborted) {
           let toast = {
@@ -525,7 +568,7 @@
         }
 
         const overlayData = (overlays || []).filter((o) => o !== null);
-        handleData(data, overlayData, metrics);
+        handleData(data, overlayData, metrics, deployments);
       })
       .finally(() => {
         fetchAbortController = null;
@@ -567,6 +610,7 @@
     destroyAllCharts();
 
     currentMetrics = null;
+    currentDeployments = null;
 
     // Reset forecast module if available
     if (window.PulseGuardForecast) {
@@ -599,9 +643,11 @@
    * @param {PulseDetailResultGroup} data - The data to handle.
    * @param {PulseDetailResultGroup[]} overlays - The data to handle.
    * @param {PulseMetricsResultGroup | null} metrics - The metrics for the current data.
+   * @param {PulseDeployment[] | null} deployments - The deployments for the current data.
    */
-  function handleData(data, overlays, metrics) {
+  function handleData(data, overlays, metrics, deployments) {
     currentMetrics = metrics;
+    currentDeployments = deployments;
 
     // Pass data to forecast module if available
     if (window.PulseGuardForecast && data.items) {
@@ -659,6 +705,15 @@
 
       const { minTimestamp, maxTimestamp } = calculateMinMaxTimestamps();
 
+      // Filter deployments based on the selected date range
+      const filteredDeployments = currentDeployments
+        ? filterDeploymentsByDateRange(
+            currentDeployments,
+            detailCardElements.fromSelect,
+            detailCardElements.toSelect
+          )
+        : [];
+
       detailCardChart = renderChart(
         newDecimation,
         newPercentile,
@@ -670,7 +725,8 @@
           ...overlayTimeMaps,
         ],
         minTimestamp,
-        maxTimestamp
+        maxTimestamp,
+        filteredDeployments
       );
 
       updateHealthBars(
@@ -1248,6 +1304,43 @@
   }
 
   /**
+   * Filters an array of deployments based on a date range specified by two HTML select elements.
+   *
+   * @param {Array<PulseDeployment>} deployments - The array of deployments to filter.
+   * @param {HTMLSelectElement} fromSelect - The HTML select element representing the start date of the range.
+   * @param {HTMLSelectElement} toSelect - The HTML select element representing the end date of the range.
+   * @returns {Array<PulseDeployment>} The filtered array of deployments that overlap with the specified date range.
+   */
+  function filterDeploymentsByDateRange(deployments, fromSelect, toSelect) {
+    if (!deployments || deployments.length === 0) {
+      return [];
+    }
+
+    const from = fromSelect?.value ? Date.parse(fromSelect.value) : null;
+    const to = toSelect?.value ? Date.parse(toSelect.value) : null;
+
+    if (from === null && to === null) {
+      return deployments;
+    }
+
+    return deployments.filter((deployment) => {
+      const deploymentStart = Date.parse(deployment.from);
+      const deploymentEnd = deployment.to
+        ? Date.parse(deployment.to)
+        : Date.now();
+
+      // Include deployment if it overlaps with the selected range
+      if (from !== null && deploymentEnd < from) {
+        return false; // Deployment ended before range start
+      }
+      if (to !== null && deploymentStart > to) {
+        return false; // Deployment started after range end
+      }
+      return true;
+    });
+  }
+
+  /**
    * Creates a Map where the keys are timestamps (rounded to the nearest minute)
    * and the values are the corresponding items from the input array.
    *
@@ -1446,6 +1539,7 @@
    * @param {{graphLabel:string, map:Array<Map<number, PulseDetailResult>>}[]} timeMaps - An array of time map objects containing data points.
    * @param {number} minTimestamp - The minimum timestamp for the chart's x-axis.
    * @param {number} maxTimestamp - The maximum timestamp for the chart's x-axis.
+   * @param {Array<PulseDeployment>} deployments - Array of deployments to visualize as zones on the chart.
    * @returns {Chart} A Chart.js instance representing the rendered chart.
    */
   function renderChart(
@@ -1453,7 +1547,8 @@
     percentile,
     timeMaps,
     minTimestamp,
-    maxTimestamp
+    maxTimestamp,
+    deployments = []
   ) {
     const interval = 60000;
 
@@ -1514,6 +1609,173 @@
             callbacks: {
               footer: (tooltipItems) => `State: ${tooltipItems[0].raw.state}`,
             },
+          },
+          annotation: {
+            common: {
+              drawTime: "afterDatasetsDraw",
+            },
+            annotations: Object.fromEntries(
+              deployments.flatMap((deployment, index) => {
+                const deploymentStart = Date.parse(deployment.from);
+                const deploymentEnd = deployment.to
+                  ? Date.parse(deployment.to)
+                  : maxTimestamp;
+
+                // Determine color based on status
+                let backgroundColor = "rgba(75, 192, 192, 0.1)"; // Default teal
+                let borderColor = "rgba(75, 192, 192, 0.5)";
+
+                if (
+                  deployment.status === "Failed" ||
+                  deployment.status === "failed"
+                ) {
+                  backgroundColor = "rgba(255, 99, 132, 0.1)"; // Red
+                  borderColor = "rgba(255, 99, 132, 0.5)";
+                } else if (
+                  deployment.status === "Succeeded" ||
+                  deployment.status === "succeeded"
+                ) {
+                  backgroundColor = "rgba(75, 192, 192, 0.1)"; // Teal
+                  borderColor = "rgba(75, 192, 192, 0.5)";
+                } else if (
+                  deployment.status === "InProgress" ||
+                  deployment.status === "in_progress"
+                ) {
+                  backgroundColor = "rgba(255, 206, 86, 0.1)"; // Yellow
+                  borderColor = "rgba(255, 206, 86, 0.5)";
+                }
+
+                // Build common deployment info lines
+                const deploymentInfoLines = [
+                  deployment.status ? `Status: ${deployment.status}` : null,
+                  deployment.type ? `Type: ${deployment.type}` : null,
+                  deployment.author ? `Author: ${deployment.author}` : null,
+                  deployment.commitId ? `Commit: ${deployment.commitId}` : null,
+                  deployment.buildNumber ? `Build: ${deployment.buildNumber}` : null,
+                ].filter(Boolean);
+
+                const startDate = new Date(deploymentStart).toLocaleString();
+                const endDate = deployment.to
+                  ? new Date(Date.parse(deployment.to)).toLocaleString()
+                  : "In Progress";
+
+                // Check if deployment start and end are on the same second (instant deployment)
+                const isInstantDeployment = deployment.to && Math.floor(deploymentStart / 1000) === Math.floor(deploymentEnd / 1000);
+
+                const startTooltipLines = isInstantDeployment 
+                  ? ["Deployment", `Time: ${startDate}`, ...deploymentInfoLines]
+                  : ["Deployment Start", `Time: ${startDate}`, ...deploymentInfoLines];
+                const endTooltipLines = ["Deployment End", `Time: ${endDate}`, ...deploymentInfoLines];
+
+                // Determine line color based on status
+                let lineColor = "rgba(108, 117, 125, 0.8)"; // Default gray
+                let markerColor = "rgba(108, 117, 125, 1)";
+                let labelBgColor = "rgba(108, 117, 125, 0.95)";
+                
+                if (deployment.status === "Failed" || deployment.status === "failed") {
+                  lineColor = "rgba(220, 53, 69, 0.8)"; // Red
+                  markerColor = "rgba(220, 53, 69, 1)";
+                  labelBgColor = "rgba(220, 53, 69, 0.95)";
+                } else if (deployment.status === "Succeeded" || deployment.status === "succeeded") {
+                  lineColor = "rgba(25, 135, 84, 0.8)"; // Green
+                  markerColor = "rgba(25, 135, 84, 1)";
+                  labelBgColor = "rgba(25, 135, 84, 0.95)";
+                } else if (deployment.status === "InProgress" || deployment.status === "in_progress") {
+                  lineColor = "rgba(255, 193, 7, 0.8)"; // Amber/Orange
+                  markerColor = "rgba(255, 193, 7, 1)";
+                  labelBgColor = "rgba(255, 193, 7, 0.95)";
+                }
+
+                // Helper function to create deployment line annotation
+                const createLineAnnotation = (xValue, tooltipLines) => ({
+                  type: "line",
+                  xMin: xValue,
+                  xMax: xValue,
+                  yMin: (ctx) => ctx.chart.scales.y.min,
+                  yMax: (ctx) => ctx.chart.scales.y.max,
+                  borderColor: lineColor,
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  label: {
+                    display: false,
+                    content: tooltipLines,
+                    position: "center",
+                    textAlign: "left",
+                    backgroundColor: labelBgColor,
+                    color: "#fff",
+                    borderRadius: 4,
+                    padding: 8,
+                    font: { size: 11 },
+                    yAdjust: 10,
+                  },
+                  enter({element}) {
+                    element.label.options.display = true;
+                    return true;
+                  },
+                  leave({element}) {
+                    element.label.options.display = false;
+                    return true;
+                  },
+                });
+
+                // Helper function to create triangle marker with linked label
+                const createTriangleAnnotation = (xValue, lineId) => ({
+                  type: "point",
+                  xValue: xValue,
+                  yValue: (ctx) => ctx.chart.scales.y.max,
+                  backgroundColor: markerColor,
+                  borderColor: markerColor,
+                  borderWidth: 2,
+                  radius: 8,
+                  pointStyle: "triangle",
+                  rotation: 180,
+                  enter(ctx) {
+                    const annotations = ctx.chart.options.plugins.annotation.annotations;
+                    if (annotations[lineId]?.label) {
+                      annotations[lineId].label.display = true;
+                      ctx.chart.update('none');
+                    }
+                  },
+                  leave(ctx) {
+                    const annotations = ctx.chart.options.plugins.annotation.annotations;
+                    if (annotations[lineId]?.label) {
+                      annotations[lineId].label.display = false;
+                      ctx.chart.update('none');
+                    }
+                  },
+                });
+
+                // Create start annotations
+                const startLineId = `deployment-start-line-${index}`;
+                const startTriangleId = `deployment-start-triangle-${index}`;
+                const startLine = createLineAnnotation(deploymentStart, startTooltipLines);
+                const startTriangle = createTriangleAnnotation(deploymentStart, startLineId);
+
+                // For instant deployments (same start and end), only show one marker
+                if (isInstantDeployment) {
+                  return [[startLineId, startLine], [startTriangleId, startTriangle]];
+                }
+
+                // Create end annotations (if deployment has ended and not instant)
+                const endLineId = `deployment-end-line-${index}`;
+                const endTriangleId = `deployment-end-triangle-${index}`;
+                const endLine = deployment.to ? createLineAnnotation(deploymentEnd, endTooltipLines) : null;
+                const endTriangle = deployment.to ? createTriangleAnnotation(deploymentEnd, endLineId) : null;
+
+                // Return all annotations
+                const annotations = [
+                  [startLineId, startLine],
+                  [startTriangleId, startTriangle]
+                ];
+                if (endLine) {
+                  annotations.push([endLineId, endLine]);
+                }
+                if (endTriangle) {
+                  annotations.push([endTriangleId, endTriangle]);
+                }
+                return annotations;
+              })
+            ),
           },
           zoom: {
             zoom: {

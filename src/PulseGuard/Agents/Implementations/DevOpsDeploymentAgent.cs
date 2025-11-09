@@ -31,14 +31,16 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
                 {
                     (string? author, string? commitId, string? buildNumber) = await GetEnrichments(option, project, team, deployment, token);
 
-                    reports.Add(new DeploymentAgentReport(option,
-                                                          author,
-                                                          deployment.Result,
-                                                          deployment.StartTime,
-                                                          deployment.FinishTime,
-                                                          "Deployment",
-                                                          commitId,
-                                                          buildNumber));
+                    DeploymentAgentReport report = new (option,
+                                                        author,
+                                                        deployment.Result,
+                                                        deployment.StartTime,
+                                                        deployment.FinishTime,
+                                                        "Deployment",
+                                                        commitId,
+                                                        buildNumber);
+
+                    reports.Add(report);
                 }
             }
             catch (Exception ex)
