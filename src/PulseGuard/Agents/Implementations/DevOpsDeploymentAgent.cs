@@ -10,7 +10,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
     {
         List<AgentReport> reports = [];
 
-        DateTimeOffset lastWeek = DateTimeOffset.UtcNow.AddDays(-7);
+        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
 
         foreach (var option in Options)
         {
@@ -27,7 +27,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
                     continue;
                 }
 
-                foreach (EnvironmentDeploymentRecord? deployment in response.Value.Where(x => x.StartTime >= lastWeek))
+                foreach (EnvironmentDeploymentRecord? deployment in response.Value.Where(x => x.StartTime >= window))
                 {
                     (string? author, string? commitId, string? buildNumber) = await GetEnrichments(option, project, team, deployment, token);
 
@@ -55,7 +55,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
     private async Task<EnvironmentDeploymentRecords?> GetDeployments(Entities.PulseAgentConfiguration option, string project, string team, string environmentId, CancellationToken token)
     {
         // Requires Read access to Environments and Deployments
-        string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1";
+        string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1&top=5";
 
         HttpRequestMessage request = new(HttpMethod.Get, environmentUrl);
         var result = await Send(request, option, token);

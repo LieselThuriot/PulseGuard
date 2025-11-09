@@ -26,7 +26,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
     {
         List<AgentReport> reports = [];
 
-        DateTimeOffset lastWeek = DateTimeOffset.UtcNow.AddDays(-7);
+        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
 
         foreach (PulseAgentConfiguration option in _options)
         {
@@ -50,7 +50,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
                                        .Where(x => x.HasData)
                                        .Select(x => x.Data)
                                        .Where(x => x.StartOn.HasValue && x.EndOn.HasValue && x.Status.HasValue)
-                                       .TakeWhile(x => x.StartOn >= lastWeek)
+                                       .TakeWhile(x => x.StartOn >= window)
                                        .WithCancellation(token);
 
                 await foreach (WebAppDeploymentData deployment in query)
