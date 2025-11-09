@@ -121,6 +121,14 @@
                                 <div class="form-text" id="agent-subscription-id-help">Azure Subscription Id</div>
                             </div>
 
+                            <div class="mb-3 d-none" id="agent-build-definition-id-group">
+                                <label for="agent-build-definition-id" class="form-label">
+                                    <span id="agent-build-definition-id-label">Build Definition Id</span> <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="agent-build-definition-id">
+                                <div class="form-text" id="agent-build-definition-id-help">Azure DevOps Build Definition Id</div>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Headers</label>
                                 <div id="agent-headers-container">
@@ -129,6 +137,14 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="add-agent-header">
                                     <i class="bi bi-plus-circle"></i> Add Header
                                 </button>
+                            </div>
+
+                            <div class="alert alert-warning d-none" id="devops-pat-note" role="alert">
+                                <p>
+                                    <i class="bi bi-exclamation-triangle"></i> <strong>Required</strong>
+                                </p>
+                                DevOps Deployment requires an Authorization header with a PAT (Personal Access Token) to authenticate with Azure DevOps.<br>
+                                The PAT token needs read access to "Build" and "Environment".
                             </div>
 
                             <div class="mb-3">

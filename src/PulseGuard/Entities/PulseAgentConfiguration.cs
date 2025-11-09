@@ -12,6 +12,7 @@ public sealed partial class PulseAgentConfiguration
     public partial string Location { get; set; }
     public partial string ApplicationName { get; set; }
     public partial string SubscriptionId { get; set; }
+    public partial int? BuildDefinitionId { get; set; }
     public partial bool Enabled { get; set; }
     public partial string Headers { get; set; }
 

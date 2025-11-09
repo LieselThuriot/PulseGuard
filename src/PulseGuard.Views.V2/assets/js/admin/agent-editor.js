@@ -55,8 +55,12 @@
     document.addEventListener('click', (e) => {
       if (e.target.closest('.remove-header')) {
         e.target.closest('.input-group').remove();
+        updateDevOpsPATNoteVisibility();
       }
     });
+
+    // Monitor header changes for DevOps PAT note visibility
+    document.getElementById('agent-headers-container')?.addEventListener('input', updateDevOpsPATNoteVisibility);
   }
 
   function handleAgentTypeChange(e) {
@@ -71,20 +75,29 @@
     const subscriptionIdLabel = document.getElementById('agent-subscription-id-label');
     const subscriptionIdHelp = document.getElementById('agent-subscription-id-help');
     
+    const buildDefinitionIdGroup = document.getElementById('agent-build-definition-id-group');
+    const buildDefinitionIdInput = document.getElementById('agent-build-definition-id');
+    const buildDefinitionIdLabel = document.getElementById('agent-build-definition-id-label');
+    const buildDefinitionIdHelp = document.getElementById('agent-build-definition-id-help');
+    
     const locationLabel = document.getElementById('agent-location-label');
     const locationHelp = document.getElementById('agent-location-help');
+    const devopsPATNote = document.getElementById('devops-pat-note');
 
     // Reset all fields
     appNameGroup?.classList.add('d-none');
     appNameInput.required = false;
     subscriptionIdGroup?.classList.add('d-none');
     subscriptionIdInput.required = false;
+    buildDefinitionIdGroup?.classList.add('d-none');
+    buildDefinitionIdInput.required = false;
+    devopsPATNote?.classList.add('d-none');
 
     // Configure based on agent type
     switch (agentType) {
       case 'LogAnalyticsWorkspace':
-        locationLabel.textContent = 'Location';
-        locationHelp.textContent = 'Log Analytics Workspace connection string';
+        locationLabel.textContent = 'Workspace ID';
+        locationHelp.textContent = 'Log Analytics Workspace ID';
         appNameGroup?.classList.remove('d-none');
         appNameInput.required = true;
         appNameLabel.textContent = 'Application Name';
@@ -115,6 +128,12 @@
         subscriptionIdInput.required = true;
         subscriptionIdLabel.textContent = 'Environment Id';
         subscriptionIdHelp.textContent = 'Azure DevOps Environment Id';
+        buildDefinitionIdGroup?.classList.remove('d-none');
+        buildDefinitionIdInput.required = true;
+        buildDefinitionIdLabel.textContent = 'Build Definition Id';
+        buildDefinitionIdHelp.textContent = 'Azure DevOps Build Definition Id';
+        // Check if Authorization header exists before showing note
+        updateDevOpsPATNoteVisibility();
         break;
 
       case 'ApplicationInsights':
@@ -141,6 +160,28 @@
       </button>
     `;
     container.appendChild(newRow);
+    updateDevOpsPATNoteVisibility();
+  }
+
+  function updateDevOpsPATNoteVisibility() {
+    const agentTypeValue = document.getElementById('agent-type')?.value;
+    const devopsPATNote = document.getElementById('devops-pat-note');
+
+    // Only check if we're in DevOps Deployment mode
+    if (agentTypeValue !== 'DevOpsDeployment' || !devopsPATNote) {
+      return;
+    }
+
+    // Check if Authorization header exists with a value
+    const headers = collectHeaders();
+    const hasAuthHeader = headers && headers['Authorization'] && headers['Authorization'].trim().length > 0;
+
+    // Show note if Authorization header is missing or empty, hide if present
+    if (hasAuthHeader) {
+      devopsPATNote.classList.add('d-none');
+    } else {
+      devopsPATNote.classList.remove('d-none');
+    }
   }
 
   function collectHeaders() {
@@ -162,6 +203,7 @@
     const locationValue = document.getElementById('agent-location').value.trim();
     const appNameValue = document.getElementById('agent-app-name').value.trim();
     const subscriptionIdValue = document.getElementById('agent-subscription-id').value.trim();
+    const buildDefinitionIdValue = document.getElementById('agent-build-definition-id').value.trim();
 
     // Get agent type - use form value if available (create mode), otherwise use URL param (update mode)
     const agentTypeValue = document.getElementById('agent-type').value || agentType;
@@ -177,13 +219,24 @@
       return;
     }
 
+    const headers = collectHeaders();
+
+    // Validate Authorization header for DevOps Deployment
+    if (agentTypeValue === 'DevOpsDeployment') {
+      if (!headers || !headers['Authorization']) {
+        AdminCommon.showError('Authorization header with a PAT token is required for DevOps Deployment');
+        return;
+      }
+    }
+
     const data = {
       type: agentTypeValue,
       location: locationValue,
       applicationName: appNameValue || null,
       subscriptionId: subscriptionIdValue || null,
+      buildDefinitionId: buildDefinitionIdValue ? parseInt(buildDefinitionIdValue, 10) : null,
       enabled: document.getElementById('agent-enabled').checked,
-      headers: collectHeaders()
+      headers: headers
     };
 
     if (isUpdateMode) {
@@ -313,6 +366,7 @@
     document.getElementById('agent-location').value = config.location || '';
     document.getElementById('agent-app-name').value = config.applicationName || '';
     document.getElementById('agent-subscription-id').value = config.subscriptionId || '';
+    document.getElementById('agent-build-definition-id').value = config.buildDefinitionId || '';
     document.getElementById('agent-enabled').checked = config.enabled;
 
     // Trigger the type change to show/hide application name field
@@ -348,6 +402,7 @@
 
     // If no headers, leave it empty
     if (!headers || Object.keys(headers).length === 0) {
+      updateDevOpsPATNoteVisibility();
       return;
     }
 
@@ -364,6 +419,9 @@
       `;
       container.appendChild(newRow);
     });
+
+    // Update note visibility after populating headers
+    updateDevOpsPATNoteVisibility();
   }
 
   // Use AdminCommon utilities - removed duplicate functions

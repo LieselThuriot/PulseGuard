@@ -338,6 +338,7 @@ public static class AdminRoutes
                 Location = configuration.Location,
                 ApplicationName = configuration.ApplicationName,
                 SubscriptionId = configuration.SubscriptionId,
+                BuildDefinitionId = configuration.BuildDefinitionId,
                 Enabled = configuration.Enabled,
                 Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values)
             });
@@ -367,6 +368,8 @@ public static class AdminRoutes
             }
         });
 
+        //TODO: Clean up validations 
+
         agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
             AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
@@ -381,6 +384,19 @@ public static class AdminRoutes
                 return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }
 
+            if (agentType is AgentCheckType.DevOpsDeployment)
+            {
+                if (!request.BuildDefinitionId.HasValue)
+                {
+                    return Results.BadRequest("BuildDefinitionId is required for this type of agent.");
+                }
+
+                if (request.Headers is null || !request.Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
+                {
+                    return Results.BadRequest("Authorization header is required for this type of agent.");
+                }
+            }
+
             PulseAgentConfiguration config = new()
             {
                 Sqid = id,
@@ -388,6 +404,7 @@ public static class AdminRoutes
                 Location = request.Location,
                 ApplicationName = request.ApplicationName,
                 SubscriptionId = request.SubscriptionId,
+                BuildDefinitionId = request.BuildDefinitionId,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
@@ -420,6 +437,19 @@ public static class AdminRoutes
                 return Results.BadRequest("SubscriptionId is required for this type of agent.");
             }
 
+            if (agentType is AgentCheckType.DevOpsDeployment)
+            {
+                if (!request.BuildDefinitionId.HasValue)
+                {
+                    return Results.BadRequest("BuildDefinitionId is required for this type of agent.");
+                }
+
+                if (request.Headers is null || !request.Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
+                {
+                    return Results.BadRequest("Authorization header is required for this type of agent.");
+                }
+            }
+
             PulseAgentConfiguration config = new()
             {
                 Sqid = id,
@@ -427,6 +457,7 @@ public static class AdminRoutes
                 Location = request.Location,
                 ApplicationName = request.ApplicationName,
                 SubscriptionId = request.SubscriptionId,
+                BuildDefinitionId = request.BuildDefinitionId,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
