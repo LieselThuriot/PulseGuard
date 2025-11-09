@@ -208,7 +208,7 @@ public static class AdminRoutes
         group.MapGet("", static async (PulseContext context, CancellationToken token) =>
         {
             var webhooks = await context.Webhooks.ToListAsync(token);
-            var entries = webhooks.Select(x => new WebhookEntry(x.Id, x.Group, x.Name, x.Location, x.Enabled));
+            var entries = webhooks.Select(x => new WebhookEntry(x.Id, x.Type, x.Group, x.Name, x.Location, x.Enabled));
 
             return Results.Ok(entries);
         });
@@ -222,7 +222,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
-            WebhookEntry entry = new(webhook.Id, webhook.Group, webhook.Name, webhook.Location, webhook.Enabled);
+            WebhookEntry entry = new(webhook.Id, webhook.Type, webhook.Group, webhook.Name, webhook.Location, webhook.Enabled);
 
             return Results.Ok(entry);
         });
@@ -251,6 +251,7 @@ public static class AdminRoutes
                 return Results.NotFound();
             }
 
+            webhook.Type = request.Type;
             webhook.Group = request.Group;
             webhook.Name = request.Name;
             webhook.Location = request.Location;
@@ -301,6 +302,7 @@ public static class AdminRoutes
             {
                 Id = Guid.CreateVersion7().ToString("N"),
                 Secret = request.Secret,
+                Type = request.Type,
                 Group = request.Group,
                 Name = request.Name,
                 Location = request.Location,

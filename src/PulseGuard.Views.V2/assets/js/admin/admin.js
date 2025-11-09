@@ -490,7 +490,7 @@
     if (sortedWebhooks.length === 0) {
       const row = webhookTbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 5;
+      cell.colSpan = 6;
       cell.className = 'text-center py-4 text-muted';
       cell.textContent = 'No webhooks found';
     } else {
@@ -533,6 +533,29 @@
     } else {
       nameCell.textContent = webhook.name;
     }
+
+    // Type with badge
+    const typeCell = row.insertCell();
+    let typeBadge = 'bg-secondary';
+    let typeIcon = 'bi-webhook';
+    let typeName = 'All';
+    
+    // Map webhook type to badge colors and icons
+    if (webhook.type === 0 || webhook.type === 'All') {
+      typeBadge = 'bg-primary';
+      typeIcon = 'bi-broadcast';
+      typeName = 'All';
+    } else if (webhook.type === 1 || webhook.type === 'StateChange') {
+      typeBadge = 'bg-warning text-dark';
+      typeIcon = 'bi-arrow-left-right';
+      typeName = 'StateChange';
+    } else if (webhook.type === 2 || webhook.type === 'ThresholdBreach') {
+      typeBadge = 'bg-danger';
+      typeIcon = 'bi-exclamation-triangle';
+      typeName = 'ThresholdBreach';
+    }
+    
+    typeCell.innerHTML = `<span class="badge ${typeBadge}"><i class="bi ${typeIcon}"></i> ${escapeHtml(typeName)}</span>`;
 
     // Location
     const locationCell = row.insertCell();

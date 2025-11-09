@@ -99,6 +99,16 @@
                             </div>
 
                             <div class="mb-3">
+                                <label for="webhook-type" class="form-label">Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="webhook-type" required>
+                                    <option value="All">Triggered for any webhook type</option>
+                                    <option value="StateChange">Triggered only on state transitions</option>
+                                    <option value="ThresholdBreach">Triggered when failure threshold is reached</option>
+                                </select>
+                                <div class="form-text">Determines when this webhook will be triggered.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="webhook-location" class="form-label">Webhook URL <span class="text-danger">*</span></label>
                                 <input type="url" class="form-control" id="webhook-location" required
                                        placeholder="https://example.com/webhook">

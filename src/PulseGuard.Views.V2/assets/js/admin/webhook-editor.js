@@ -188,6 +188,7 @@
     
     // Then set name
     document.getElementById('webhook-name').value = webhook.name || '';
+    document.getElementById('webhook-type').value = webhook.type || 'All';
     document.getElementById('webhook-location').value = webhook.location;
     document.getElementById('webhook-enabled').checked = webhook.enabled;
   }
@@ -200,6 +201,7 @@
 
     const group = document.getElementById('webhook-group').value;
     const name = document.getElementById('webhook-name').value;
+    const type = document.getElementById('webhook-type').value;
     const location = document.getElementById('webhook-location').value.trim();
     const enabled = document.getElementById('webhook-enabled').checked;
 
@@ -215,16 +217,16 @@
 
     // Use the selected values as-is (empty string, *, or specific value)
     if (mode === 'create') {
-      createWebhook(group, name, location, enabled);
+      createWebhook(group, name, type, location, enabled);
     } else if (mode === 'update') {
-      updateWebhook(group, name, location, enabled);
+      updateWebhook(group, name, type, location, enabled);
     }
   }
 
   /**
    * Create a new webhook
    */
-  async function createWebhook(group, name, location, enabled) {
+  async function createWebhook(group, name, type, location, enabled) {
     const secret = document.getElementById('webhook-secret').value.trim();
 
     // Validate secret
@@ -245,6 +247,7 @@
         },
         body: JSON.stringify({
           secret: secret,
+          type: type,
           group: group,
           name: name,
           location: location,
@@ -275,7 +278,7 @@
   /**
    * Update an existing webhook
    */
-  async function updateWebhook(group, name, location, enabled) {
+  async function updateWebhook(group, name, type, location, enabled) {
     const submitBtn = document.querySelector('#webhook-form button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
@@ -287,6 +290,7 @@
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          type: type,
           group: group,
           name: name,
           location: location,

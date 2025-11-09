@@ -1,3 +1,5 @@
-﻿namespace PulseGuard.Models.Admin;
+﻿using PulseGuard.Entities;
 
-public sealed record WebhookCreationRequest(string Secret, string Group, string Name, string Location, bool Enabled);
+namespace PulseGuard.Models.Admin;
+
+public sealed record WebhookCreationRequest(WebhookType Type, string Secret, string Group, string Name, string Location, bool Enabled);
