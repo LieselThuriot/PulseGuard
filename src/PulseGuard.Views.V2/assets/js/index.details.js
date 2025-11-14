@@ -771,6 +771,17 @@
   function renderHeatMap(heatmapContainer, data) {
     heatmapContainer.innerHTML = "";
 
+    // Count deployments by day
+    const deploymentsByDay = {};
+    if (currentDeployments && currentDeployments.length > 0) {
+      currentDeployments.forEach((deployment) => {
+        const deploymentDate = new Date(deployment.from);
+        deploymentDate.setUTCHours(0, 0, 0, 0);
+        const dayKey = deploymentDate.toISOString().slice(0, 10);
+        deploymentsByDay[dayKey] = (deploymentsByDay[dayKey] || 0) + 1;
+      });
+    }
+
     // --- Helpers ---
     /**
      * Returns a string representing the given date in UTC, formatted as 'YYYY-MM-DD'.
@@ -862,11 +873,20 @@
      * Calculates the overall state, statistics, and intensity for a given array of items representing day states.
      *
      * @param {Array<PulseDetailResult>} items - The array of items, each with a `state` property (one of "Healthy", "Degraded", "Unhealthy", "TimedOut", "Unknown") and an optional `elapsedMilliseconds` property.
+     * @param {string} dayKey - The day key to check for deployments.
      * @returns {PulseDetailResult} A PulseDetailResult
      */
-    function getDayStateAndStats(items) {
+    function getDayStateAndStats(items, dayKey) {
+      // Check deployment status first - independent of whether there are items
+      const deploymentCount = deploymentsByDay[dayKey] || 0;
+      const hasDeployment = deploymentCount > 0;
+      
       if (!items || items.length === 0) {
-        return { state: "Unknown", stats: "No data", intensity: 1 };
+        const lines = ["No data"];
+        if (hasDeployment) {
+          lines.push(`Deployed: ${deploymentCount} time${deploymentCount > 1 ? 's' : ''}`);
+        }
+        return { state: "Unknown", stats: lines.join("<br>"), intensity: 1, hasDeployment };
       }
       const counts = {
         Healthy: 0,
@@ -914,7 +934,13 @@
         }
       }
       lines.push(`Avg: ${total ? (sum / total).toFixed(2) : "?"}ms`);
-      return { state, stats: lines.join("<br>"), intensity };
+      
+      // Add deployment info if available
+      if (hasDeployment) {
+        lines.push(`Deployed: ${deploymentCount} time${deploymentCount > 1 ? 's' : ''}`);
+      }
+      
+      return { state, stats: lines.join("<br>"), intensity, hasDeployment };
     }
 
     /**
@@ -1028,8 +1054,9 @@
         const day = week[d];
         if (!day) continue;
         const dayKey = getDayKey(day);
-        const { state, stats, intensity } = getDayStateAndStats(
-          dayBuckets[dayKey]
+        const { state, stats, intensity, hasDeployment } = getDayStateAndStats(
+          dayBuckets[dayKey],
+          dayKey
         );
         const x = leftAxisWidth + w * (cellSize + cellGap) + cellGap;
         const y = topAxisHeight + d * (cellSize + cellGap) + cellGap;
@@ -1086,6 +1113,22 @@
         ctx.setLineDash([]);
         ctx.stroke();
         ctx.restore();
+
+        // Draw a small white dot in the center if there's a deployment
+        if (hasDeployment) {
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(
+            x + cellSize / 2,
+            y + cellSize / 2,
+            1.5, // radius of the dot
+            0,
+            2 * Math.PI
+          );
+          ctx.fill();
+          ctx.restore();
+        }
 
         cellInfo[w][d] = {
           x,
