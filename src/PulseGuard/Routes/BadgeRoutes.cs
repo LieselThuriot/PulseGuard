@@ -48,10 +48,7 @@ public static class BadgeRoutes
 
             return Badge(url);
 
-            HttpResponseMessageResult UnknownBadge()
-            {
-                return Badge("Pulse > Unknown > " + UnknownColor);
-            }
+            HttpResponseMessageResult UnknownBadge() => Badge("Pulse > Unknown > " + UnknownColor);
 
             HttpResponseMessageResult Badge(string url)
             {

@@ -12,8 +12,35 @@ public static class ProtoPulseRoutes
 
     public static void MapProtoPulses(this IEndpointRouteBuilder app)
     {
-        RouteGroupBuilder pulseGroup = app.MapGroup("/api/1.0/pulses").WithTags("ProtoPulses");
+        CreatePulseMappings(app.MapGroup("/api/1.0/pulses").WithTags("ProtoPulses"));
+        CreateMetricsMappings(app.MapGroup("/api/1.0/metrics").WithTags("Metrics"));
+    }
 
+    private static void CreateMetricsMappings(RouteGroupBuilder metricsGroup)
+    {
+        metricsGroup.MapGet("{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
+        {
+            var archivedItems = context.ArchivedPulseAgentResults.FindPartitionsAsync(id, token)
+                                       .Select((string x, CancellationToken ct) => context.ArchivedPulseAgentResults.GetEntityAsync(x, id, ct).AsValue())
+                                       .SelectMany(x => x!.Items)
+                                       .ToListAsync(token);
+
+            var results = await context.PulseAgentResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
+
+            if (results.Count is 0)
+            {
+                return TypedResults.NotFound();
+            }
+
+            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
+
+            PulseMetricsResultGroup result = new(items);
+            return Proto.Result(result);
+        });
+    }
+
+    private static void CreatePulseMappings(RouteGroupBuilder pulseGroup)
+    {
         pulseGroup.MapGet("details/{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
         {
             var info = await GetInfo(context, id, token);
@@ -39,28 +66,6 @@ public static class ProtoPulseRoutes
 
             PulseDetailResultGroup result = new(info.Group, info.Name, items);
 
-            return Proto.Result(result);
-        });
-
-        RouteGroupBuilder metricsGroup = app.MapGroup("/api/1.0/metrics").WithTags("ProtoPulses");
-
-        metricsGroup.MapGet("{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
-        {
-            var archivedItems = context.ArchivedPulseAgentResults.FindPartitionsAsync(id, token)
-                                       .Select((string x, CancellationToken ct) => context.ArchivedPulseAgentResults.GetEntityAsync(x, id, ct).AsValue())
-                                       .SelectMany(x => x!.Items)
-                                       .ToListAsync(token);
-
-            var results = await context.PulseAgentResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
-
-            if (results.Count is 0)
-            {
-                return TypedResults.NotFound();
-            }
-
-            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
-
-            PulseMetricsResultGroup result = new(items);
             return Proto.Result(result);
         });
     }
