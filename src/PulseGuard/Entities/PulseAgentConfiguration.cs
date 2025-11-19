@@ -16,11 +16,13 @@ public sealed partial class PulseAgentConfiguration
     public partial bool Enabled { get; set; }
     public partial string Headers { get; set; }
 
-    public IEnumerable<(string name, string values)> GetHeaders()
+    public IEnumerable<(string name, string values)> GetHeaders() => ParseHeaders(Headers);
+
+    public static IEnumerable<(string name, string values)> ParseHeaders(string headers)
     {
-        if (!string.IsNullOrEmpty(Headers))
+        if (!string.IsNullOrEmpty(headers))
         {
-            foreach (string header in Headers.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            foreach (string header in headers.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 string[] split = header.Split(':', 2);
                 yield return (split[0], split[1]);

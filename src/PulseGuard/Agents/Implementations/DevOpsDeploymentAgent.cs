@@ -1,84 +1,114 @@
-﻿using PulseGuard.Models;
+﻿using PulseGuard.Entities;
+using PulseGuard.Models;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entities.PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : AgentCheck(client, options)
+public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entities.PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
 {
+    private readonly HttpClient _client = client;
+    private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
     private readonly ILogger<AgentCheck> _logger = logger;
 
-    public override async Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
+    public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
+    {
+        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
+        return IterateEnvironments(window, token);
+    }
+
+    private async Task<IReadOnlyList<AgentReport>> IterateEnvironments(DateTimeOffset window, CancellationToken token)
     {
         List<AgentReport> reports = [];
 
-        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
-
-        foreach (var option in Options)
+        foreach (var environmentGroup in _options.GroupBy(o => (project: o.Location, team: o.ApplicationName, environmentId: o.SubscriptionId, headers: o.Headers)))
         {
+            var (project, team, environmentId, headers) = environmentGroup.Key;
+
             try
             {
-                string project = option.Location;
-                string team = option.ApplicationName;
-                string environmentId = option.SubscriptionId;
-                int buildDefinitionId = option.BuildDefinitionId.GetValueOrDefault();
-
-                EnvironmentDeploymentRecords? response = await GetDeployments(option, project, team, environmentId, token);
-
-                if (response?.Value is null)
-                {
-                    continue;
-                }
-
-                foreach (EnvironmentDeploymentRecord? deployment in response.Value.Where(x => x.StartTime >= window &&
-                                                                                              x.Definition?.Id == buildDefinitionId))
-                {
-                    string? author = null;
-                    string? commitId = null;
-                    string? buildNumber = null;
-
-                    if (deployment.Owner?.Id is int buildId)
-                    {
-                        (author, commitId, buildNumber) = await GetEnrichments(option, project, team, buildId, token);
-                    }
-
-                    DeploymentAgentReport report = new(option,
-                                                        author,
-                                                        deployment.Result,
-                                                        deployment.StartTime,
-                                                        deployment.FinishTime,
-                                                        "Deployment",
-                                                        commitId,
-                                                        buildNumber);
-
-                    reports.Add(report);
-                }
+                await HandleEnvironment(window, reports, environmentGroup, project, team, environmentId, headers, token);
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error checking DevOps Deployment agent for {ApplicationName} in project {Location}", option.ApplicationName, option.Location);
+                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error processing deployments for project {Project}, team {Team}, environment ID {EnvironmentId}", environmentGroup.Key.project, environmentGroup.Key.team, environmentGroup.Key.environmentId);
             }
         }
 
         return reports;
     }
 
-    private async Task<EnvironmentDeploymentRecords?> GetDeployments(Entities.PulseAgentConfiguration option, string project, string team, string environmentId, CancellationToken token)
+    private async Task HandleEnvironment(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string environmentId, string headers), PulseAgentConfiguration> environmentGroup, string project, string team, string environmentId, string headers, CancellationToken token)
+    {
+        var headerList = PulseAgentConfiguration.ParseHeaders(headers);
+
+        EnvironmentDeploymentRecords? response = await GetDeployments(project, team, environmentId, headerList, token);
+
+        if (response?.Value is null)
+        {
+            return;
+        }
+
+        ILookup<int, EnvironmentDeploymentRecord> deploymentRecords = response.Value.Where(x => x.StartTime >= window && x.Definition?.Id is not null)
+                                                                                    .ToLookup(x => x.Definition.Id.GetValueOrDefault());
+
+        await IterateBuilds(reports, environmentGroup, project, team, headerList, deploymentRecords, token);
+    }
+
+    private async Task IterateBuilds(List<AgentReport> reports, IGrouping<(string project, string team, string environmentId, string headers), PulseAgentConfiguration> environmentGroup, string project, string team, IEnumerable<(string name, string values)> headerList, ILookup<int, EnvironmentDeploymentRecord> deploymentRecords, CancellationToken token)
+    {
+        foreach (var buildGroup in environmentGroup.GroupBy(o => o.BuildDefinitionId.GetValueOrDefault()))
+        {
+            foreach (EnvironmentDeploymentRecord? deployment in deploymentRecords[buildGroup.Key])
+            {
+                string? author = null;
+                string? commitId = null;
+                string? buildNumber = null;
+
+                if (deployment.Owner?.Id is int buildId)
+                {
+                    (author, commitId, buildNumber) = await GetEnrichments(project, team, buildId, headerList, token);
+                }
+
+                var reportsToAdd = buildGroup.Select(option => new DeploymentAgentReport(option,
+                                                                                         author,
+                                                                                         deployment.Result,
+                                                                                         deployment.StartTime,
+                                                                                         deployment.FinishTime,
+                                                                                         "Deployment",
+                                                                                         commitId,
+                                                                                         buildNumber));
+                reports.AddRange(reportsToAdd);
+            }
+        }
+    }
+
+    private Task<HttpResponseMessage> Send(HttpRequestMessage request, IEnumerable<(string name, string values)> headers, CancellationToken token)
+    {
+        foreach ((string name, string value) in headers)
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
+        }
+
+        return _client.SendAsync(request, token);
+    }
+
+    private async Task<EnvironmentDeploymentRecords?> GetDeployments(string project, string team, string environmentId, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
         // Requires Read access to Environments and Deployments
-        string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1";
+        string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1&top=5";
 
         HttpRequestMessage request = new(HttpMethod.Get, environmentUrl);
-        var result = await Send(request, option, token);
+        HttpResponseMessage result = await Send(request, headers, token);
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve deployments for {ApplicationName} in project {Location}. Status Code: {StatusCode}", option.ApplicationName, option.Location, result.StatusCode);
+            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve deployment records for environment ID {EnvironmentId}. Status Code: {StatusCode}", environmentId, result.StatusCode);
             return null;
         }
 
         return await PulseSerializerContext.Default.EnvironmentDeploymentRecords.DeserializeAsync(result, token);
     }
 
-    private async Task<(string? author, string? commitId, string? buildNumber)> GetEnrichments(Entities.PulseAgentConfiguration option, string project, string team, int buildId, CancellationToken token)
+    private async Task<(string? author, string? commitId, string? buildNumber)> GetEnrichments(string project, string team, int buildId, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
         try
         {
@@ -86,7 +116,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
             string buildUrl = $"https://dev.azure.com/{project}/{team}/_apis/build/builds/{buildId}?api-version=7.1";
 
             HttpRequestMessage buildRequest = new(HttpMethod.Get, buildUrl);
-            var buildResult = await Send(buildRequest, option, token);
+            var buildResult = await Send(buildRequest, headers, token);
 
             if (buildResult.IsSuccessStatusCode)
             {
@@ -101,12 +131,12 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
             }
             else
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve build {BuildId} for {ApplicationName} in project {Location}. Status Code: {StatusCode}", buildId, option.ApplicationName, option.Location, buildResult.StatusCode);
+                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve build enrichments for build ID {BuildId}. Status Code: {StatusCode}", buildId, buildResult.StatusCode);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error retrieving enrichments for deployment owned by {BuildId} for {ApplicationName} in project {Location}", buildId, option.ApplicationName, option.Location);
+            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error retrieving build enrichments for build ID {BuildId}", buildId);
         }
 
         return default;
