@@ -15,7 +15,7 @@
   // Initialize
   initialize();
 
-  function initialize() {
+  async function initialize() {
     if (isUpdateMode && !id) {
       AdminCommon.showErrorMessage('Invalid parameters for update mode', 'error-message', 'error-text', ['loading-spinner', 'agent-form']);
       return;
@@ -25,7 +25,7 @@
     setupEventListeners();
 
     // Load pulse configurations for parent selection
-    loadPulseConfigurations();
+    await loadPulseConfigurations();
 
     if (isUpdateMode) {
       loadConfigurationForEdit();
@@ -404,13 +404,13 @@
     // Populate headers
     populateHeaders(config.headers);
 
-    // Hide pulse selector in update mode and set the value
+    // Make pulse selector readonly in update mode and set the value
     const pulseIdSelect = document.getElementById('agent-pulse-id');
     if (pulseIdSelect) {
       pulseIdSelect.value = id;
+      pulseIdSelect.disabled = true;
       pulseIdSelect.required = false; // Remove required attribute to prevent validation error
     }
-    document.getElementById('agent-pulse-selector')?.classList.add('d-none');
 
     // Make agent type readonly in update mode
     const agentTypeSelect = document.getElementById('agent-type');

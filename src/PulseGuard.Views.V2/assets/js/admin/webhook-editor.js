@@ -191,6 +191,16 @@
     document.getElementById('webhook-type').value = webhook.type || 'All';
     document.getElementById('webhook-location').value = webhook.location;
     document.getElementById('webhook-enabled').checked = webhook.enabled;
+
+    // Make group and name fields readonly in update mode
+    const groupSelect = document.getElementById('webhook-group');
+    const nameSelect = document.getElementById('webhook-name');
+    if (groupSelect) {
+      groupSelect.disabled = true;
+    }
+    if (nameSelect) {
+      nameSelect.disabled = true;
+    }
   }
 
   /**

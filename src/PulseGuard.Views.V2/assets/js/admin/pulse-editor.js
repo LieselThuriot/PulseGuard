@@ -261,10 +261,16 @@
     // Populate headers
     populateHeaders(config.headers);
 
-    // Hide group and name fields in update mode (they can't be changed)
-    const groupNameRow = document.getElementById('pulse-group')?.closest('.row');
-    if (groupNameRow) {
-      groupNameRow.classList.add('d-none');
+    // Make group and name fields readonly in update mode (they can't be changed)
+    const groupInput = document.getElementById('pulse-group');
+    const nameInput = document.getElementById('pulse-name');
+    if (groupInput) {
+      groupInput.readOnly = true;
+      groupInput.classList.add('form-control-plaintext');
+    }
+    if (nameInput) {
+      nameInput.readOnly = true;
+      nameInput.classList.add('form-control-plaintext');
     }
 
     // Show delete button in header for update mode
