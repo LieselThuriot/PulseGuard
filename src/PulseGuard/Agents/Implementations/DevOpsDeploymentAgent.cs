@@ -144,7 +144,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
 }
 
 public sealed record EnvironmentDeploymentRecords(List<EnvironmentDeploymentRecord>? Value);
-public sealed record EnvironmentDeploymentRecord(string Result, DateTimeOffset StartTime, DateTimeOffset FinishTime, EnvironmentDeploymentOwner Owner, EnvironmentDeploymentDefinition Definition);
+public sealed record EnvironmentDeploymentRecord(string Result, DateTimeOffset StartTime, DateTimeOffset? FinishTime, EnvironmentDeploymentOwner Owner, EnvironmentDeploymentDefinition Definition);
 public sealed record EnvironmentDeploymentOwner(int? Id);
 public sealed record EnvironmentDeploymentDefinition(int? Id);
 

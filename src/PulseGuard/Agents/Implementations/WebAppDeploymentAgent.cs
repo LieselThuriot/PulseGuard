@@ -56,7 +56,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
                 await foreach (WebAppDeploymentData deployment in query)
                 {
                     DateTimeOffset start = deployment.StartOn.GetValueOrDefault();
-                    DateTimeOffset end = deployment.EndOn.GetValueOrDefault();
+                    DateTimeOffset? end = deployment.EndOn;
 
                     var status = (DeploymentStatus)deployment.Status.GetValueOrDefault();
 
