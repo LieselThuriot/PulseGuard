@@ -10,9 +10,10 @@ namespace PulseGuard.Services;
 
 public readonly record struct WebhookEventMessage(string Id, string PopReceipt, WebhookEventBase? WebhookEvent);
 
-public sealed class WebhookService(IOptions<PulseOptions> options)
+public sealed class WebhookService(IOptions<PulseOptions> options, ILogger<WebhookService> logger)
 {
     private readonly QueueClient _queueClient = new(options.Value.Store, "webhooks");
+    private readonly ILogger<WebhookService> _logger = logger;
 
     public async IAsyncEnumerable<WebhookEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)
     {
@@ -27,7 +28,18 @@ public sealed class WebhookService(IOptions<PulseOptions> options)
 
             foreach (QueueMessage message in result)
             {
-                WebhookEventBase? webhookEvent = PulseSerializerContext.Default.WebhookEventBase.Deserialize(message.Body);
+                WebhookEventBase? webhookEvent;
+
+                try
+                {
+                    webhookEvent = PulseSerializerContext.Default.WebhookEventBase.Deserialize(message.Body);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize webhook event message {MessageId} and {Body}", message.MessageId, message.Body);
+                    webhookEvent = null;
+                }
+
                 yield return new(message.MessageId, message.PopReceipt, webhookEvent);
             }
         }

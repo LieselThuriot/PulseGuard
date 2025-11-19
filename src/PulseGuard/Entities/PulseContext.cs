@@ -26,6 +26,6 @@ public sealed partial class PulseContext
     public BlobSet<ArchivedPulseAgentCheckResult> ArchivedPulseAgentResults { get; }
 
     public TableSet<DeploymentResult> Deployments { get; }
-	
+
     public TableSet<PulseCounter> PulseCounters { get; }
 }
