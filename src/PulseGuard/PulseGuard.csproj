@@ -27,7 +27,10 @@
 		<PackageReference Include="Scalar.AspNetCore" />
 		<PackageReference Include="SecureWebhooks.SystemTextJson" />
 		<PackageReference Include="Sqids" />
+		<PackageReference Include="TableStorage" />
+		<PackageReference Include="TableStorage.Blobs" />
 		<PackageReference Include="TableStorage.Blobs.RuntimeCompilations" />
+		<PackageReference Include="TableStorage.Core" />
 		<PackageReference Include="TableStorage.RuntimeCompilations" />
 	</ItemGroup>
 
