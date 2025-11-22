@@ -80,6 +80,11 @@
     const buildDefinitionIdLabel = document.getElementById('agent-build-definition-id-label');
     const buildDefinitionIdHelp = document.getElementById('agent-build-definition-id-help');
     
+    const stageNameGroup = document.getElementById('agent-stage-name-group');
+    const stageNameInput = document.getElementById('agent-stage-name');
+    const stageNameLabel = document.getElementById('agent-stage-name-label');
+    const stageNameHelp = document.getElementById('agent-stage-name-help');
+    
     const locationLabel = document.getElementById('agent-location-label');
     const locationHelp = document.getElementById('agent-location-help');
     const devopsPATNote = document.getElementById('devops-pat-note');
@@ -91,6 +96,8 @@
     subscriptionIdInput.required = false;
     buildDefinitionIdGroup?.classList.add('d-none');
     buildDefinitionIdInput.required = false;
+    stageNameGroup?.classList.add('d-none');
+    stageNameInput.required = false;
     devopsPATNote?.classList.add('d-none');
 
     // Configure based on agent type
@@ -136,6 +143,25 @@
         updateDevOpsPATNoteVisibility();
         break;
 
+      case 'DevOpsRelease':
+        locationLabel.textContent = 'Project';
+        locationHelp.textContent = 'Azure DevOps Project name';
+        appNameGroup?.classList.remove('d-none');
+        appNameInput.required = true;
+        appNameLabel.textContent = 'Team';
+        appNameHelp.textContent = 'Azure DevOps Team name';
+        subscriptionIdGroup?.classList.remove('d-none');
+        subscriptionIdInput.required = true;
+        subscriptionIdLabel.textContent = 'Release Id';
+        subscriptionIdHelp.textContent = 'Azure DevOps Release Definition Id';
+        stageNameGroup?.classList.remove('d-none');
+        stageNameInput.required = true;
+        stageNameLabel.textContent = 'Stage Name';
+        stageNameHelp.textContent = 'Azure DevOps Release Stage Name';
+        // Check if Authorization header exists before showing note
+        updateDevOpsPATNoteVisibility();
+        break;
+
       case 'ApplicationInsights':
         locationLabel.textContent = 'Location';
         locationHelp.textContent = 'Application Insights endpoint URL';
@@ -167,8 +193,8 @@
     const agentTypeValue = document.getElementById('agent-type')?.value;
     const devopsPATNote = document.getElementById('devops-pat-note');
 
-    // Only check if we're in DevOps Deployment mode
-    if (agentTypeValue !== 'DevOpsDeployment' || !devopsPATNote) {
+    // Only check if we're in DevOps Deployment or Release mode
+    if ((agentTypeValue !== 'DevOpsDeployment' && agentTypeValue !== 'DevOpsRelease') || !devopsPATNote) {
       return;
     }
 
@@ -204,6 +230,7 @@
     const appNameValue = document.getElementById('agent-app-name').value.trim();
     const subscriptionIdValue = document.getElementById('agent-subscription-id').value.trim();
     const buildDefinitionIdValue = document.getElementById('agent-build-definition-id').value.trim();
+    const stageNameValue = document.getElementById('agent-stage-name').value.trim();
 
     // Get agent type - use form value if available (create mode), otherwise use URL param (update mode)
     const agentTypeValue = document.getElementById('agent-type').value || agentType;
@@ -221,10 +248,10 @@
 
     const headers = collectHeaders();
 
-    // Validate Authorization header for DevOps Deployment
-    if (agentTypeValue === 'DevOpsDeployment') {
+    // Validate Authorization header for DevOps Deployment and Release
+    if (agentTypeValue === 'DevOpsDeployment' || agentTypeValue === 'DevOpsRelease') {
       if (!headers || !headers['Authorization']) {
-        AdminCommon.showError('Authorization header with a PAT token is required for DevOps Deployment');
+        AdminCommon.showError('Authorization header with a PAT token is required for DevOps ' + (agentTypeValue === 'DevOpsDeployment' ? 'Deployment' : 'Release'));
         return;
       }
     }
@@ -235,6 +262,7 @@
       applicationName: appNameValue || null,
       subscriptionId: subscriptionIdValue || null,
       buildDefinitionId: buildDefinitionIdValue ? parseInt(buildDefinitionIdValue, 10) : null,
+      stageName: stageNameValue || null,
       enabled: document.getElementById('agent-enabled').checked,
       headers: headers
     };
@@ -367,6 +395,7 @@
     document.getElementById('agent-app-name').value = config.applicationName || '';
     document.getElementById('agent-subscription-id').value = config.subscriptionId || '';
     document.getElementById('agent-build-definition-id').value = config.buildDefinitionId || '';
+    document.getElementById('agent-stage-name').value = config.stageName || '';
     document.getElementById('agent-enabled').checked = config.enabled;
 
     // Trigger the type change to show/hide application name field

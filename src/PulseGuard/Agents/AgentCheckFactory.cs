@@ -18,6 +18,7 @@ public sealed class AgentCheckFactory(HttpClient client, ArmClient armClient, IL
             AgentCheckType.LogAnalyticsWorkspace => new LogAnalyticsWorkspaceAgent(_client, options, _logger),
             AgentCheckType.WebAppDeployment => new WebAppDeploymentAgent(_armClient, options, _logger),
             AgentCheckType.DevOpsDeployment => new DevOpsDeploymentAgent(_client, options, _logger),
+            AgentCheckType.DevOpsRelease => new DevOpsReleaseAgent(_client, options, _logger),
             _ => throw new ArgumentOutOfRangeException(nameof(options), type, null)
         };
     }

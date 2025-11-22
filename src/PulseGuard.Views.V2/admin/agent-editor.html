@@ -92,7 +92,8 @@
                                     <option value="ApplicationInsights">Application Insights</option>
                                     <option value="LogAnalyticsWorkspace">Log Analytics Workspace</option>
                                     <option value="WebAppDeployment">Web App Deployment</option>
-                                    <option value="DevOpsDeployment">DevOps Deployment</option>
+                                    <option value="DevOpsDeployment">DevOps YAML Deployment</option>
+                                    <option value="DevOpsRelease">DevOps Release</option>
                                 </select>
                                 <div class="form-text">Type of agent monitoring to configure</div>
                             </div>
@@ -127,6 +128,14 @@
                                 </label>
                                 <input type="number" class="form-control" id="agent-build-definition-id">
                                 <div class="form-text" id="agent-build-definition-id-help">Azure DevOps Build Definition Id</div>
+                            </div>
+
+                            <div class="mb-3 d-none" id="agent-stage-name-group">
+                                <label for="agent-stage-name" class="form-label">
+                                    <span id="agent-stage-name-label">Stage Name</span> <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="agent-stage-name">
+                                <div class="form-text" id="agent-stage-name-help">Azure DevOps Release Stage Name</div>
                             </div>
 
                             <div class="mb-3">

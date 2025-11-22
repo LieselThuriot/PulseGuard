@@ -385,6 +385,10 @@
           subTypeBadge = 'bg-warning text-dark';
           subTypeIcon = 'bi-git';
           break;
+        case 'DevOpsRelease':
+          subTypeBadge = 'bg-secondary';
+          subTypeIcon = 'bi-rocket';
+          break;
       }
       
       subTypeCell.innerHTML = `<span class="badge ${subTypeBadge}"><i class="bi ${subTypeIcon}"></i> ${escapeHtml(config.subType)}</span>`;
@@ -876,6 +880,10 @@
         case 'DevOpsDeployment':
           subTypeBadge = 'bg-warning text-dark';
           subTypeIcon = 'bi-git';
+          break;
+        case 'DevOpsRelease':
+          subTypeBadge = 'bg-secondary';
+          subTypeIcon = 'bi-rocket';
           break;
       }
       

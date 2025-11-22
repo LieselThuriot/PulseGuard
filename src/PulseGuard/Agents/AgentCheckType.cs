@@ -9,7 +9,8 @@ public enum AgentCheckType
     ApplicationInsights = 1,
     LogAnalyticsWorkspace = 2,
     WebAppDeployment = 3,
-    DevOpsDeployment = 4
+    DevOpsDeployment = 4,
+    DevOpsRelease = 5
 }
 
 public sealed class AgentCheckTypeJsonConverter : JsonConverter<AgentCheckType>
@@ -32,6 +33,7 @@ internal static class AgentCheckTypeFastString
         AgentCheckType.LogAnalyticsWorkspace => nameof(AgentCheckType.LogAnalyticsWorkspace),
         AgentCheckType.WebAppDeployment => nameof(AgentCheckType.WebAppDeployment),
         AgentCheckType.DevOpsDeployment => nameof(AgentCheckType.DevOpsDeployment),
+        AgentCheckType.DevOpsRelease => nameof(AgentCheckType.DevOpsRelease),
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -42,6 +44,7 @@ internal static class AgentCheckTypeFastString
         nameof(AgentCheckType.LogAnalyticsWorkspace) => AgentCheckType.LogAnalyticsWorkspace,
         nameof(AgentCheckType.WebAppDeployment) => AgentCheckType.WebAppDeployment,
         nameof(AgentCheckType.DevOpsDeployment) => AgentCheckType.DevOpsDeployment,
+        nameof(AgentCheckType.DevOpsRelease) => AgentCheckType.DevOpsRelease,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
@@ -52,6 +55,7 @@ internal static class AgentCheckTypeFastString
         (int)AgentCheckType.LogAnalyticsWorkspace => AgentCheckType.LogAnalyticsWorkspace,
         (int)AgentCheckType.WebAppDeployment => AgentCheckType.WebAppDeployment,
         (int)AgentCheckType.DevOpsDeployment => AgentCheckType.DevOpsDeployment,
+        (int)AgentCheckType.DevOpsRelease => AgentCheckType.DevOpsRelease,
 
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };

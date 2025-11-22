@@ -339,6 +339,7 @@ public static class AdminRoutes
                 ApplicationName = configuration.ApplicationName,
                 SubscriptionId = configuration.SubscriptionId,
                 BuildDefinitionId = configuration.BuildDefinitionId,
+                StageName = configuration.StageName,
                 Enabled = configuration.Enabled,
                 Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values)
             });
@@ -368,33 +369,11 @@ public static class AdminRoutes
             }
         });
 
-        //TODO: Clean up validations 
-
         agentGroup.MapPost("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
-            
-            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.ApplicationName))
+            if (request.IsInvalid(type, out string? validation))
             {
-                return Results.BadRequest("ApplicationName is required for this type of agent.");
-            }
-            
-            if (agentType is AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return Results.BadRequest("SubscriptionId is required for this type of agent.");
-            }
-
-            if (agentType is AgentCheckType.DevOpsDeployment)
-            {
-                if (!request.BuildDefinitionId.HasValue)
-                {
-                    return Results.BadRequest("BuildDefinitionId is required for this type of agent.");
-                }
-
-                if (request.Headers is null || !request.Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
-                {
-                    return Results.BadRequest("Authorization header is required for this type of agent.");
-                }
+                return Results.BadRequest(validation);
             }
 
             PulseAgentConfiguration config = new()
@@ -405,6 +384,7 @@ public static class AdminRoutes
                 ApplicationName = request.ApplicationName,
                 SubscriptionId = request.SubscriptionId,
                 BuildDefinitionId = request.BuildDefinitionId,
+                StageName = request.StageName,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };
@@ -425,29 +405,9 @@ public static class AdminRoutes
 
         agentGroup.MapPut("{id}/{type}", static async (string id, string type, PulseAgentCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
         {
-            AgentCheckType agentType = AgentCheckTypeFastString.FromString(type);
-
-            if (agentType is AgentCheckType.LogAnalyticsWorkspace or AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.ApplicationName))
+            if (request.IsInvalid(type, out string? validation))
             {
-                return Results.BadRequest("ApplicationName is required for this type of agent.");
-            }
-
-            if (agentType is AgentCheckType.WebAppDeployment or AgentCheckType.DevOpsDeployment && string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return Results.BadRequest("SubscriptionId is required for this type of agent.");
-            }
-
-            if (agentType is AgentCheckType.DevOpsDeployment)
-            {
-                if (!request.BuildDefinitionId.HasValue)
-                {
-                    return Results.BadRequest("BuildDefinitionId is required for this type of agent.");
-                }
-
-                if (request.Headers is null || !request.Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
-                {
-                    return Results.BadRequest("Authorization header is required for this type of agent.");
-                }
+                return Results.BadRequest(validation);
             }
 
             PulseAgentConfiguration config = new()
@@ -458,6 +418,7 @@ public static class AdminRoutes
                 ApplicationName = request.ApplicationName,
                 SubscriptionId = request.SubscriptionId,
                 BuildDefinitionId = request.BuildDefinitionId,
+                StageName = request.StageName,
                 Enabled = request.Enabled,
                 Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
             };

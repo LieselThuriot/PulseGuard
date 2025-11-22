@@ -3,7 +3,10 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entities.PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
+/// <summary>
+/// For YAML pipelines using Environments and Deployments
+/// </summary>
+public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
@@ -11,7 +14,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
     {
-        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
+        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-1);
         return IterateEnvironments(window, token);
     }
 
@@ -47,7 +50,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
             return;
         }
 
-        ILookup<int, EnvironmentDeploymentRecord> deploymentRecords = response.Value.Where(x => x.StartTime >= window && x.Definition?.Id is not null)
+        ILookup<int, EnvironmentDeploymentRecord> deploymentRecords = response.Value.Where(x => x.StartTime >= window && x.Definition?.Id is not null && x.Result is not "cancelled")
                                                                                     .ToLookup(x => x.Definition.Id.GetValueOrDefault());
 
         await IterateBuilds(reports, environmentGroup, project, team, headerList, deploymentRecords, token);
@@ -81,8 +84,9 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
         }
     }
 
-    private Task<HttpResponseMessage> Send(HttpRequestMessage request, IEnumerable<(string name, string values)> headers, CancellationToken token)
+    private Task<HttpResponseMessage> Send(string url, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
+        HttpRequestMessage request = new(HttpMethod.Get, url);
         foreach ((string name, string value) in headers)
         {
             request.Headers.TryAddWithoutValidation(name, value);
@@ -96,8 +100,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
         // Requires Read access to Environments and Deployments
         string environmentUrl = $"https://dev.azure.com/{project}/{team}/_apis/distributedtask/environments/{environmentId}/environmentdeploymentrecords?api-version=7.1&top=5";
 
-        HttpRequestMessage request = new(HttpMethod.Get, environmentUrl);
-        HttpResponseMessage result = await Send(request, headers, token);
+        HttpResponseMessage result = await Send(environmentUrl, headers, token);
 
         if (!result.IsSuccessStatusCode)
         {
@@ -115,8 +118,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Entit
             // Requires Read access to Builds
             string buildUrl = $"https://dev.azure.com/{project}/{team}/_apis/build/builds/{buildId}?api-version=7.1";
 
-            HttpRequestMessage buildRequest = new(HttpMethod.Get, buildUrl);
-            var buildResult = await Send(buildRequest, headers, token);
+            var buildResult = await Send(buildUrl, headers, token);
 
             if (buildResult.IsSuccessStatusCode)
             {
