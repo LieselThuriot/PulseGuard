@@ -41,7 +41,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
 
                 if (!website.HasValue)
                 {
-                    _logger.LogError(PulseEventIds.WebAppDeploymentAgent, "Web App not found: {ResourceId}", resourceId);
+                    _logger.WebAppNotFound(resourceId.ToString());
                     continue;
                 }
 
@@ -75,7 +75,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
             }
             catch (Exception innerException)
             {
-                _logger.LogError(PulseEventIds.WebAppDeploymentAgent, innerException, "Error checking deployment agent");
+                _logger.ErrorCheckingDeploymentAgent(innerException);
             }
         }
 
@@ -94,7 +94,7 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(PulseEventIds.WebAppDeploymentAgent, ex, "Failed to deserialize deployment message: {Message}", deployment.Message);
+            _logger.FailedToDeserializeDeploymentMessage(ex, deployment.Message);
         }
 
         return default;

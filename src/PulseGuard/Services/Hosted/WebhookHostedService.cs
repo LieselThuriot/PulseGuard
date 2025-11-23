@@ -29,7 +29,7 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Webhooks, ex, "Error checking webhooks");
+                _logger.ErrorCheckingWebhooks(ex);
             }
         }
     }
@@ -68,14 +68,14 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
                 }
                 else
                 {
-                    _logger.LogWarning(PulseEventIds.Webhooks, "Unknown webhook event type for message {id}", message.Id);
+                    _logger.UnknownWebhookEventType(message.Id);
                 }
 
                 await _webhookClient.DeleteMessageAsync(message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Webhooks, ex, "Error handling webhook for message {id}", message.Id);
+                _logger.ErrorHandlingWebhook(ex, message.Id);
             }
         }
     }
@@ -103,16 +103,16 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogDebug(PulseEventIds.Webhooks, "Sent webhook {Webhook}", location);
+                _logger.SentWebhook(location);
             }
             else
             {
-                _logger.LogError(PulseEventIds.Webhooks, "Error sending webhook {Webhook}: {StatusCode}", location, response.StatusCode);
+                _logger.ErrorSendingWebhookWithStatus(location, (int)response.StatusCode);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(PulseEventIds.Webhooks, ex, "Error sending webhook {Webhook}", location);
+            _logger.ErrorSendingWebhook(ex, location);
         }
     }
 }

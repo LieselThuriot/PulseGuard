@@ -36,7 +36,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking pulse");
+                _logger.ErrorCheckingPulse(ex);
             }
         }
     }
@@ -95,7 +95,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking pulse");
+                _logger.ErrorCheckingPulse(ex);
             }
             finally
             {
@@ -114,7 +114,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking agent");
+                _logger.ErrorCheckingAgent(ex);
             }
             finally
             {
@@ -132,19 +132,19 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Agent timeout");
+            _logger.AgentTimeout(ex);
         }
         catch (SocketException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Socket error checking agent");
+            _logger.SocketErrorCheckingAgent(ex);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "HTTP Error checking agent");
+            _logger.HttpErrorCheckingAgent(ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking agent");
+            _logger.ErrorCheckingAgent(ex);
         }
     }
 
@@ -169,17 +169,17 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Pulse timeout");
+            _logger.PulseTimeout(ex);
             report = PulseReport.TimedOut(check.Options);
         }
         catch (SocketException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Socket error checking pulse");
+            _logger.SocketErrorCheckingPulse(ex);
             report = PulseReport.Fail(check.Options, "Pulse check failed due to socket exception", ex.Message);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "HTTP Error checking pulse");
+            _logger.HttpErrorCheckingPulse(ex);
 
             string error = ex.Message;
             if (ex.InnerException?.Message is not null)
@@ -191,7 +191,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         }
         catch (Exception ex)
         {
-            _logger.LogError(PulseEventIds.HealthChecks, ex, "Error checking pulse");
+            _logger.ErrorCheckingPulse(ex);
             report = PulseReport.Fail(check.Options, "Pulse check failed due to exception", ex.Message);
         }
         finally

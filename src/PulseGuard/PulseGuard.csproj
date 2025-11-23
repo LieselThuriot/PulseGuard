@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<UserSecretsId>ca07f3be-343d-4cb5-8a4d-8cd5574d739b</UserSecretsId>
 		<TableStorageSerializerContext>PulseGuard.Models.PulseSerializerContext</TableStorageSerializerContext>
+		<EnableLoggingGenerator>true</EnableLoggingGenerator>
 	</PropertyGroup>
 
 	<ItemGroup>

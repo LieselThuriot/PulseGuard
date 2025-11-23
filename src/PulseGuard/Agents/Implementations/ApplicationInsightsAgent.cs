@@ -30,7 +30,7 @@ public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<En
 
         if (pulseResponse is null)
         {
-            _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, "Could not read application insights");
+            _logger.CouldNotReadApplicationInsights();
             return PulseAgentReport.Fail(option);
         }
 
@@ -42,12 +42,12 @@ public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<En
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, ex, "Agent check failed due to deserialization error");
+            _logger.AgentCheckFailedDueToDeserializationError(ex);
         }
 
         if (insight is null || insight.Tables.Count is 0 || insight.Tables[0].Rows.Count is 0)
         {
-            _logger.LogWarning(PulseEventIds.ApplicationInsightsAgent, "Agent check failed due to deserialization error");
+            _logger.AgentCheckFailedDueToDeserializationErrorNoEx();
             return PulseAgentReport.Fail(option);
         }
 

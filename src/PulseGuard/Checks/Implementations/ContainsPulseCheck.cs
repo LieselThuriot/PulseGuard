@@ -12,13 +12,13 @@ public sealed class ContainsPulseCheck(HttpClient client, PulseConfiguration opt
         string pulseResponse = await response.Content.ReadAsStringAsync(token);
         if (string.IsNullOrEmpty(pulseResponse))
         {
-            _logger.LogWarning(PulseEventIds.ContainsCheck, "Pulse check failed with null response");
+            _logger.PulseCheckFailedWithNullResponse();
             return PulseReport.Fail(Options, "Pulse check failed with null response", null);
         }
 
         if (!pulseResponse.Contains(Options.ComparisonValue))
         {
-            _logger.LogWarning(PulseEventIds.ContainsCheck, "Pulse check failed due to mismatched page content");
+            _logger.PulseCheckFailedDueToMismatchedPageContent();
             return PulseReport.Fail(Options, "Pulse check failed due to mismatched page content", pulseResponse);
         }
 

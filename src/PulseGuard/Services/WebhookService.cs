@@ -36,7 +36,7 @@ public sealed class WebhookService(IOptions<PulseOptions> options, ILogger<Webho
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to deserialize webhook event message {MessageId} and {Body}", message.MessageId, message.Body);
+                    _logger.FailedToDeserializeWebhookEvent(ex, message.MessageId, message.Body.ToString());
                     webhookEvent = null;
                 }
 

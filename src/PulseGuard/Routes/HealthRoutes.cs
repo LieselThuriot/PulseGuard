@@ -39,7 +39,7 @@ public static class HealthRoutes
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed health checks");
+                    logger.FailedHealthChecks(ex);
                     state = PulseStates.Unhealthy;
                     statusCode = 503;
                 }

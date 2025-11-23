@@ -12,13 +12,13 @@ public class HealthCheckPulseCheck(HttpClient client, PulseConfiguration options
         string? pulseResponse = await response.Content.ReadAsStringAsync(token);
         if (pulseResponse is null)
         {
-            _logger.LogWarning(PulseEventIds.HealthApiCheck, "Pulse check failed with null response");
+            _logger.PulseCheckFailedWithNullResponse();
             return PulseReport.Fail(Options, "Pulse check failed with null response", null);
         }
 
         if (!PulseStatesFastString.TryFromString(pulseResponse, out PulseStates pulseResponseState))
         {
-            _logger.LogWarning(PulseEventIds.HealthApiCheck, "Pulse check failed due to unknown health response");
+            _logger.PulseCheckFailedDueToUnknownHealthResponse();
             return PulseReport.Fail(Options, "Pulse check failed due to unknown health response", pulseResponse);
         }
 
@@ -33,7 +33,7 @@ public class HealthCheckPulseCheck(HttpClient client, PulseConfiguration options
             message = $"Pulse check failed with status {pulseResponseState}";
         }
 
-        _logger.LogInformation(PulseEventIds.HealthApiCheck, "Pulse check completed and is considered {HealthState}", pulseResponseState);
+        _logger.PulseCheckCompleted(pulseResponseState.ToString());
         return new(Options, pulseResponseState, message, pulseResponse);
     }
 }

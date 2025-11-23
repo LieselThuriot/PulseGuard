@@ -12,7 +12,7 @@ internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration 
         string? pulseResponseString = await response.Content.ReadAsStringAsync(token);
         if (pulseResponseString is null)
         {
-            _logger.LogWarning(PulseEventIds.HealthApiCheck, "Pulse check failed with null response");
+            _logger.PulseCheckFailedWithNullResponse();
             return PulseReport.Fail(Options, "Pulse check failed with null response", null);
         }
 
@@ -23,7 +23,7 @@ internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration 
 
             if (pulseResponse is null)
             {
-                _logger.LogWarning(PulseEventIds.HealthApiCheck, "Pulse check failed due to deserialization error");
+                _logger.PulseCheckFailedDueToDeserializationErrorNoEx();
                 return PulseReport.Fail(Options, "Pulse check failed due to deserialization error", pulseResponseString);
             }
 
@@ -31,7 +31,7 @@ internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration 
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(PulseEventIds.HealthApiCheck, ex, "Pulse check failed due to deserialization error");
+            _logger.PulseCheckFailedDueToDeserializationError(ex);
             return PulseReport.Fail(Options, "Pulse check failed due to deserialization error", pulseResponseString);
         }
 
@@ -46,7 +46,7 @@ internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration 
             message = pulseResponse.Message ?? $"Pulse check failed with status {pulseResponse.State}";
         }
 
-        _logger.LogInformation(PulseEventIds.HealthApiCheck, "Pulse check completed and is considered {HealthState}", pulseResponse.State);
+        _logger.PulseCheckCompleted(pulseResponse.State.ToString());
         return new(Options, pulseResponse.State, message, pulseResponseString);
     }
 }

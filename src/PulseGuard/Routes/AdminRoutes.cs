@@ -70,7 +70,7 @@ public static class AdminRoutes
             }
 
             await context.Users.DeleteEntityAsync(user, token);
-            logger.LogInformation(PulseEventIds.Admin, "Deleted User {id} with type {type}", user.UserId, user.RowType);
+            logger.DeletedUser(user.UserId, user.RowType);
 
             return Results.NoContent();
         });
@@ -90,12 +90,12 @@ public static class AdminRoutes
             try
             {
                 await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-                logger.LogInformation(PulseEventIds.Admin, "Updated User {id} {rowtype}", user.UserId, user.RowType);
+                logger.UpdatedUser(user.UserId, user.RowType);
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating User {id} {rowtype}", user.UserId, user.RowType);
+                logger.ErrorUpdatingUser(ex, user.UserId, user.RowType);
                 return Results.Conflict();
             }
         });
@@ -114,13 +114,13 @@ public static class AdminRoutes
             try
             {
                 await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-                logger.LogInformation(PulseEventIds.Admin, "Renamed User {id}", id);
+                logger.RenamedUser(id);
 
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error renaming User {id}", id);
+                logger.ErrorRenamingUser(ex, id);
                 return Results.Conflict();
             }
         });
@@ -138,13 +138,13 @@ public static class AdminRoutes
             try
             {
                 await context.Users.AddEntityAsync(user, token);
-                logger.LogInformation(PulseEventIds.Admin, "Created User {id} {type}", user.UserId, user.RowType);
+                logger.CreatedUser(user.UserId, user.RowType);
 
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error creating User {id} {type}", user.UserId, user.RowType);
+                logger.ErrorCreatingUser(ex, user.UserId, user.RowType);
                 return Results.Conflict();
             }
         });
@@ -195,7 +195,7 @@ public static class AdminRoutes
                 },
                 token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Updated Pulse Entry {Id} to Group: {Group}, Name: {Name}", id, entry.Group, entry.Name);
+                logger.UpdatedPulseEntry(id, entry.Group, entry.Name);
                 return Results.NoContent();
             }
 
@@ -237,7 +237,7 @@ public static class AdminRoutes
             }
 
             await context.Webhooks.DeleteEntityAsync(webhook, token);
-            logger.LogInformation(PulseEventIds.Admin, "Deleted Webhook Entry {Id}", id);
+            logger.DeletedWebhookEntry(id);
 
             return Results.NoContent();
         });
@@ -260,13 +260,13 @@ public static class AdminRoutes
             try
             {
                 await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
-                logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+                logger.UpdatedWebhookEntry(id);
 
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Webhook Entry {Id}", id);
+                logger.ErrorUpdatingWebhookEntry(ex, id);
                 return Results.Conflict();
             }
         });
@@ -285,13 +285,13 @@ public static class AdminRoutes
             try
             {
                 await context.Webhooks.UpdateEntityAsync(webhook, webhook.ETag, TableUpdateMode.Replace, token);
-                logger.LogInformation(PulseEventIds.Admin, "Updated Webhook Entry {Id}", id);
+                logger.UpdatedWebhookEntry(id);
 
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Webhook Entry {Id}", id);
+                logger.ErrorUpdatingWebhookEntry(ex, id);
                 return Results.Conflict();
             }
         });
@@ -312,13 +312,13 @@ public static class AdminRoutes
             try
             {
                 await context.Webhooks.AddEntityAsync(webhook, token);
-                logger.LogInformation(PulseEventIds.Admin, "Created Webhook Entry {Id}", webhook.Id);
+                logger.CreatedWebhookEntry(webhook.Id);
 
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error creating Webhook Entry");
+                logger.ErrorCreatingWebhookEntry(ex);
                 return Results.Conflict();
             }
         });
@@ -361,12 +361,12 @@ public static class AdminRoutes
             {
                 await context.AgentConfigurations.UpdateEntityAsync(config, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, enabled);
+                logger.UpdatedAgentConfigurationEnabled(id, type, enabled);
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Agent Configuration {Id} of type {Type} to Enabled: {Enabled}", id, type, enabled);
+                logger.ErrorUpdatingAgentConfigurationEnabled(ex, id, type, enabled);
                 return Results.Conflict();
             }
         });
@@ -395,12 +395,12 @@ public static class AdminRoutes
             {
                 await context.AgentConfigurations.AddEntityAsync(config, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Created Agent Configuration {Id} of type {Type}", id, type);
+                logger.CreatedAgentConfiguration(id, type);
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error creating Agent Configuration {Id} of type {Type}", id, type);
+                logger.ErrorCreatingAgentConfiguration(ex, id, type);
                 return Results.Conflict();
             }
         });
@@ -429,12 +429,12 @@ public static class AdminRoutes
             {
                 await context.AgentConfigurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Updated Agent Configuration {Id} of type {Type}", id, type);
+                logger.UpdatedAgentConfiguration(id, type);
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Agent Configuration {Id} of type {Type}", id, type);
+                logger.ErrorUpdatingAgentConfiguration(ex, id, type);
                 return Results.Conflict();
             }
         });
@@ -450,7 +450,7 @@ public static class AdminRoutes
 
             await context.AgentConfigurations.DeleteEntityAsync(configuration, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Deleted Agent Configuration {Id} of type {Type}", id, type);
+            logger.DeletedAgentConfiguration(id, type);
             return Results.NoContent();
         });
     }
@@ -513,12 +513,12 @@ public static class AdminRoutes
             {
                 await context.Configurations.AddEntityAsync(config, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Created Normal Configuration {Id} of type {Type}", sqid, request.Type);
+                logger.CreatedNormalConfiguration(sqid, request.Type.ToString());
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error creating Normal Configuration");
+                logger.ErrorCreatingNormalConfiguration(ex);
                 return Results.Conflict();
             }
         });
@@ -549,12 +549,12 @@ public static class AdminRoutes
             {
                 await context.Configurations.UpdateEntityAsync(config, ETag.All, TableUpdateMode.Replace, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} of type {Type}", id, request.Type);
+                logger.UpdatedNormalConfiguration(id, request.Type.ToString());
                 return Results.Created();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Normal Configuration {Id} of type {Type}", id, request.Type);
+                logger.ErrorUpdatingNormalConfiguration(ex, id, request.Type.ToString());
                 return Results.Conflict();
             }
         });
@@ -573,12 +573,12 @@ public static class AdminRoutes
             {
                 await context.Configurations.UpdateEntityAsync(config, token);
 
-                logger.LogInformation(PulseEventIds.Admin, "Updated Normal Configuration {Id} to Enabled: {Enabled}", id, enabled);
+                logger.UpdatedNormalConfigurationEnabled(id, enabled);
                 return Results.NoContent();
             }
             catch (Exception ex)
             {
-                logger.LogError(PulseEventIds.Admin, ex, "Error updating Normal Configuration {Id} to Enabled: {Enabled}", id, enabled);
+                logger.ErrorUpdatingNormalConfigurationEnabled(ex, id, enabled);
                 return Results.Conflict();
             }
         });
@@ -594,7 +594,7 @@ public static class AdminRoutes
 
             await context.Configurations.DeleteEntityAsync(configuration, token);
 
-            logger.LogInformation(PulseEventIds.Admin, "Deleted Normal Configuration {Id}", id);
+            logger.DeletedNormalConfiguration(id);
             return Results.NoContent();
         });
     }

@@ -32,7 +32,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error processing deployments for project {Project}, team {Team}, environment ID {EnvironmentId}", environmentGroup.Key.project, environmentGroup.Key.team, environmentGroup.Key.environmentId);
+                _logger.ErrorProcessingDeploymentsDevOps(ex, environmentGroup.Key.project, environmentGroup.Key.team, environmentGroup.Key.environmentId);
             }
         }
 
@@ -104,7 +104,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve deployment records for environment ID {EnvironmentId}. Status Code: {StatusCode}", environmentId, result.StatusCode);
+            _logger.FailedToRetrieveDeploymentRecordsDevOps(environmentId, (int)result.StatusCode);
             return null;
         }
 
@@ -133,12 +133,12 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
             }
             else
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve build enrichments for build ID {BuildId}. Status Code: {StatusCode}", buildId, buildResult.StatusCode);
+                _logger.FailedToRetrieveBuildEnrichments(buildId.ToString(), (int)buildResult.StatusCode);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error retrieving build enrichments for build ID {BuildId}", buildId);
+            _logger.ErrorRetrievingBuildEnrichments(ex, buildId.ToString());
         }
 
         return default;

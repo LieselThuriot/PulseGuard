@@ -20,11 +20,11 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
     {
         if (string.IsNullOrEmpty(report.Options.Sqid))
         {
-            _logger.LogInformation(PulseEventIds.Store, "Empty Sqid found for {Name}, generating new one.", report.Options.Name);
+            _logger.EmptySqidFound(report.Options.Name);
             await GenerateSqidAndUpdate(report.Options, token);
         }
 
-        _logger.LogInformation(PulseEventIds.Store, "Storing pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+        _logger.StoringPulseReport(report.Options.Sqid, report.Options.Name);
 
         await Task.WhenAll(
             StoreBlobsAsync(report, creation, elapsedMilliseconds, token),
@@ -46,25 +46,25 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
             if (pulse is null || pulse.LastUpdatedTimestamp < start)
             {
-                _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+                _logger.CreatingNewPulse(report.Options.Sqid, report.Options.Name);
                 pulse = Pulse.From(report);
             }
             else if (pulse.State == report.State && pulse.Message == report.Message && pulse.Error == report.Error)
             {
-                _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+                _logger.UpdatingExistingPulse(report.Options.Sqid, report.Options.Name);
                 pulse.LastUpdatedTimestamp = creation;
             }
             else // State, message or error has changed
             {
                 var oldPulse = pulse;
 
-                _logger.LogInformation(PulseEventIds.Store, "Updating existing pulse for {Sqid} - {Name} due to state change", report.Options.Sqid, report.Options.Name);
+                _logger.UpdatingExistingPulseDueToStateChange(report.Options.Sqid, report.Options.Name);
                 pulse.LastUpdatedTimestamp = creation;
 
                 await _context.Pulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
                 await _context.RecentPulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
 
-                _logger.LogInformation(PulseEventIds.Store, "Creating new pulse for {Name}", report.Options.Name);
+                _logger.CreatingNewPulseForName(report.Options.Name);
                 pulse = Pulse.From(report);
 
                 webhookTask = _webhookService.PostAsync(oldPulse, pulse, report.Options, token);
@@ -83,7 +83,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogError(PulseEventIds.Store, e, "Failed to store pulse report for {Sqid} - {Name}", report.Options.Sqid, report.Options.Name);
+            _logger.FailedToStorePulseReport(e, report.Options.Sqid, report.Options.Name);
         }
     }
 
@@ -106,7 +106,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         {
             DateTimeOffset since = DateTimeOffset.UtcNow.AddMinutes(-_options.Interval * pulseCounter.Value);
 
-            _logger.LogCritical(PulseEventIds.Store, "Pulse {Sqid} has reached the alert threshold with {Count} failures and started at {since}.", report.Options.Sqid, pulseCounter.Value, since);
+            _logger.PulseReachedAlertThreshold(report.Options.Sqid, pulseCounter.Value, since);
             await _webhookService.PostAsync(pulse, since, pulseCounter.Value, report.Options, token);
         }
     }
@@ -120,14 +120,14 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append pulse check result for {Sqid} - {Name} -- Creating a new one.", report.Options.Sqid, report.Options.Name);
+            _logger.FailedToAppendPulseCheckResult(e, report.Options.Sqid, report.Options.Name);
             await _context.PulseCheckResults.UpsertEntityAsync(PulseCheckResult.From(report, creation, elapsedMilliseconds), token);
         }
     }
 
     public async Task StoreAsync(PulseAgentReport report, DateTimeOffset creation, CancellationToken token)
     {
-        _logger.LogInformation(PulseEventIds.Store, "Storing agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+        _logger.StoringAgentReport(report.Options.Sqid, report.Options.Type);
 
         try
         {
@@ -136,14 +136,14 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogDebug(PulseEventIds.Store, e, "Failed to append agent result for {Sqid} - {Type} -- Creating a new one.", report.Options.Sqid, report.Options.Type);
+            _logger.FailedToAppendAgentResult(e, report.Options.Sqid, report.Options.Type);
             await _context.PulseAgentResults.UpsertEntityAsync(PulseAgentCheckResult.From(report, creation), token);
         }
     }
 
     public async Task StoreAsync(DeploymentAgentReport report, CancellationToken token)
     {
-        _logger.LogInformation(PulseEventIds.Store, "Storing deployment agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+        _logger.StoringDeploymentAgentReport(report.Options.Sqid, report.Options.Type);
         try
         {
             DeploymentResult deployment = new()
@@ -163,7 +163,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogError(PulseEventIds.Store, e, "Failed to store deployment agent report for {Sqid} - {Type}", report.Options.Sqid, report.Options.Type);
+            _logger.FailedToStoreDeploymentAgentReport(e, report.Options.Sqid, report.Options.Type);
         }
     }
 
@@ -186,7 +186,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         }
         catch (Exception e)
         {
-            _logger.LogError(PulseEventIds.Store, e, "Failed to clean recent pulses");
+            _logger.FailedToCleanRecentPulses(e);
         }
     }
 
@@ -203,7 +203,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                     string year = pulse.Day[..4];
                     string sqid = pulse.Sqid;
 
-                    _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse check result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+                    _logger.CleaningUpPulseCheckResult(sqid, pulse.Day, year);
 
                     ArchivedPulseCheckResult? archive = await _context.ArchivedPulseCheckResults.FindAsync(year, sqid, token);
 
@@ -223,13 +223,13 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                 }
                 catch (Exception innerEx)
                 {
-                    _logger.LogError(PulseEventIds.Store, innerEx, "Failed to clean up pulses for {day} - {sqid}", pulse.Day, pulse.Sqid);
+                    _logger.FailedToCleanUpPulses(innerEx, pulse.Day, pulse.Sqid);
                 }
             }
         }
         catch (Exception outerEx)
         {
-            _logger.LogError(PulseEventIds.Store, outerEx, "Failed to clean up pulses");
+            _logger.FailedToCleanUpPulsesOuter(outerEx);
         }
     }
 
@@ -246,7 +246,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                     string year = pulse.Day[..4];
                     string sqid = pulse.Sqid;
 
-                    _logger.LogInformation(PulseEventIds.Store, "Cleaning up pulse agent result for {Sqid}: {Day} ( {Year} )", sqid, pulse.Day, year);
+                    _logger.CleaningUpPulseAgentResult(sqid, pulse.Day, year);
 
                     ArchivedPulseAgentCheckResult? archive = await _context.ArchivedPulseAgentResults.FindAsync(year, sqid, token);
 
@@ -264,13 +264,13 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                 }
                 catch (Exception innerEx)
                 {
-                    _logger.LogError(PulseEventIds.Store, innerEx, "Failed to clean up agents for {day} - {sqid}", pulse.Day, pulse.Sqid);
+                    _logger.FailedToCleanUpAgents(innerEx, pulse.Day, pulse.Sqid);
                 }
             }
         }
         catch (Exception outerEx)
         {
-            _logger.LogError(PulseEventIds.Store, outerEx, "Failed to clean up agents");
+            _logger.FailedToCleanUpAgentsOuter(outerEx);
         }
     }
 
@@ -303,7 +303,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
             }
             catch (RequestFailedException ex) when (retries++ <= 10)
             {
-                _logger.LogWarning(PulseEventIds.Store, ex, "Sqid {Sqid} already exists, generating random one. ( Attempt {attempt} )", id, retries);
+                _logger.SqidAlreadyExists(ex, id, retries);
                 id = _idService.GetRandomSqid();
             }
         }

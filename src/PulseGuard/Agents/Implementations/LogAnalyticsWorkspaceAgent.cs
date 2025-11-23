@@ -59,7 +59,7 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(PulseEventIds.LogAnalyticsWorkspaceAgent, ex, "Agent check failed");
+            _logger.AgentCheckFailed(ex);
         }
 
         return PulseAgentReport.Fail(Options);

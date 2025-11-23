@@ -14,13 +14,13 @@ public sealed class JsonPulseCheck(HttpClient client, PulseConfiguration options
         string pulseResponse = await response.Content.ReadAsStringAsync(token);
         if (string.IsNullOrEmpty(pulseResponse))
         {
-            _logger.LogWarning(PulseEventIds.JsonCheck, "Pulse check failed with null response");
+            _logger.PulseCheckFailedWithNullResponse();
             return PulseReport.Fail(Options, "Pulse check failed with null response", null);
         }
 
         if (!IsJsonSubset(Options.ComparisonValue, pulseResponse))
         {
-            _logger.LogWarning(PulseEventIds.JsonCheck, "Pulse check failed due to mismatched JSON");
+            _logger.PulseCheckFailedDueToMismatchedJson();
             return PulseReport.Fail(Options, "Pulse check failed due to mismatched JSON", pulseResponse);
         }
 

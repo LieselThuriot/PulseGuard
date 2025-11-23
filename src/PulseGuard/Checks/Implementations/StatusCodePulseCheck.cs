@@ -11,7 +11,7 @@ internal sealed class StatusCodePulseCheck(HttpClient client, PulseConfiguration
     {
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning(PulseEventIds.StatusCodeCheck, "Pulse check failed with status code {StatusCode}", response.StatusCode);
+            _logger.PulseCheckFailedWithStatusCode((int)response.StatusCode);
 
             string? body;
             try
@@ -21,13 +21,13 @@ internal sealed class StatusCodePulseCheck(HttpClient client, PulseConfiguration
             catch (Exception ex)
             {
                 body = null;
-                _logger.LogWarning(PulseEventIds.StatusCodeCheck, ex, "Failed to read response body");
+                _logger.FailedToReadResponseBody(ex);
             }
 
             return PulseReport.Fail(Options, $"Pulse check failed with status code {response.StatusCode}", body);
         }
 
-        _logger.LogInformation(PulseEventIds.StatusCodeCheck, "Pulse check completed and is considered healthy");
+        _logger.PulseCheckCompletedHealthy();
         return PulseReport.Success(Options);
     }
 }

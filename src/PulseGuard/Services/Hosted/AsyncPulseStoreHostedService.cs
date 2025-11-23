@@ -23,7 +23,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Pulses, ex, "Error checking pulses");
+                _logger.ErrorCheckingPulses(ex);
             }
         }
     }
@@ -53,7 +53,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", message.Id);
+                _logger.ErrorStoringPulses(ex, message.Id);
             }
         }
 
@@ -74,7 +74,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
                             break;
 
                         default:
-                            _logger.LogWarning(PulseEventIds.Pulses, "Unknown agent report type for message {id}: {type}", message.Id, message.AgentReport?.GetType());
+                            _logger.UnknownAgentReportType(message.Id, message.AgentReport?.GetType()?.ToString());
                             break;
                     }
                 }
@@ -83,7 +83,7 @@ public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, Si
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.Pulses, ex, "Error storing pulses for message {id}", message.Id);
+                _logger.ErrorStoringPulses(ex, message.Id);
             }
         }
 

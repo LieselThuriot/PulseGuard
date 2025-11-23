@@ -32,7 +32,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error processing deployments for project {Project}, team {Team}, release ID {ReleaseId}", project, team, releaseId);
+                _logger.ErrorProcessingDeployments(ex, project, team, releaseId);
             }
         }
 
@@ -59,7 +59,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve deployment records for release ID {ReleaseId}. Status Code: {StatusCode}", releaseId, result.StatusCode);
+            _logger.FailedToRetrieveDeploymentRecords(releaseId, (int)result.StatusCode);
             return null;
         }
 
@@ -85,7 +85,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
             }
             catch (Exception ex)
             {
-                _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, ex, "Error processing release details for project {Project}, team {Team}, release ID {ReleaseId}, release {ReleaseRecordId}", project, team, releaseId, release.Id);
+                _logger.ErrorProcessingReleaseDetails(ex, project, team, releaseId, release.Id.ToString());
             }
         }
     }
@@ -98,7 +98,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.LogError(PulseEventIds.DevOpsDeploymentAgent, "Failed to retrieve release details for release ID {ReleaseId}. Status Code: {StatusCode}", id, result.StatusCode);
+            _logger.FailedToRetrieveReleaseDetails(id.ToString(), (int)result.StatusCode);
             return;
         }
 
