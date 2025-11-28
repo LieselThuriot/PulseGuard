@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.8.34408.163
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PulseGuard", "PulseGuard\PulseGuard.csproj", "{A2AE7490-93D5-45F3-ACA4-AE7ECC14C6EF}"
 EndProject
@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PulseGuard.Views.V2", "PulseGuard.Views.V2\PulseGuard.Views.V2.csproj", "{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{3593A6F1-7C5E-4C5E-8F5E-9C5E8F5E9C5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +38,10 @@ Global
 		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFF501F7-38CE-2EC2-BA6D-07338A6E08A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3593A6F1-7C5E-4C5E-8F5E-9C5E8F5E9C5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3593A6F1-7C5E-4C5E-8F5E-9C5E8F5E9C5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3593A6F1-7C5E-4C5E-8F5E-9C5E8F5E9C5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3593A6F1-7C5E-4C5E-8F5E-9C5E8F5E9C5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
