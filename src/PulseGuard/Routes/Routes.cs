@@ -33,6 +33,16 @@ public static class Routes
         app.Use((context, next) =>
         {
             context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            context.Response.Headers.ContentSecurityPolicy =
+                "default-src 'self'; " +
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " +
+                "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
+                "img-src 'self' data:; " +
+                "connect-src 'self' https://cdn.jsdelivr.net; " +
+                "frame-ancestors 'none'; " +
+                "base-uri 'self'; " +
+                "form-action 'self'";
             return next();
         });
 
