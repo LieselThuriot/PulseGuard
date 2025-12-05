@@ -31,7 +31,10 @@ public static class EventRoutes
     {
         await foreach (PulseEventInfo existingPulse in await ProcessLastEvents(options, context, token))
         {
-            yield return existingPulse;
+            if (filter is null || filter(existingPulse))
+            {
+                yield return existingPulse;
+            }
         }
 
         using PulseEventListener listener = filter is null
