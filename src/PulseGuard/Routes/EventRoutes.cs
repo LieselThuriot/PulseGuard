@@ -10,18 +10,21 @@ namespace PulseGuard.Routes;
 
 public static class EventRoutes
 {
-    public static void MapEvents(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder builder)
     {
-        RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses/events").WithTags("Events");
+        public void MapEvents()
+        {
+            RouteGroupBuilder group = builder.MapGroup("/api/1.0/pulses/events").WithTags("Events");
 
-        group.MapGet("", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, CancellationToken token)
-                            => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, null, token)));
+            group.MapGet("", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, CancellationToken token)
+                                => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, null, token)));
 
-        group.MapGet("application/{application}", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string application, CancellationToken token)
-                            => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, x => x.Id == application, token)));
+            group.MapGet("application/{application}", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string application, CancellationToken token)
+                                => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, x => x.Id == application, token)));
 
-        group.MapGet("group/{group}", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string group, CancellationToken token)
-                                        => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, x => x.Group == group, token)));
+            group.MapGet("group/{group}", (IPulseRegistrationService pulseEventService, IOptions<PulseOptions> options, PulseContext context, string group, CancellationToken token)
+                                            => TypedResults.ServerSentEvents(ListenForNewPulses(options, context, pulseEventService, x => x.Group == group, token)));
+        }
     }
 
     private static async IAsyncEnumerable<PulseEventInfo> ListenForNewPulses(IOptions<PulseOptions> options, PulseContext context, IPulseRegistrationService pulseEventService, Func<PulseEventInfo, bool>? filter, [EnumeratorCancellation] CancellationToken token)

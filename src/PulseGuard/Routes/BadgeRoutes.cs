@@ -8,59 +8,62 @@ public static class BadgeRoutes
 {
     private const string UnknownColor = "2196F3";
 
-    public static void MapBadges(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder builder)
     {
-        var group = app.MapGroup("/1.0/badges").WithTags("Badges");
-
-        group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
+        public void MapBadges()
         {
-            UniqueIdentifier? identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
-                                                        .SelectFields(x => new { x.Group, x.Name })
-                                                        .FirstOrDefaultAsync(token);
+            var group = builder.MapGroup("/1.0/badges").WithTags("Badges");
 
-            if (identifier is null)
+            group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
             {
-                return UnknownBadge();
-            }
+                UniqueIdentifier? identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
+                                                            .SelectFields(x => new { x.Group, x.Name })
+                                                            .FirstOrDefaultAsync(token);
 
-            Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
-                                               .SelectFields(x => new { x.State, x.CreationTimestamp })
-                                               .FirstOrDefaultAsync(token);
+                if (identifier is null)
+                {
+                    return UnknownBadge();
+                }
 
-            if (pulse is null)
-            {
-                return UnknownBadge();
-            }
+                Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
+                                                   .SelectFields(x => new { x.State, x.CreationTimestamp })
+                                                   .FirstOrDefaultAsync(token);
 
-            string name = identifier.GetFullName()
-                                    .Replace("_", "__")
-                                    .Replace("-", "--")
-                                    .Replace(" ", "_");
+                if (pulse is null)
+                {
+                    return UnknownBadge();
+                }
 
-            string url = $"{name}-{pulse.State}-{pulse.State switch
-            {
-                PulseStates.Healthy => "04AA6D",
-                PulseStates.Degraded => "FF9800",
-                PulseStates.Unhealthy => "E91E63",
-                PulseStates.TimedOut => "FF0057",
-                _ => UnknownColor
-            }}?style=flat-square";
+                string name = identifier.GetFullName()
+                                        .Replace("_", "__")
+                                        .Replace("-", "--")
+                                        .Replace(" ", "_");
 
-            return Badge(url);
+                string url = $"{name}-{pulse.State}-{pulse.State switch
+                {
+                    PulseStates.Healthy => "04AA6D",
+                    PulseStates.Degraded => "FF9800",
+                    PulseStates.Unhealthy => "E91E63",
+                    PulseStates.TimedOut => "FF0057",
+                    _ => UnknownColor
+                }}?style=flat-square";
 
-            HttpResponseMessageResult UnknownBadge() => Badge("Pulse > Unknown > " + UnknownColor);
+                return Badge(url);
 
-            HttpResponseMessageResult Badge(string url)
-            {
-                HttpRequestMessage request = new(HttpMethod.Get, url);
+                HttpResponseMessageResult UnknownBadge() => Badge("Pulse > Unknown > " + UnknownColor);
 
-                request.Headers.UserAgent.TryParseAdd(httpContext.Request.Headers.UserAgent);
-                request.Headers.Accept.TryParseAdd(httpContext.Request.Headers.Accept);
-                request.Headers.AcceptEncoding.TryParseAdd(httpContext.Request.Headers.AcceptEncoding);
-                request.Headers.AcceptLanguage.TryParseAdd(httpContext.Request.Headers.AcceptLanguage);
+                HttpResponseMessageResult Badge(string url)
+                {
+                    HttpRequestMessage request = new(HttpMethod.Get, url);
 
-                return clientFactory.CreateClient("Badges").SendAsync(request, token);
-            }
-        });
+                    request.Headers.UserAgent.TryParseAdd(httpContext.Request.Headers.UserAgent);
+                    request.Headers.Accept.TryParseAdd(httpContext.Request.Headers.Accept);
+                    request.Headers.AcceptEncoding.TryParseAdd(httpContext.Request.Headers.AcceptEncoding);
+                    request.Headers.AcceptLanguage.TryParseAdd(httpContext.Request.Headers.AcceptLanguage);
+
+                    return clientFactory.CreateClient("Badges").SendAsync(request, token);
+                }
+            });
+        }
     }
 }

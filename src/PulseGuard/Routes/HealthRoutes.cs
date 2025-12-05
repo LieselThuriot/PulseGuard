@@ -11,59 +11,62 @@ namespace PulseGuard.Routes;
 
 public static class HealthRoutes
 {
-    public static void MapHealth(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder builder)
     {
-        var healthGroup = app.MapGroup("/health").WithTags("Health");
-
-        healthGroup.MapGet("", async (IMemoryCache cache, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+        public void MapHealth()
         {
-            (PulseStates state, int statusCode) = await cache.GetOrCreateAsync("health", async entry =>
+            var healthGroup = builder.MapGroup("/health").WithTags("Health");
+
+            healthGroup.MapGet("", async (IMemoryCache cache, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
-                PulseStates state = PulseStates.Unhealthy;
-                int statusCode = 200;
-
-                try
+                (PulseStates state, int statusCode) = await cache.GetOrCreateAsync("health", async entry =>
                 {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    cts.CancelAfter(5000);
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
+                    PulseStates state = PulseStates.Unhealthy;
+                    int statusCode = 200;
 
-                    var sw = Stopwatch.StartNew();
-                    _ = await context.Configurations.FirstOrDefaultAsync(cts.Token);
+                    try
+                    {
+                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                        cts.CancelAfter(5000);
 
-                    state = sw.ElapsedMilliseconds > 1000
-                              ? PulseStates.Degraded
-                              : PulseStates.Healthy;
+                        var sw = Stopwatch.StartNew();
+                        _ = await context.Configurations.FirstOrDefaultAsync(cts.Token);
 
-                    statusCode = 200;
-                }
-                catch (Exception ex)
-                {
-                    logger.FailedHealthChecks(ex);
-                    state = PulseStates.Unhealthy;
-                    statusCode = 503;
-                }
+                        state = sw.ElapsedMilliseconds > 1000
+                                  ? PulseStates.Degraded
+                                  : PulseStates.Healthy;
 
-                return (state, statusCode);
+                        statusCode = 200;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.FailedHealthChecks(ex);
+                        state = PulseStates.Unhealthy;
+                        statusCode = 503;
+                    }
+
+                    return (state, statusCode);
+                });
+
+                return TypedResults.Text(state.Stringify(), MediaTypeNames.Text.Plain, Encoding.Default, statusCode);
+            })
+            .AllowAnonymous();
+
+            healthGroup.MapGet("applications", async (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
+            {
+                var uniqueIdentifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+                                                     .SelectFields(x => new { x.Id, x.Group, x.Name })
+                                                     .ToDictionaryAsync(x => x.Id, cancellationToken: token);
+
+                DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
+                return await context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
+                                    .SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp })
+                                    .GroupBy(x => uniqueIdentifiers[x.Sqid].GetFullName())
+                                    .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).First())
+                                    .OrderBy(x => x.Name)
+                                    .ToDictionaryAsync(cancellationToken: token);
             });
-
-            return TypedResults.Text(state.Stringify(), MediaTypeNames.Text.Plain, Encoding.Default, statusCode);
-        })
-        .AllowAnonymous();
-
-        healthGroup.MapGet("applications", async (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
-        {
-            var uniqueIdentifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
-                                                 .SelectFields(x => new { x.Id, x.Group, x.Name })
-                                                 .ToDictionaryAsync(x => x.Id, cancellationToken: token);
-
-            DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
-            return await context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)
-                                .SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp })
-                                .GroupBy(x => uniqueIdentifiers[x.Sqid].GetFullName())
-                                .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp).Select(y => (Name: x.Key, y.State)).First())
-                                .OrderBy(x => x.Name)
-                                .ToDictionaryAsync(cancellationToken: token);
-        });
+        }
     }
 }

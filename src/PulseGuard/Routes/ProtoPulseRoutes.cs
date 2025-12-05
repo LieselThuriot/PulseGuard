@@ -10,66 +10,68 @@ public static class ProtoPulseRoutes
 {
     private static ValueTask<T> AsValue<T>(this Task<T> task) => new(task);
 
-    public static void MapProtoPulses(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder builder)
     {
-        CreatePulseMappings(app.MapGroup("/api/1.0/pulses").WithTags("ProtoPulses"));
-        CreateMetricsMappings(app.MapGroup("/api/1.0/metrics").WithTags("Metrics"));
-    }
-
-    private static void CreateMetricsMappings(RouteGroupBuilder metricsGroup)
-    {
-        metricsGroup.MapGet("{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
+        public void MapProtoPulses()
         {
-            var archivedItems = context.ArchivedPulseAgentResults.FindPartitionsAsync(id, token)
-                                       .Select((string x, CancellationToken ct) => context.ArchivedPulseAgentResults.GetEntityAsync(x, id, ct).AsValue())
-                                       .SelectMany(x => x!.Items)
-                                       .ToListAsync(token);
+            builder.MapGroup("/api/1.0/pulses").WithTags("ProtoPulses").CreatePulseMappings();
+            builder.MapGroup("/api/1.0/metrics").WithTags("Metrics").CreateMetricsMappings();
+        }
 
-            var results = await context.PulseAgentResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
-
-            if (results.Count is 0)
-            {
-                return TypedResults.NotFound();
-            }
-
-            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
-
-            PulseMetricsResultGroup result = new(items);
-            return Proto.Result(result);
-        });
-    }
-
-    private static void CreatePulseMappings(RouteGroupBuilder pulseGroup)
-    {
-        pulseGroup.MapGet("details/{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
+        private void CreateMetricsMappings()
         {
-            var info = await GetInfo(context, id, token);
-
-            if (info is null)
+            builder.MapGet("{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
             {
-                return TypedResults.NotFound();
-            }
+                var archivedItems = context.ArchivedPulseAgentResults.FindPartitionsAsync(id, token)
+                                           .Select((string x, CancellationToken ct) => context.ArchivedPulseAgentResults.GetEntityAsync(x, id, ct).AsValue())
+                                           .SelectMany(x => x!.Items)
+                                           .ToListAsync(token);
 
-            var archivedItems = context.ArchivedPulseCheckResults.FindPartitionsAsync(id, token)
-                                       .Select((string x, CancellationToken ct) => context.ArchivedPulseCheckResults.GetEntityAsync(x, id, ct).AsValue())
-                                       .SelectMany(x => x!.Items)
-                                       .ToListAsync(token);
+                var results = await context.PulseAgentResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
 
-            var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
+                if (results.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
 
-            if (results.Count is 0)
+                var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
+
+                PulseMetricsResultGroup result = new(items);
+                return Proto.Result(result);
+            });
+        }
+
+        private void CreatePulseMappings()
+        {
+            builder.MapGet("details/{id}", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, CancellationToken token) =>
             {
-                return TypedResults.NotFound();
-            }
+                var info = await GetInfo(context, id, token);
 
-            var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
+                if (info is null)
+                {
+                    return TypedResults.NotFound();
+                }
 
-            PulseDetailResultGroup result = new(info.Group, info.Name, items);
+                var archivedItems = context.ArchivedPulseCheckResults.FindPartitionsAsync(id, token)
+                                           .Select((string x, CancellationToken ct) => context.ArchivedPulseCheckResults.GetEntityAsync(x, id, ct).AsValue())
+                                           .SelectMany(x => x!.Items)
+                                           .ToListAsync(token);
 
-            return Proto.Result(result);
-        });
+                var results = await context.PulseCheckResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
+
+                if (results.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var items = (await archivedItems).Concat(results.SelectMany(x => x.Items));
+
+                PulseDetailResultGroup result = new(info.Group, info.Name, items);
+
+                return Proto.Result(result);
+            });
+        }
     }
-
     private static Task<UniqueIdentifier?> GetInfo(PulseContext context, string id, CancellationToken token)
     {
         return context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);

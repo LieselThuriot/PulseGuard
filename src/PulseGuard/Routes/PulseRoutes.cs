@@ -11,154 +11,157 @@ namespace PulseGuard.Routes;
 
 public static class PulseRoutes
 {
-    public static void MapPulses(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder builder)
     {
-        RouteGroupBuilder group = app.MapGroup("/api/1.0/pulses").WithTags("Pulses");
-
-        group.MapGet("", async (PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
+        public void MapPulses()
         {
-            var (query, identifiers) = BuildQuery(context, minutes);
-            var lookup = await identifiers.ToDictionaryAsync(x => x.Id, cancellationToken: token);
-            return await GetPulses(query, lookup, token);
-        });
+            RouteGroupBuilder group = builder.MapGroup("/api/1.0/pulses").WithTags("Pulses");
 
-        group.MapGet("group/{group}", async (string group, PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
-        {
-            var (query, identifiers) = BuildQuery(context, minutes);
-
-            var info = await identifiers.Where(x => x.Group == group).ToListAsync(token);
-            query = query.ExistsIn(x => x.Sqid, [.. info.Select(x => x.Id)]);
-
-            var lookup = info.ToDictionary(x => x.Id);
-            return await GetPulses(query, lookup, token);
-        });
-
-        group.MapGet("group/{group}/states", async Task<Results<Ok<PulseOverviewStateGroup>, NotFound>> (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
-        {
-            var relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
-
-            var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
-            var groups = await context.Pulses.ExistsIn(x => x.Sqid, relevantSqids.Keys)
-                                      .Where(x => x.CreationTimestamp > offset)
-                                      .ToLookupAsync(x => x.Sqid, cancellationToken: token);
-
-            if (groups.Count is 0)
+            group.MapGet("", async (PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
             {
-                return TypedResults.NotFound();
-            }
+                var (query, identifiers) = BuildQuery(context, minutes);
+                var lookup = await identifiers.ToDictionaryAsync(x => x.Id, cancellationToken: token);
+                return await GetPulses(query, lookup, token);
+            });
 
-            PulseOverviewStateGroup result = new(group,
-                                                 groups.Select(g => new PulseOverviewStateGroupItem(g.Key,
-                                                                                                    relevantSqids[g.Key],
-                                                                                                    g.Select(x => new PulseStateItem(x.State,
-                                                                                                                                     x.CreationTimestamp,
-                                                                                                                                     x.LastUpdatedTimestamp))))
-                                           );
-
-            return TypedResults.Ok(result);
-        });
-
-        group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
-        {
-            UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
-
-            if (identifier is null)
+            group.MapGet("group/{group}", async (string group, PulseContext context, CancellationToken token, [FromQuery] uint? minutes = null) =>
             {
-                return TypedResults.NotFound();
-            }
+                var (query, identifiers) = BuildQuery(context, minutes);
 
-            var query = context.Pulses.Where(x => x.Sqid == id);
+                var info = await identifiers.Where(x => x.Group == group).ToListAsync(token);
+                query = query.ExistsIn(x => x.Sqid, [.. info.Select(x => x.Id)]);
 
-            if (!string.IsNullOrEmpty(continuationToken))
+                var lookup = info.ToDictionary(x => x.Id);
+                return await GetPulses(query, lookup, token);
+            });
+
+            group.MapGet("group/{group}/states", async Task<Results<Ok<PulseOverviewStateGroup>, NotFound>> (string group, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
             {
-                long creationTimeSeconds = Pulse.ConvertToUnixTimeSeconds(continuationToken);
-                var creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(creationTimeSeconds);
-                query = query.Where(x => x.CreationTimestamp < creationTimestamp);
-            }
+                var relevantSqids = await GetRelevantSqidsForGroup(group, context, token);
 
-            List<Pulse> items = await query.Take(pageSize).ToListAsync(token);
+                var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
+                var groups = await context.Pulses.ExistsIn(x => x.Sqid, relevantSqids.Keys)
+                                          .Where(x => x.CreationTimestamp > offset)
+                                          .ToLookupAsync(x => x.Sqid, cancellationToken: token);
 
-            if (items.Count is 0)
+                if (groups.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                PulseOverviewStateGroup result = new(group,
+                                                     groups.Select(g => new PulseOverviewStateGroupItem(g.Key,
+                                                                                                        relevantSqids[g.Key],
+                                                                                                        g.Select(x => new PulseStateItem(x.State,
+                                                                                                                                         x.CreationTimestamp,
+                                                                                                                                         x.LastUpdatedTimestamp))))
+                                               );
+
+                return TypedResults.Ok(result);
+            });
+
+            group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
             {
-                return TypedResults.NotFound();
-            }
+                UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
 
-            var entries = items.Select(x => new PulseDetailItem(x.State, x.Message, x.CreationTimestamp, x.LastUpdatedTimestamp, x.Error));
+                if (identifier is null)
+                {
+                    return TypedResults.NotFound();
+                }
 
-            Pulse pulse = items[^1];
+                var query = context.Pulses.Where(x => x.Sqid == id);
 
-            continuationToken = items.Count < pageSize
-                                     ? null
-                                     : pulse.ContinuationToken;
+                if (!string.IsNullOrEmpty(continuationToken))
+                {
+                    long creationTimeSeconds = Pulse.ConvertToUnixTimeSeconds(continuationToken);
+                    var creationTimestamp = DateTimeOffset.FromUnixTimeSeconds(creationTimeSeconds);
+                    query = query.Where(x => x.CreationTimestamp < creationTimestamp);
+                }
 
-            PulseDetailGroupItem result = new(pulse.Sqid, identifier.Name, continuationToken, entries);
-            return TypedResults.Ok(result);
-        });
+                List<Pulse> items = await query.Take(pageSize).ToListAsync(token);
 
-        group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
-        {
-            UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
+                if (items.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
 
-            if (identifier is null)
+                var entries = items.Select(x => new PulseDetailItem(x.State, x.Message, x.CreationTimestamp, x.LastUpdatedTimestamp, x.Error));
+
+                Pulse pulse = items[^1];
+
+                continuationToken = items.Count < pageSize
+                                         ? null
+                                         : pulse.ContinuationToken;
+
+                PulseDetailGroupItem result = new(pulse.Sqid, identifier.Name, continuationToken, entries);
+                return TypedResults.Ok(result);
+            });
+
+            group.MapGet("application/{id}/states", async Task<Results<Ok<PulseStateGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] int? days = null) =>
             {
-                return TypedResults.NotFound();
-            }
+                UniqueIdentifier? identifier = await context.UniqueIdentifiers.FindAsync(UniqueIdentifier.PartitionPulseConfiguration, id, token);
 
-            var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
+                if (identifier is null)
+                {
+                    return TypedResults.NotFound();
+                }
 
-            List<Pulse> items = await context.Pulses.Where(x => x.Sqid == id).Where(x => x.CreationTimestamp > offset).ToListAsync(token);
+                var offset = DateTimeOffset.UtcNow.AddDays(-(days ?? 14));
 
-            if (items.Count is 0)
+                List<Pulse> items = await context.Pulses.Where(x => x.Sqid == id).Where(x => x.CreationTimestamp > offset).ToListAsync(token);
+
+                if (items.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var entries = items.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp));
+
+                Pulse pulse = items[^1];
+
+                PulseStateGroupItem result = new(pulse.Sqid, identifier.Name, entries);
+                return TypedResults.Ok(result);
+            });
+
+            group.MapGet("application/{id}/state", async (string id, PulseContext context, CancellationToken token) =>
             {
-                return TypedResults.NotFound();
-            }
+                Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
+                                                   .SelectFields(x => new { x.State, x.CreationTimestamp })
+                                                   .FirstOrDefaultAsync(token);
 
-            var entries = items.Select(x => new PulseStateItem(x.State, x.CreationTimestamp, x.LastUpdatedTimestamp));
+                PulseStates state = pulse?.State ?? PulseStates.Unknown;
 
-            Pulse pulse = items[^1];
+                int statusCode = state switch
+                {
+                    PulseStates.Healthy => StatusCodes.Status200OK,
+                    PulseStates.Degraded => 218,
+                    PulseStates.Unknown => StatusCodes.Status404NotFound,
+                    _ => StatusCodes.Status503ServiceUnavailable
+                };
 
-            PulseStateGroupItem result = new(pulse.Sqid, identifier.Name, entries);
-            return TypedResults.Ok(result);
-        });
+                return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
+            });
 
-        group.MapGet("application/{id}/state", async (string id, PulseContext context, CancellationToken token) =>
-        {
-            Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
-                                               .SelectFields(x => new { x.State, x.CreationTimestamp })
-                                               .FirstOrDefaultAsync(token);
-
-            PulseStates state = pulse?.State ?? PulseStates.Unknown;
-
-            int statusCode = state switch
+            group.MapGet("application/{id}/deployments", async Task<Results<NotFound, Ok<PulseDeployments>>> (string id, PulseContext context, CancellationToken token) =>
             {
-                PulseStates.Healthy => StatusCodes.Status200OK,
-                PulseStates.Degraded => 218,
-                PulseStates.Unknown => StatusCodes.Status404NotFound,
-                _ => StatusCodes.Status503ServiceUnavailable
-            };
+                var deployments = await context.Deployments.Where(x => x.Sqid == id)
+                                               .Select(x => new PulseDeployment(x.Status,
+                                                                                x.Start,
+                                                                                x.End,
+                                                                                x.Author,
+                                                                                x.Type,
+                                                                                x.CommitId,
+                                                                                x.BuildNumber))
+                                               .ToListAsync(token);
 
-            return TypedResults.Text(state.Stringify(), contentType: MediaTypeNames.Text.Plain, statusCode: statusCode);
-        });
+                if (deployments.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
 
-        group.MapGet("application/{id}/deployments", async Task<Results<NotFound, Ok<PulseDeployments>>> (string id, PulseContext context, CancellationToken token) =>
-        {
-            var deployments = await context.Deployments.Where(x => x.Sqid == id)
-                                           .Select(x => new PulseDeployment(x.Status,
-                                                                            x.Start,
-                                                                            x.End,
-                                                                            x.Author,
-                                                                            x.Type,
-                                                                            x.CommitId,
-                                                                            x.BuildNumber))
-                                           .ToListAsync(token);
-
-            if (deployments.Count is 0)
-            {
-                return TypedResults.NotFound();
-            }
-
-            return TypedResults.Ok(new PulseDeployments(id, deployments));
-        });
+                return TypedResults.Ok(new PulseDeployments(id, deployments));
+            });
+        }
     }
 
     private static ISelectedTableQueryable<Pulse> SelectPulseOverviewFields(TableSet<Pulse> pulses)

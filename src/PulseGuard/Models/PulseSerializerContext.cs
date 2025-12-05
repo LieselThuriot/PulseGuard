@@ -63,13 +63,15 @@ public sealed partial class PulseSerializerContext : JsonSerializerContext;
 
 internal static class SerializerExtensions
 {
-    public static string Serialize<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.Serialize(value, typeInfo);
-    public static Task SerializeAsync<T>(this JsonTypeInfo<T> typeInfo, Stream stream, T value, CancellationToken token) => JsonSerializer.SerializeAsync(stream, value, typeInfo, token);
-    public static byte[] SerializeToUtf8Bytes<T>(this JsonTypeInfo<T> typeInfo, T value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
-    public static byte[] SerializeToUtf8Bytes(this JsonTypeInfo typeInfo, object value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
-    public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, string value) => JsonSerializer.Deserialize(value, typeInfo);
-    public static T? Deserialize<T>(this JsonTypeInfo<T> typeInfo, ReadOnlySpan<byte> value) => JsonSerializer.Deserialize(value, typeInfo);
-    public static ValueTask<T?> DeserializeAsync<T>(this JsonTypeInfo<T> typeInfo, Stream value, CancellationToken token) => JsonSerializer.DeserializeAsync(value, typeInfo, token);
-    public static Task<T?> DeserializeAsync<T>(this JsonTypeInfo<T> typeInfo, HttpContent value, CancellationToken token) => value.ReadFromJsonAsync(typeInfo, token);
-    public static Task<T?> DeserializeAsync<T>(this JsonTypeInfo<T> typeInfo, HttpResponseMessage value, CancellationToken token) => typeInfo.DeserializeAsync(value.Content, token);
+    extension<T>(JsonTypeInfo<T> typeInfo)
+    {
+        public string Serialize(T value) => JsonSerializer.Serialize(value, typeInfo);
+        public Task SerializeAsync(Stream stream, T value, CancellationToken token) => JsonSerializer.SerializeAsync(stream, value, typeInfo, token);
+        public byte[] SerializeToUtf8Bytes(T value) => JsonSerializer.SerializeToUtf8Bytes(value, typeInfo);
+        public T? Deserialize(string value) => JsonSerializer.Deserialize(value, typeInfo);
+        public T? Deserialize(ReadOnlySpan<byte> value) => JsonSerializer.Deserialize(value, typeInfo);
+        public ValueTask<T?> DeserializeAsync(Stream value, CancellationToken token) => JsonSerializer.DeserializeAsync(value, typeInfo, token);
+        public Task<T?> DeserializeAsync(HttpContent value, CancellationToken token) => value.ReadFromJsonAsync(typeInfo, token);
+        public Task<T?> DeserializeAsync(HttpResponseMessage value, CancellationToken token) => typeInfo.DeserializeAsync(value.Content, token);
+    }
 }
