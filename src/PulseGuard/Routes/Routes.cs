@@ -40,7 +40,6 @@ public static class Routes
         routes.MapProtoPulses();
 
         routes.MapEvents();
-        routes.MapWebSockets();
 
         routes.MapBadges();
         routes.MapHealth();

@@ -13,23 +13,19 @@
  */
 
 (function () {
-  /** @type {WebSocket} */
-  let socket;
+  /** @type {EventSource} */
+  let eventSource;
 
   /** @type {Chart} */
   let pulseChart;
 
-  function hasSocketConnection() {
-    return (
-      socket &&
-      (socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING)
-    );
+  function hasEventSourceConnection() {
+    return eventSource && eventSource.readyState !== EventSource.CLOSED;
   }
 
   function openPulseSocket(options) {
-    if (hasSocketConnection()) {
-      console.warn("WebSocket is already open or connecting.");
+    if (hasEventSourceConnection()) {
+      console.warn("EventSource is already connected.");
       return false;
     }
 
@@ -118,7 +114,7 @@
       },
     });
 
-    let route = "ws/";
+    let route = "api/1.0/pulses/events";
 
     let prefixWithGroup = true;
 
@@ -130,10 +126,10 @@
       };
     } else {
       if (options.group) {
-        route += `group/${encodeURIComponent(options.group)}/`;
+        route += `/group/${encodeURIComponent(options.group)}`;
         prefixWithGroup = false;
       } else if (options.id) {
-        route += `application/${encodeURIComponent(options.id)}/`;
+        route += `/application/${encodeURIComponent(options.id)}`;
         prefixWithGroup = false;
       }
     }
@@ -144,9 +140,9 @@
       };
     }
 
-    socket = new WebSocket(route);
+    eventSource = new EventSource(route);
 
-    socket.addEventListener("message", function (event) {
+    eventSource.addEventListener("message", function (event) {
       try {
         /** @type {PulseEventInfo} */
         const pulseEvent = JSON.parse(event.data);
@@ -159,15 +155,15 @@
       }
     });
 
-    // socket.addEventListener("open", function () {
-    //   console.log("WebSocket connection opened.");
+    // eventSource.addEventListener("open", function () {
+    //   console.log("EventSource connection opened.");
     // });
 
-    // socket.addEventListener("close", function () {
-    //   console.log("WebSocket connection closed.");
+    // eventSource.addEventListener("close", function () {
+    //   console.log("EventSource connection closed.");
     // });
 
-    socket.addEventListener("error", function (error) {
+    eventSource.addEventListener("error", function (error) {
       bootstrap.showToast({
         header: "❌ PulseGuard",
         headerSmall: "",
@@ -183,7 +179,7 @@
         toastClass: "toast-danger",
       });
 
-      console.error("WebSocket error:", error);
+      console.error("EventSource error:", error);
 
       // Close the live pulse view offcanvas when an error occurs
       const liveOffcanvas = document.getElementById("live-pulse-view");
@@ -199,10 +195,10 @@
   }
 
   function closePulseSocket() {
-    if (hasSocketConnection()) {
-      socket.close();
-      //console.log("WebSocket connection closing...");
-      socket = null;
+    if (hasEventSourceConnection()) {
+      eventSource.close();
+      //console.log("EventSource connection closing...");
+      eventSource = null;
     }
 
     if (pulseChart) {
