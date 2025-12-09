@@ -6,6 +6,7 @@
 		<MagicConstantsRoutes>true</MagicConstantsRoutes>
 		<MagicConstantsRoutesCacheControl>public, max-age=604800</MagicConstantsRoutesCacheControl>
 		<MagicConstantsMinify>true</MagicConstantsMinify>
+		<MagicConstantsIncludeContextMetadata>false</MagicConstantsIncludeContextMetadata>
 	</PropertyGroup>
 
 	<ItemGroup>
