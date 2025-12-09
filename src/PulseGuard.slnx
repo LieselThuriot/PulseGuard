@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/SolutionItems/">
+    <File Path="../.gitignore" />
+    <File Path="../LICENSE" />
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="PulseGuard.Views.V2/PulseGuard.Views.V2.csproj" />
+  <Project Path="PulseGuard.Views/PulseGuard.Views.csproj" />
+  <Project Path="PulseGuard/PulseGuard.csproj" />
+</Solution>
