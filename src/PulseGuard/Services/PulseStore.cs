@@ -89,17 +89,16 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
     private async Task TrackFailures(PulseReport report, Pulse pulse, CancellationToken token)
     {
-        var pulseCounter = await _context.PulseCounters.FindAsync(PulseCounter.FailCounter, report.Options.Sqid, token) ?? new()
+        FailCounter pulseCounter = await _context.Settings.FindFailCounterAsync(report.Options.Sqid, token) ?? new FailCounter()
         {
             ETag = ETag.All,
-            Counter = PulseCounter.FailCounter,
             Sqid = report.Options.Sqid,
             Value = 0
         };
 
         pulseCounter.Value = report.State is PulseStates.Healthy ? 0 : pulseCounter.Value + 1;
 
-        await _context.PulseCounters.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
+        await _context.Settings.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
 
         //Todo : Calculate based on percentage of last X checks instead of absolute count
         if (_options.AlertThreshold.HasValue && pulseCounter.Value == _options.AlertThreshold.GetValueOrDefault())
@@ -291,9 +290,8 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         {
             try
             {
-                await _context.UniqueIdentifiers.AddEntityAsync(new()
+                await _context.Settings.AddEntityAsync(new UniqueIdentifier()
                 {
-                    IdentifierType = UniqueIdentifier.PartitionPulseConfiguration,
                     Id = id,
                     Group = group,
                     Name = name

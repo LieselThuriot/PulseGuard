@@ -28,7 +28,7 @@ public static class AdminRoutes
                 return;
             }
 
-            builder.MapGet(UserEndpoint, static (ClaimsPrincipal user) => new UserInfo(
+            builder.MapGet(UserEndpoint, static (ClaimsPrincipal user) => new Models.UserInfo(
                     user.Identity?.Name,
                     user.FindFirstValue("firstname"),
                     user.FindFirstValue("lastname"),
@@ -47,11 +47,11 @@ public static class AdminRoutes
 
         private void CreateUserMappings()
         {
-            builder.MapGet("", static (PulseContext context) => context.Users.Select(x => new UserEntry(x)));
+            builder.MapGet("", static (PulseContext context) => context.Settings.WhereUser().Select(x => new UserEntry(x)));
 
             builder.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
             {
-                var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
+                Entities.User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -64,22 +64,22 @@ public static class AdminRoutes
 
             builder.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
+                Entities.User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
                     return Results.NotFound();
                 }
 
-                await context.Users.DeleteEntityAsync(user, token);
-                logger.DeletedUser(user.UserId, user.RowType);
+                await context.Settings.DeleteEntityAsync(user, token);
+                logger.DeletedUser(id);
 
                 return Results.NoContent();
             });
 
             builder.MapPut("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
+                Entities.User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -91,20 +91,20 @@ public static class AdminRoutes
 
                 try
                 {
-                    await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
-                    logger.UpdatedUser(user.UserId, user.RowType);
+                    await context.Settings.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+                    logger.UpdatedUser(user.UserId);
                     return Results.NoContent();
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorUpdatingUser(ex, user.UserId, user.RowType);
+                    logger.ErrorUpdatingUser(ex, user.UserId);
                     return Results.Conflict();
                 }
             });
 
             builder.MapPut("{id}/name", static async (string id, RenameUserRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                var user = await context.Users.FindAsync(id, User.UserInfoRowType, token);
+                Entities.User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -115,7 +115,7 @@ public static class AdminRoutes
 
                 try
                 {
-                    await context.Users.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
+                    await context.Settings.UpdateEntityAsync(user, user.ETag, TableUpdateMode.Replace, token);
                     logger.RenamedUser(id);
 
                     return Results.NoContent();
@@ -129,24 +129,23 @@ public static class AdminRoutes
 
             builder.MapPost("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                User user = new()
+                Entities.User user = new()
                 {
                     UserId = id,
-                    RowType = User.UserInfoRowType,
                     Nickname = request.Nickname,
                     Roles = request.GetRoles()
                 };
 
                 try
                 {
-                    await context.Users.AddEntityAsync(user, token);
-                    logger.CreatedUser(user.UserId, user.RowType);
+                    await context.Settings.AddEntityAsync(user, token);
+                    logger.CreatedUser(user.UserId);
 
                     return Results.Created();
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorCreatingUser(ex, user.UserId, user.RowType);
+                    logger.ErrorCreatingUser(ex, user.UserId);
                     return Results.Conflict();
                 }
             });
@@ -156,7 +155,7 @@ public static class AdminRoutes
         {
             builder.MapGet("", static async (PulseContext context, CancellationToken token) =>
             {
-                var identifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+                var identifiers = await context.Settings.WhereUniqueIdentifier()
                                                .SelectFields(x => new { x.Id, x.Group, x.Name })
                                                .ToDictionaryAsync(x => x.Id, x => (x.Group, x.Name), cancellationToken: token);
 
@@ -187,11 +186,9 @@ public static class AdminRoutes
             {
                 if (entry is { Group: not null, Name: not null })
                 {
-                    await context.UniqueIdentifiers.UpdateAsync(() => new()
+                    await context.Settings.UpdateAsync(() => new UniqueIdentifier()
                     {
-                        IdentifierType = UniqueIdentifier.PartitionPulseConfiguration,
                         Id = id,
-
                         Group = entry.Group,
                         Name = entry.Name
                     },

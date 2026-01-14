@@ -16,7 +16,7 @@ public static class BadgeRoutes
 
             group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
             {
-                UniqueIdentifier? identifier = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration && x.Id == id)
+                UniqueIdentifier? identifier = await context.Settings.Where((UniqueIdentifier x) => x.Id == id)
                                                             .SelectFields(x => new { x.Group, x.Name })
                                                             .FirstOrDefaultAsync(token);
 

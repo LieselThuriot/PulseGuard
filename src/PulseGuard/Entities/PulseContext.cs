@@ -1,4 +1,5 @@
 ﻿using TableStorage;
+using TableStorage.Fluent;
 
 namespace PulseGuard.Entities;
 
@@ -7,11 +8,11 @@ public sealed partial class PulseContext
 {
     internal const int RecentMinutes = 720;
 
-    public TableSet<User> Users { get; }
+    public TableSet<FluentPartitionTableEntity<UniqueIdentifier, FailCounter, User>> Settings { get; set; }
+
     public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
     public TableSet<Pulse> Pulses { get; }
-    public TableSet<UniqueIdentifier> UniqueIdentifiers { get; }
     public TableSet<Webhook> Webhooks { get; }
 
     /// <summary>
@@ -26,6 +27,4 @@ public sealed partial class PulseContext
     public BlobSet<ArchivedPulseAgentCheckResult> ArchivedPulseAgentResults { get; }
 
     public TableSet<DeploymentResult> Deployments { get; }
-
-    public TableSet<PulseCounter> PulseCounters { get; }
 }

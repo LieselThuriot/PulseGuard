@@ -32,6 +32,8 @@
 		<PackageReference Include="TableStorage.Blobs" />
 		<PackageReference Include="TableStorage.Blobs.RuntimeCompilations" />
 		<PackageReference Include="TableStorage.Core" />
+		<PackageReference Include="TableStorage.Fluent" />
+		<PackageReference Include="TableStorage.Fluent.RuntimeCompilations" />
 		<PackageReference Include="TableStorage.RuntimeCompilations" />
 	</ItemGroup>
 

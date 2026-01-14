@@ -6,6 +6,7 @@ using PulseGuard.Models;
 using PulseGuard.Routes;
 using System.Text.Json.Serialization;
 using TableStorage;
+using TableStorage.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,12 +14,16 @@ string storeConnectionString = builder.Configuration.GetConnectionString("PulseS
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
 
-bool isDevelopment = builder.Environment.IsDevelopment();
+var createIfNotExists = builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled;
 builder.Services.AddPulseContext(storeConnectionString,
-    x => x.CreateTableIfNotExists = isDevelopment,
     x =>
     {
-        x.CreateContainerIfNotExists = isDevelopment;
+        x.CreateTableIfNotExists = createIfNotExists;
+        x.EnableFluentCompilationAtRuntime();
+    },
+    x =>
+    {
+        x.CreateContainerIfNotExists = createIfNotExists;
         x.Serializer = new PulseBlobSerializer();
         x.EnableCompilationAtRuntime();
     }
@@ -49,7 +54,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-if (!isDevelopment)
+if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }

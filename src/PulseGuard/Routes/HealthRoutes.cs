@@ -55,7 +55,7 @@ public static class HealthRoutes
 
             healthGroup.MapGet("applications", async (IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
             {
-                var uniqueIdentifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+                var uniqueIdentifiers = await context.Settings.WhereUniqueIdentifier()
                                                      .SelectFields(x => new { x.Id, x.Group, x.Name })
                                                      .ToDictionaryAsync(x => x.Id, cancellationToken: token);
 

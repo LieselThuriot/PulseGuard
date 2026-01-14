@@ -53,8 +53,8 @@ public static class EventRoutes
     {
         DateTimeOffset offset = DateTimeOffset.UtcNow.AddMinutes(-options.Value.Interval * 2.5);
 
-        var identifiers = await context.UniqueIdentifiers
-                                       .Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+        var identifiers = await context.Settings
+                                       .WhereUniqueIdentifier()
                                        .ToDictionaryAsync(x => x.Id, cancellationToken: token);
 
         return context.RecentPulses.Where(x => x.LastUpdatedTimestamp > offset)

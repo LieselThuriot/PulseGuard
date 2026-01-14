@@ -57,7 +57,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         int simultaneousPulses = _options.CurrentValue.SimultaneousPulses;
         using SemaphoreSlim semaphore = new(simultaneousPulses, simultaneousPulses); // rate gate
 
-        var identifiers = await context.UniqueIdentifiers.Where(x => x.IdentifierType == UniqueIdentifier.PartitionPulseConfiguration)
+        var identifiers = await context.Settings.WhereUniqueIdentifier()
                                        .SelectFields(x => new { x.Id, x.Group, x.Name })
                                        .ToDictionaryAsync(x => x.Id, x => (x.Group, x.Name), cancellationToken: token);
 

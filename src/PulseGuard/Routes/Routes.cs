@@ -16,7 +16,7 @@ public static class Routes
             app.UseAuthentication();
             app.UseAuthorization();
 
-            routes.MapGet("AccessDenied", () => Results.Content("You do not have permission to access this resource.", MediaTypeNames.Text.Plain, Encoding.UTF8, 403))
+            routes.MapGet("access-denied", () => Results.Content("You do not have permission to access this resource.", MediaTypeNames.Text.Plain, Encoding.UTF8, 403))
                   .WithTags("Authorization")
                   .ExcludeFromDescription()
                   .AllowAnonymous();

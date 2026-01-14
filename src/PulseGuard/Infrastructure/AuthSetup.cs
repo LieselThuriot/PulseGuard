@@ -48,7 +48,7 @@ internal static class AuthSetup
         }
 
         string? pathBase = configuration["PathBase"];
-        string accessDeniedPath = pathBase + "/AccessDenied";
+        const string accessDeniedPath = "/access-denied";
         bool upsertUnknownUsers = settings.UpsertUnknownUsers;
 
         services.AddAuthorization(options => options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator")))
@@ -118,19 +118,18 @@ internal static class AuthSetup
                                 async Task Enrich()
                                 {
                                     PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
-                                    User? user = await db.Users.FindAsync(identity.Name, User.UserInfoRowType);
+                                    User? user = await db.Settings.FindUserAsync(identity.Name);
 
                                     if (user is not null)
                                     {
                                         identity.AddClaims(user.GetRoles().Select(r => new Claim(identity.RoleClaimType, r)));
                                     }
-                                    
+
                                     if (user is not null || upsertUnknownUsers)
                                     {
-                                        await db.Users.UpsertEntityAsync(new User
+                                        await db.Settings.UpsertEntityAsync(new User
                                         {
                                             UserId = identity.Name,
-                                            RowType = User.UserInfoRowType,
                                             LastVisited = DateTimeOffset.UtcNow
                                         },
                                         Azure.Data.Tables.TableUpdateMode.Merge);

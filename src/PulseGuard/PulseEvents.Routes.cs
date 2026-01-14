@@ -3,14 +3,14 @@ namespace PulseGuard;
 public static partial class PulseEvents
 {
     // AdminRoutes events (1000-1099)
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Deleted User {id} with type {type}")]
-    public static partial void DeletedUser(this ILogger logger, string id, string type);
+    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Deleted User {id}")]
+    public static partial void DeletedUser(this ILogger logger, string id);
 
-    [LoggerMessage(EventId = 1002, Level = LogLevel.Information, Message = "Updated User {id} {rowtype}")]
-    public static partial void UpdatedUser(this ILogger logger, string id, string rowtype);
+    [LoggerMessage(EventId = 1002, Level = LogLevel.Information, Message = "Updated User {id}")]
+    public static partial void UpdatedUser(this ILogger logger, string id);
 
-    [LoggerMessage(EventId = 1003, Level = LogLevel.Error, Message = "Error updating User {id} {rowtype}")]
-    public static partial void ErrorUpdatingUser(this ILogger logger, Exception ex, string id, string rowtype);
+    [LoggerMessage(EventId = 1003, Level = LogLevel.Error, Message = "Error updating User {id}")]
+    public static partial void ErrorUpdatingUser(this ILogger logger, Exception ex, string id);
 
     [LoggerMessage(EventId = 1004, Level = LogLevel.Information, Message = "Renamed User {id}")]
     public static partial void RenamedUser(this ILogger logger, string id);
@@ -18,11 +18,11 @@ public static partial class PulseEvents
     [LoggerMessage(EventId = 1005, Level = LogLevel.Error, Message = "Error renaming User {id}")]
     public static partial void ErrorRenamingUser(this ILogger logger, Exception ex, string id);
 
-    [LoggerMessage(EventId = 1006, Level = LogLevel.Information, Message = "Created User {id} {type}")]
-    public static partial void CreatedUser(this ILogger logger, string id, string type);
+    [LoggerMessage(EventId = 1006, Level = LogLevel.Information, Message = "Created User {id}")]
+    public static partial void CreatedUser(this ILogger logger, string id);
 
-    [LoggerMessage(EventId = 1007, Level = LogLevel.Error, Message = "Error creating User {id} {type}")]
-    public static partial void ErrorCreatingUser(this ILogger logger, Exception ex, string id, string type);
+    [LoggerMessage(EventId = 1007, Level = LogLevel.Error, Message = "Error creating User {id}")]
+    public static partial void ErrorCreatingUser(this ILogger logger, Exception ex, string id);
 
     [LoggerMessage(EventId = 1008, Level = LogLevel.Information, Message = "Updated Pulse Entry {Id} to Group: {Group}, Name: {Name}")]
     public static partial void UpdatedPulseEntry(this ILogger logger, string id, string group, string name);

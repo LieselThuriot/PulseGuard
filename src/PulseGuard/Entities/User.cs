@@ -2,13 +2,10 @@
 
 namespace PulseGuard.Entities;
 
-[TableSet(PartitionKey = nameof(UserId), RowKey = nameof(RowType))]
+[TableSet(RowKey = nameof(UserId))]
 public sealed partial class User
 {
-    public const string UserInfoRowType = "Info";
-
     public partial string UserId { get; set; }
-    public partial string RowType { get; set; }
 
     public partial string? Nickname { get; set; }
     public partial string? Roles { get; set; }
