@@ -101,7 +101,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         await _context.Settings.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
 
         //Todo : Calculate based on percentage of last X checks instead of absolute count
-        if (_options.AlertThreshold.HasValue && pulseCounter.Value == _options.AlertThreshold.GetValueOrDefault())
+        if (_options.AlertThreshold > 0 && pulseCounter.Value == _options.AlertThreshold)
         {
             DateTimeOffset since = DateTimeOffset.UtcNow.AddMinutes(-_options.Interval * pulseCounter.Value);
 

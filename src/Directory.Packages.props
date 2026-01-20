@@ -24,7 +24,7 @@
     <PackageVersion Include="Polly" Version="8.6.5" />
     <PackageVersion Include="protobuf-net" Version="3.2.56" />
     <PackageVersion Include="protobuf-net.BuildTools" Version="3.2.52" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.6" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.11" />
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.1" />
     <PackageVersion Include="Sqids" Version="3.2.0" />
     <PackageVersion Include="TableStorage" Version="6.0.0-preview-04" />
