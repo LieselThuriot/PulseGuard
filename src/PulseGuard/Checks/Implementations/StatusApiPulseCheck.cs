@@ -3,7 +3,7 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Checks.Implementations;
 
-internal sealed class StatusApiPulseCheck(HttpClient client, PulseConfiguration options, ILogger<PulseCheck> logger) : PulseCheck(client, options)
+internal sealed class StatusApiPulseCheck(HttpClient client, PulseConfiguration options, Services.AuthService authenticationService, ILogger<PulseCheck> logger) : PulseCheck(client, options, authenticationService)
 {
     private readonly ILogger<PulseCheck> _logger = logger;
 

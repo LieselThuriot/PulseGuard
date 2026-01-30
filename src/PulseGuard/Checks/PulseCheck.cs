@@ -1,11 +1,14 @@
 ﻿using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Services;
 
 namespace PulseGuard.Checks;
 
-public abstract class PulseCheck(HttpClient client, PulseConfiguration options)
+public abstract class PulseCheck(HttpClient client, PulseConfiguration options, AuthService authenticationService)
 {
     private readonly HttpClient _client = client;
+    private readonly AuthService _authenticationService = authenticationService;
+
     public PulseConfiguration Options { get; } = options;
 
     public async Task<PulseReport> CheckAsync(CancellationToken token)
@@ -20,6 +23,12 @@ public abstract class PulseCheck(HttpClient client, PulseConfiguration options)
         foreach ((string name, string value) in Options.GetHeaders())
         {
             request.Headers.TryAddWithoutValidation(name, value);
+        }
+
+        var authorization = await _authenticationService.GetAsync(Options, token);
+        if (authorization is not null)
+        {
+            request.Headers.TryAddWithoutValidation(authorization.Header, authorization.Value);
         }
 
         HttpResponseMessage response = await _client.SendAsync(request, token);

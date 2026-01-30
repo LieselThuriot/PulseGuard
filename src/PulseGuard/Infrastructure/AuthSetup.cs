@@ -24,6 +24,7 @@ internal sealed class PulseAuthenticationSettings
 internal static class AuthSetup
 {
     public const string AdministratorPolicy = "Administrator";
+    public const string CredentialsPolicy = "Credentials";
 
     public static bool ConfigureAuthentication(this IServiceCollection services, ConfigurationManager configuration)
     {
@@ -51,7 +52,11 @@ internal static class AuthSetup
         const string accessDeniedPath = "/access-denied";
         bool upsertUnknownUsers = settings.UpsertUnknownUsers;
 
-        services.AddAuthorization(options => options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator")))
+        services.AddAuthorization(options =>
+                {
+                    options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator"));
+                    options.AddPolicy(CredentialsPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator").RequireRole("Credentials"));
+                })
                 .AddAuthentication(options =>
                 {
                     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;

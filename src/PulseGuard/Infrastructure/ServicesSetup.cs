@@ -25,7 +25,8 @@ internal static class ServicesSetup
         services.AddSingleton<IPulseEventService>(eventService);
         services.AddSingleton<IPulseRegistrationService>(eventService);
 
-        services.AddSingleton<TokenService>();
+        services.AddSingleton<OAuth2CredentialsService>();
+        services.AddSingleton<AuthService>();
 
         services.AddHostedService<Hosted.PulseHostedService>();
         services.AddHostedService<Hosted.WebhookHostedService>();

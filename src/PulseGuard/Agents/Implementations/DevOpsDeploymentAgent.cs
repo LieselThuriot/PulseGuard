@@ -1,15 +1,17 @@
 ﻿using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Services;
 
 namespace PulseGuard.Agents.Implementations;
 
 /// <summary>
 /// For YAML pipelines using Environments and Deployments
 /// </summary>
-public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
+public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
+    private readonly AuthService _authenticationService = authenticationService;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
@@ -42,8 +44,14 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
     private async Task HandleEnvironment(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string environmentId, string headers), PulseAgentConfiguration> environmentGroup, string project, string team, string environmentId, string headers, CancellationToken token)
     {
         var headerList = PulseAgentConfiguration.ParseHeaders(headers);
+        var authHeader = await _authenticationService.GetAsync(_options[0], token);
 
-        EnvironmentDeploymentRecords? response = await GetDeployments(project, team, environmentId, headerList, token);
+        if (authHeader is not null)
+        {
+            headerList = headerList.Append((authHeader.Header, authHeader.Value));
+        }
+
+        EnvironmentDeploymentRecords? response = await GetDeployments(project, team, environmentId, headerList, token).ConfigureAwait(false);
 
         if (response?.Value is null)
         {
@@ -87,6 +95,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
     private Task<HttpResponseMessage> Send(string url, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
         HttpRequestMessage request = new(HttpMethod.Get, url);
+
         foreach ((string name, string value) in headers)
         {
             request.Headers.TryAddWithoutValidation(name, value);

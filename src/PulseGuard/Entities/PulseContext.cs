@@ -8,10 +8,12 @@ public sealed partial class PulseContext
 {
     internal const int RecentMinutes = 720;
 
-    public TableSet<FluentPartitionTableEntity<UniqueIdentifier, FailCounter, User, ClientCredentials>> Settings { get; set; }
+    public TableSet<FluentPartitionTableEntity<UniqueIdentifier, FailCounter, User>> Settings { get; set; }
 
     public TableSet<PulseConfiguration> Configurations { get; }
+    public TableSet<FluentPartitionTableEntity<OAuth2Credentials, BasicCredentials, ApiKeyCredentials>> Credentials { get; set; }
     public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
+
     public TableSet<Pulse> Pulses { get; }
     public TableSet<Webhook> Webhooks { get; }
 

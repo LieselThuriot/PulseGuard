@@ -2,7 +2,7 @@
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<Entities.PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : AgentCheck(client, options)
+public sealed class ApplicationInsightsAgent(HttpClient client, IReadOnlyList<Entities.PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : AgentCheck(client, options, authenticationService)
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 

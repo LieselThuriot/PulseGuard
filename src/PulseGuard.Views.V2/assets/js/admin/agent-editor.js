@@ -13,7 +13,9 @@
   const HEADER_ROW_CLASS = 'agent-header-row';
 
   // Initialize
-  initialize();
+  (async () => {
+    await initialize();
+  })();
 
   async function initialize() {
     if (isUpdateMode && !id) {
@@ -26,6 +28,10 @@
 
     // Load pulse configurations for parent selection
     await loadPulseConfigurations();
+    
+    // Load credentials first
+    const credentials = await AdminCommon.loadCredentials();
+    AdminCommon.populateCredentialDropdown(credentials, 'agent-credential');
 
     if (isUpdateMode) {
       loadConfigurationForEdit();
@@ -44,6 +50,7 @@
     document.getElementById('agent-form')?.addEventListener('submit', handleAgentSubmit);
     document.getElementById('agent-type')?.addEventListener('change', handleAgentTypeChange);
     document.getElementById('add-agent-header')?.addEventListener('click', addHeaderRow);
+    document.getElementById('agent-credential')?.addEventListener('change', updateDevOpsPATNoteVisibility);
 
     // Delete button in header
     document.getElementById('header-delete-btn')?.addEventListener('click', handleDeleteClick);
@@ -55,12 +62,8 @@
     document.addEventListener('click', (e) => {
       if (e.target.closest('.remove-header')) {
         e.target.closest('.input-group').remove();
-        updateDevOpsPATNoteVisibility();
       }
     });
-
-    // Monitor header changes for DevOps PAT note visibility
-    document.getElementById('agent-headers-container')?.addEventListener('input', updateDevOpsPATNoteVisibility);
   }
 
   function handleAgentTypeChange(e) {
@@ -88,6 +91,11 @@
     const locationLabel = document.getElementById('agent-location-label');
     const locationHelp = document.getElementById('agent-location-help');
     const devopsPATNote = document.getElementById('devops-pat-note');
+    
+    // Get credential elements once for reuse
+    const credentialInput = document.getElementById('agent-credential');
+    const credentialRequired = document.getElementById('credential-required');
+    const credentialFormText = credentialInput?.parentNode?.querySelector('.form-text');
 
     // Reset all fields
     appNameGroup?.classList.add('d-none');
@@ -99,6 +107,15 @@
     stageNameGroup?.classList.add('d-none');
     stageNameInput.required = false;
     devopsPATNote?.classList.add('d-none');
+    
+    // Reset credential requirement (will be set to true for DevOps types)
+    if (credentialInput) {
+      credentialInput.required = false;
+      credentialRequired?.classList.add('d-none');
+      if (credentialFormText) {
+        credentialFormText.textContent = 'Optional credential to use for authentication';
+      }
+    }
 
     // Configure based on agent type
     switch (agentType) {
@@ -139,8 +156,16 @@
         buildDefinitionIdInput.required = true;
         buildDefinitionIdLabel.textContent = 'Build Definition Id';
         buildDefinitionIdHelp.textContent = 'Azure DevOps Build Definition Id';
-        // Check if Authorization header exists before showing note
+        // Check if credential is selected before showing note
         updateDevOpsPATNoteVisibility();
+        // Make credential required for DevOps Deployment
+        if (credentialInput) {
+          credentialInput.required = true;
+          credentialRequired?.classList.remove('d-none');
+          if (credentialFormText) {
+            credentialFormText.textContent = 'Required credential with PAT for Azure DevOps authentication';
+          }
+        }
         break;
 
       case 'DevOpsRelease':
@@ -158,8 +183,16 @@
         stageNameInput.required = true;
         stageNameLabel.textContent = 'Stage Name';
         stageNameHelp.textContent = 'Azure DevOps Release Stage Name';
-        // Check if Authorization header exists before showing note
+        // Check if credential is selected before showing note
         updateDevOpsPATNoteVisibility();
+        // Make credential required for DevOps Release
+        if (credentialInput) {
+          credentialInput.required = true;
+          credentialRequired?.classList.remove('d-none');
+          if (credentialFormText) {
+            credentialFormText.textContent = 'Required credential with PAT for Azure DevOps authentication';
+          }
+        }
         break;
 
       case 'ApplicationInsights':
@@ -184,9 +217,7 @@
       <button class="btn btn-outline-danger remove-header" type="button">
         <i class="bi bi-trash"></i>
       </button>
-    `;
-    container.appendChild(newRow);
-    updateDevOpsPATNoteVisibility();
+    `;    container.appendChild(newRow);
   }
 
   function updateDevOpsPATNoteVisibility() {
@@ -198,12 +229,12 @@
       return;
     }
 
-    // Check if Authorization header exists with a value
-    const headers = collectHeaders();
-    const hasAuthHeader = headers && headers['Authorization'] && headers['Authorization'].trim().length > 0;
+    // Check if a credential is selected
+    const credentialValue = document.getElementById('agent-credential')?.value;
+    const hasCredential = credentialValue && credentialValue.trim().length > 0;
 
-    // Show note if Authorization header is missing or empty, hide if present
-    if (hasAuthHeader) {
+    // Show note if credential is missing, hide if present
+    if (hasCredential) {
       devopsPATNote.classList.add('d-none');
     } else {
       devopsPATNote.classList.remove('d-none');
@@ -248,10 +279,11 @@
 
     const headers = collectHeaders();
 
-    // Validate Authorization header for DevOps Deployment and Release
+    // Validate credential for DevOps Deployment and Release
     if (agentTypeValue === 'DevOpsDeployment' || agentTypeValue === 'DevOpsRelease') {
-      if (!headers || !headers['Authorization']) {
-        AdminCommon.showError('Authorization header with a PAT token is required for DevOps ' + (agentTypeValue === 'DevOpsDeployment' ? 'Deployment' : 'Release'));
+      const credentialValue = document.getElementById('agent-credential')?.value;
+      if (!credentialValue || credentialValue.trim().length === 0) {
+        AdminCommon.showError('A credential with a PAT token is required for DevOps ' + (agentTypeValue === 'DevOpsDeployment' ? 'Deployment' : 'Release'));
         return;
       }
     }
@@ -266,6 +298,13 @@
       enabled: document.getElementById('agent-enabled').checked,
       headers: headers
     };
+
+    // Add credential selection
+    const credentialValue = document.getElementById('agent-credential')?.value;
+    if (credentialValue) {
+      const [type, credId] = credentialValue.split(':');
+      data.credential = { type, id: credId };
+    }
 
     if (isUpdateMode) {
       updateAgentConfiguration(id, data);
@@ -367,27 +406,26 @@
     });
   }
 
-  function loadConfigurationForEdit() {
+  async function loadConfigurationForEdit() {
     AdminCommon.showLoading('loading-spinner', ['agent-form', 'error-message']);
 
-    fetch(`../../api/1.0/admin/configurations/agent/${id}/${agentType}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Configuration not found');
-        }
-        return response.json();
-      })
-      .then(config => {
-        populateAgentForm(config, agentType);
-        AdminCommon.hideLoading('loading-spinner', ['agent-form']);
-      })
-      .catch(error => {
-        console.error('Error loading configuration:', error);
-        AdminCommon.showErrorMessage('Failed to load configuration: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'agent-form']);
-      });
+    try {
+      const response = await fetch(`../../api/1.0/admin/configurations/agent/${id}/${agentType}`);
+      
+      if (!response.ok) {
+        throw new Error('Configuration not found');
+      }
+      
+      const config = await response.json();
+      await populateAgentForm(config, agentType);
+      AdminCommon.hideLoading('loading-spinner', ['agent-form']);
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+      AdminCommon.showErrorMessage('Failed to load configuration: ' + error.message, 'error-message', 'error-text', ['loading-spinner', 'agent-form']);
+    }
   }
 
-  function populateAgentForm(config, agentType) {
+  async function populateAgentForm(config, agentType) {
     // Populate all fields from PulseAgentCreationRequest
     // The type comes from URL parameter since API doesn't return it
     document.getElementById('agent-type').value = agentType || '';
@@ -403,6 +441,14 @@
 
     // Populate headers
     populateHeaders(config.headers);
+
+    // Set credential selection
+    if (config.credential) {
+      const credentialValue = `${config.credential.type}:${config.credential.id}`;
+      // Reload credentials and set selection to ensure it's available
+      const credentials = await AdminCommon.loadCredentials();
+      AdminCommon.populateCredentialDropdown(credentials, 'agent-credential', credentialValue);
+    }
 
     // Make pulse selector readonly in update mode and set the value
     const pulseIdSelect = document.getElementById('agent-pulse-id');
@@ -431,7 +477,6 @@
 
     // If no headers, leave it empty
     if (!headers || Object.keys(headers).length === 0) {
-      updateDevOpsPATNoteVisibility();
       return;
     }
 
@@ -448,9 +493,6 @@
       `;
       container.appendChild(newRow);
     });
-
-    // Update note visibility after populating headers
-    updateDevOpsPATNoteVisibility();
   }
 
   // Use AdminCommon utilities - removed duplicate functions
@@ -520,6 +562,6 @@
           deleteBtn.disabled = false;
           deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
         }
-      });
+      });  
   }
 })();

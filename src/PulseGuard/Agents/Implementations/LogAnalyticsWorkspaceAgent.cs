@@ -7,7 +7,7 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : AgentCheck(client, options)
+public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : AgentCheck(client, options, authenticationService)
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 

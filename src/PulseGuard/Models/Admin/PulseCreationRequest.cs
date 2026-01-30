@@ -15,4 +15,5 @@ public sealed class PulseCreationRequest
     public bool IgnoreSslErrors { get; set; }
     public string? ComparisonValue { get; set; }
     public Dictionary<string, string>? Headers { get; set; }
+    public CredentialOverview? Credential { get; set; }
 }

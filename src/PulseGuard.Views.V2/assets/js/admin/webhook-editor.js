@@ -14,7 +14,11 @@
 
   function init() {
     // Load configurations to populate select boxes
-    loadConfigurations().then(() => {
+    loadConfigurations().then(async () => {
+      // Load available credentials
+      const credentials = await AdminCommon.loadCredentials();
+      AdminCommon.populateCredentialDropdown(credentials, 'webhook-credential');
+      
       if (mode === 'create') {
         initCreateMode();
       } else if (mode === 'update' && webhookId) {
@@ -167,7 +171,7 @@
       
       const data = await response.json();
       currentWebhook = data;
-      populateForm(data);
+      await populateForm(data);
       AdminCommon.hideLoading('loading-spinner', ['webhook-form']);
       showForm();
     } catch (error) {
@@ -179,7 +183,7 @@
   /**
    * Populate form with webhook data
    */
-  function populateForm(webhook) {
+  async function populateForm(webhook) {
     // Set group first
     document.getElementById('webhook-group').value = webhook.group || '';
     
@@ -191,6 +195,14 @@
     document.getElementById('webhook-type').value = webhook.type || 'All';
     document.getElementById('webhook-location').value = webhook.location;
     document.getElementById('webhook-enabled').checked = webhook.enabled;
+
+    // Set credential selection
+    if (webhook.credential) {
+      const credentialValue = `${webhook.credential.type}:${webhook.credential.id}`;
+      // Reload credentials and set selection to ensure it's available
+      const credentials = await AdminCommon.loadCredentials();
+      AdminCommon.populateCredentialDropdown(credentials, 'webhook-credential', credentialValue);
+    }
 
     // Make group and name fields readonly in update mode
     const groupSelect = document.getElementById('webhook-group');
@@ -249,20 +261,29 @@
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
 
+    // Add credential selection
+    const credentialValue = document.getElementById('webhook-credential')?.value;
+    const requestBody = {
+      secret: secret,
+      type: type,
+      group: group,
+      name: name,
+      location: location,
+      enabled: enabled
+    };
+    
+    if (credentialValue) {
+      const [type, credId] = credentialValue.split(':');
+      requestBody.credential = { type, id: credId };
+    }
+
     try {
       const response = await fetch('../../api/1.0/admin/webhooks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          secret: secret,
-          type: type,
-          group: group,
-          name: name,
-          location: location,
-          enabled: enabled
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -293,19 +314,28 @@
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
 
+    // Add credential selection
+    const credentialValue = document.getElementById('webhook-credential')?.value;
+    const requestBody = {
+      type: type,
+      group: group,
+      name: name,
+      location: location,
+      enabled: enabled
+    };
+    
+    if (credentialValue) {
+      const [type, credId] = credentialValue.split(':');
+      requestBody.credential = { type, id: credId };
+    }
+
     try {
       const response = await fetch(`../../api/1.0/admin/webhooks/${webhookId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          type: type,
-          group: group,
-          name: name,
-          location: location,
-          enabled: enabled
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {

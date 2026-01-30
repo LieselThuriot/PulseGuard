@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using PulseGuard.Agents;
+﻿using PulseGuard.Agents;
 using System.Diagnostics.CodeAnalysis;
 
 namespace PulseGuard.Models.Admin;
@@ -16,6 +15,8 @@ public sealed class PulseAgentCreationRequest
     public bool Enabled { get; set; } = true;
 
     public Dictionary<string, string>? Headers { get; set; }
+
+    public CredentialOverview? Credential { get; set; }
 
     public bool IsInvalid(string type, [NotNullWhen(true)] out string? result)
     {

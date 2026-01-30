@@ -70,7 +70,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
 
         foreach (var configurationGroup in agentConfigurations.GroupBy(x => x.Type))
         {
-            foreach (var locationConfigurationGroup in configurationGroup.GroupBy(x => x.Location))
+            foreach (var locationConfigurationGroup in configurationGroup.GroupBy(x => (x.Location, x.AuthenticationId ?? "")))
             {
                 checks.Add(Task.Run(() => CheckAgent(configurationGroup.Key, [.. locationConfigurationGroup]), token));
             }

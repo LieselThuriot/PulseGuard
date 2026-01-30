@@ -1,15 +1,17 @@
 ﻿using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Services;
 
 namespace PulseGuard.Agents.Implementations;
 
 /// <summary>
 /// For Release pipelines using Stages
 /// </summary>
-public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, ILogger<AgentCheck> logger) : IAgentCheck
+public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
+    private readonly AuthService _authenticationService = authenticationService;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
@@ -22,13 +24,20 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
     {
         List<AgentReport> reports = [];
 
+        var authHeader = await _authenticationService.GetAsync(_options[0], token);
+
         foreach (var releaseGroup in _options.GroupBy(o => (project: o.Location, team: o.ApplicationName, releaseId: o.SubscriptionId, headers: o.Headers)))
         {
             var (project, team, releaseId, headers) = releaseGroup.Key;
+            var headerList = PulseAgentConfiguration.ParseHeaders(headers);
+            if (authHeader is not null)
+            {
+                headerList = headerList.Append((authHeader.Header, authHeader.Value));
+            }
 
             try
             {
-                await HandleRelease(window, reports, releaseGroup, project, team, releaseId, headers, token);
+                await HandleRelease(window, reports, releaseGroup, project, team, releaseId, headerList, token);
             }
             catch (Exception ex)
             {
@@ -42,6 +51,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
     private Task<HttpResponseMessage> Send(string url, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
         HttpRequestMessage request = new(HttpMethod.Get, url);
+
         foreach ((string name, string value) in headers)
         {
             request.Headers.TryAddWithoutValidation(name, value);
@@ -66,10 +76,8 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
         return await PulseSerializerContext.Default.DevOpsReleaseRecords.DeserializeAsync(result, token);
     }
 
-    private async Task HandleRelease(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string releaseId, string headers), PulseAgentConfiguration> releaseGroup, string project, string team, string releaseId, string headers, CancellationToken token)
+    private async Task HandleRelease(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string releaseId, string headers), PulseAgentConfiguration> releaseGroup, string project, string team, string releaseId, IEnumerable<(string name, string values)> headerList, CancellationToken token)
     {
-        var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-
         DevOpsReleaseRecords? response = await GetRelease(project, team, releaseId, headerList, token);
 
         if (response?.Value is null)

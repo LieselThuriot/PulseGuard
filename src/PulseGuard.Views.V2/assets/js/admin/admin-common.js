@@ -348,6 +348,55 @@ const AdminCommon = (function () {
     // UI helpers
     showDeleteButton,
     setButtonLoading,
-    compareValues
+    compareValues,
+
+    // Credential functions
+    loadCredentials,
+    populateCredentialDropdown
   };
+
+  /**
+   * Load available credentials for selection
+   * @returns {Promise<Array>} Array of credential objects
+   */
+  async function loadCredentials() {
+    try {
+      const response = await fetch('../../api/1.0/admin/credentials/ids');
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.debug('Could not load credentials:', error);
+    }
+    return [];
+  }
+
+  /**
+   * Populate credential dropdown with available credentials
+   * @param {Array} credentials - Array of credential objects
+   * @param {string} selectId - ID of the select element
+   * @param {string} selectedValue - Optional value to pre-select
+   */
+  function populateCredentialDropdown(credentials, selectId, selectedValue = null) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    // Clear existing options except the first "No Credential" option
+    while (select.children.length > 1) {
+      select.removeChild(select.lastChild);
+    }
+    
+    // Add credential options
+    credentials.forEach(credential => {
+      const option = document.createElement('option');
+      option.value = `${credential.type}:${credential.id}`;
+      option.textContent = `${credential.id} (${credential.type})`;
+      select.appendChild(option);
+    });
+    
+    // Set selected value if provided
+    if (selectedValue) {
+      select.value = selectedValue;
+    }
+  }
 })();

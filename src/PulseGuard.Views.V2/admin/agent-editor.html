@@ -148,11 +148,19 @@
                                 </button>
                             </div>
 
+                            <div class="mb-3">
+                                <label for="agent-credential" class="form-label">Credential <span class="text-danger d-none" id="credential-required">*</span></label>
+                                <select class="form-select" id="agent-credential">
+                                    <option value="">-- No Credential --</option>
+                                </select>
+                                <div class="form-text">Optional credential to use for authentication</div>
+                            </div>
+
                             <div class="alert alert-warning d-none" id="devops-pat-note" role="alert">
                                 <p>
                                     <i class="bi bi-exclamation-triangle"></i> <strong>Required</strong>
                                 </p>
-                                DevOps Deployment requires an Authorization header with a PAT (Personal Access Token) to authenticate with Azure DevOps.<br>
+                                DevOps Deployment requires a credential with a PAT (Personal Access Token) to authenticate with Azure DevOps.<br>
                                 The PAT token needs read access to "Build" and "Environment".
                             </div>
 

@@ -32,13 +32,16 @@
   let filteredWebhooks = [];
   let users = [];
   let filteredUsers = [];
+  let credentials = [];
+  let filteredCredentials = [];
   let sortColumn = null; // null means use default sort
   let sortDirection = 'asc';
   let tooltipInstances = []; // Track tooltip instances to prevent memory leaks
-  let activeRequests = { configs: null, webhooks: null, users: null }; // Track active fetch requests
-  let loadRetryCount = { configs: 0, webhooks: 0, users: 0 }; // Track retry attempts
+  let activeRequests = { configs: null, webhooks: null, users: null, credentials: null }; // Track active fetch requests
+  let loadRetryCount = { configs: 0, webhooks: 0, users: 0, credentials: 0 }; // Track retry attempts
 
   // Initialize
+  checkCredentialsRole();
   loadConfigurations();
   loadWebhooks();
   loadUsers();
@@ -58,6 +61,7 @@
   document.getElementById('delete-confirm')?.addEventListener('click', handleDeleteConfirm);
   document.getElementById('delete-webhook-confirm')?.addEventListener('click', handleWebhookDeleteConfirm);
   document.getElementById('delete-user-confirm')?.addEventListener('click', handleUserDeleteConfirm);
+  document.getElementById('delete-credential-confirm')?.addEventListener('click', handleCredentialDeleteConfirm);
 
   /**
    * Initialize tab state management
@@ -71,6 +75,8 @@
       activateTab('webhook-tab');
     } else if (hash === '#user-tab' || hash === '#user') {
       activateTab('user-tab');
+    } else if (hash === '#credential-tab' || hash === '#credential') {
+      activateTab('credential-tab');
     } else if (hash === '#pulse-tab' || hash === '#pulse' || hash === '#normal-tab' || hash === '#normal') {
       activateTab('pulse-tab');
     }
@@ -95,6 +101,10 @@
       window.location.hash = 'user';
       updateCreateButton();
     });
+    document.getElementById('credential-tab')?.addEventListener('shown.bs.tab', () => {
+      window.location.hash = 'credential';
+      updateCreateButton();
+    });
   }
 
   /**
@@ -109,6 +119,7 @@
     const agentTab = document.getElementById('agent-tab');
     const webhookTab = document.getElementById('webhook-tab');
     const userTab = document.getElementById('user-tab');
+    const credentialTab = document.getElementById('credential-tab');
 
     if (agentTab?.classList.contains('active') || agentTab?.getAttribute('aria-selected') === 'true') {
       createBtn.href = 'agent-editor?mode=create';
@@ -116,9 +127,99 @@
       createBtn.href = 'webhook-editor?mode=create';
     } else if (userTab?.classList.contains('active') || userTab?.getAttribute('aria-selected') === 'true') {
       createBtn.href = 'user-editor?mode=create';
+    } else if (credentialTab?.classList.contains('active') || credentialTab?.getAttribute('aria-selected') === 'true') {
+      createBtn.href = 'credential-editor?mode=create';
     } else {
       createBtn.href = 'pulse-editor?mode=create';
     }
+  }
+
+  /**
+   * Check if user has Credentials role and add credentials tab if needed
+   */
+  function checkCredentialsRole() {
+    fetch('../api/1.0/user')
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        return null;
+      })
+      .then((userInfo) => {
+        const hasCredentialsRole = userInfo && userInfo.roles && userInfo.roles.includes('Credentials');
+        
+        if (hasCredentialsRole) {
+          addCredentialsTab();
+          loadCredentials();
+        }
+      })
+      .catch((error) => {
+        // Silently fail - don't add credentials tab
+        console.debug('Could not check user roles:', error);
+      });
+  }
+
+  /**
+   * Dynamically add the credentials tab and content to the DOM
+   */
+  function addCredentialsTab() {
+    // Add tab navigation button
+    const tabList = document.querySelector('#configTabs');
+    if (tabList) {
+      const credentialTabItem = document.createElement('li');
+      credentialTabItem.className = 'nav-item';
+      credentialTabItem.setAttribute('role', 'presentation');
+      
+      credentialTabItem.innerHTML = `
+        <button class="nav-link" id="credential-tab" data-bs-toggle="tab" data-bs-target="#credential-pane"
+                type="button" role="tab" aria-controls="credential-pane" aria-selected="false">
+            <i class="bi bi-key-fill"></i> Credentials <span class="badge bg-secondary ms-1" id="credential-count">0</span>
+        </button>
+      `;
+      
+      tabList.appendChild(credentialTabItem);
+    }
+    
+    // Add tab content panel
+    const tabContent = document.querySelector('#configTabsContent');
+    if (tabContent) {
+      const credentialPane = document.createElement('div');
+      credentialPane.className = 'tab-pane fade';
+      credentialPane.id = 'credential-pane';
+      credentialPane.setAttribute('role', 'tabpanel');
+      credentialPane.setAttribute('aria-labelledby', 'credential-tab');
+      credentialPane.setAttribute('tabindex', '0');
+      
+      credentialPane.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">
+                            <a href="#" id="sort-credential-id" class="text-decoration-none text-body" aria-label="Sort by credential ID">
+                                Credential ID <i class="bi bi-chevron-expand" aria-hidden="true"></i>
+                            </a>
+                        </th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Details</th>
+                        <th scope="col" class="text-center" style="width: 200px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="credential-table">
+                    <!-- Credentials will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+      `;
+      
+      tabContent.appendChild(credentialPane);
+    }
+    
+    // Add event listener for the new tab
+    document.getElementById('credential-tab')?.addEventListener('shown.bs.tab', () => {
+      window.location.hash = 'credential';
+      updateCreateButton();
+    });
   }
 
   /**
@@ -242,6 +343,42 @@
       }
       console.error('Error loading users:', error);
       showError('Failed to load users: ' + error.message);
+    }
+  }
+
+  /**
+   * Loads credentials from the API
+   */
+  async function loadCredentials() {
+    // Cancel previous request if still pending
+    if (activeRequests.credentials) {
+      activeRequests.credentials.abort();
+    }
+
+    const controller = new AbortController();
+    activeRequests.credentials = controller;
+
+    try {
+      const response = await fetch('../api/1.0/admin/credentials', { signal: controller.signal });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText);
+      }
+      
+      const data = await response.json();
+      credentials = data;
+      filteredCredentials = [...credentials];
+      loadRetryCount.credentials = 0; // Reset retry count on success
+      activeRequests.credentials = null;
+      renderCredentials();
+    } catch (error) {
+      activeRequests.credentials = null;
+      if (error.name === 'AbortError') {
+        console.log('Credential load aborted');
+        return;
+      }
+      console.error('Error loading credentials:', error);
+      showError('Failed to load credentials: ' + error.message);
     }
   }
 
@@ -726,6 +863,169 @@
     btnGroup.appendChild(renameBtn);
     btnGroup.appendChild(deleteBtn);
     actionsCell.appendChild(btnGroup);
+  }
+
+  /**
+   * Renders the credentials table
+   */
+  function renderCredentials() {
+    const credentialTbody = document.getElementById('credential-table');
+    
+    if (!credentialTbody) {
+      console.error('Error getting credential table element');
+      return;
+    }
+
+    // Clear table
+    credentialTbody.innerHTML = '';
+
+    // Sort credentials by ID
+    const sortedCredentials = [...filteredCredentials].sort((a, b) => {
+      return compareValues(a.id.toLowerCase(), b.id.toLowerCase());
+    });
+
+    // Update tab count
+    const credentialCount = document.getElementById('credential-count');
+    if (credentialCount) credentialCount.textContent = sortedCredentials.length;
+
+    // Render credentials
+    if (sortedCredentials.length === 0) {
+      const row = credentialTbody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 4;
+      cell.className = 'text-center py-4 text-muted';
+      cell.textContent = 'No credentials found';
+    } else {
+      sortedCredentials.forEach(credential => renderCredentialRow(credentialTbody, credential));
+    }
+
+    // Dispose old tooltips to prevent memory leaks
+    tooltipInstances.forEach(tooltip => tooltip.dispose());
+    tooltipInstances = [];
+
+    // Initialize tooltips for the newly created buttons
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  }
+
+  /**
+   * Renders a single credential row
+   * @param {HTMLTableSectionElement} tbody
+   * @param {Object} credential
+   */
+  function renderCredentialRow(tbody, credential) {
+    const row = tbody.insertRow();
+
+    // Credential ID
+    const idCell = row.insertCell();
+    idCell.textContent = credential.id;
+
+    // Type with badge
+    const typeCell = row.insertCell();
+    const typeBadge = document.createElement('span');
+    typeBadge.className = getCredentialTypeBadgeClass(credential);
+    typeBadge.textContent = getCredentialTypeText(credential);
+    typeCell.appendChild(typeBadge);
+
+    // Details with partial masking
+    const detailsCell = row.insertCell();
+    detailsCell.innerHTML = getCredentialDetails(credential);
+
+    // Actions
+    const actionsCell = row.insertCell();
+    actionsCell.className = 'text-center';
+    
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'btn-group btn-group-sm';
+    
+    const editBtn = document.createElement('a');
+    editBtn.className = 'btn btn-outline-primary';
+    editBtn.href = `credential-editor?mode=update&id=${encodeURIComponent(credential.id)}`;
+    editBtn.setAttribute('data-bs-toggle', 'tooltip');
+    editBtn.setAttribute('data-bs-title', 'Edit');
+    editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-outline-danger';
+    deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
+    deleteBtn.setAttribute('data-bs-title', 'Delete');
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.addEventListener('click', () => handleCredentialDeleteClick(credential));
+    
+    btnGroup.appendChild(editBtn);
+    btnGroup.appendChild(deleteBtn);
+    actionsCell.appendChild(btnGroup);
+  }
+
+  /**
+   * Gets the credential type text
+   * @param {Object} credential
+   * @returns {string}
+   */
+  function getCredentialTypeText(credential) {
+    if (credential.tokenEndpoint) return 'OAuth2';
+    if (credential.header) return 'API Key';
+    return 'Basic Auth';
+  }
+
+  /**
+   * Gets the credential type badge CSS class
+   * @param {Object} credential
+   * @returns {string}
+   */
+  function getCredentialTypeBadgeClass(credential) {
+    if (credential.tokenEndpoint) return 'badge bg-info';
+    if (credential.header) return 'badge bg-warning';
+    return 'badge bg-success';
+  }
+
+  /**
+   * Gets masked credential details for display
+   * @param {Object} credential
+   * @returns {string}
+   */
+  function getCredentialDetails(credential) {
+    if (credential.tokenEndpoint) {
+      // OAuth2
+      return `<strong>Client ID:</strong> ${credential.clientId}<br><strong>Endpoint:</strong> ${credential.tokenEndpoint}`;
+    } else if (credential.header) {
+      // API Key
+      const maskedApiKey = maskSecret(credential.apiKey);
+      return `<strong>Header:</strong> ${credential.header}<br><strong>Key:</strong> ${maskedApiKey}`;
+    } else {
+      // Basic Auth
+      const maskedPassword = maskSecret(credential.password);
+      const username = credential.username ? credential.username : '<em>none</em>';
+      return `<strong>Username:</strong> ${username}<br><strong>Password:</strong> ${maskedPassword}`;
+    }
+  }
+
+  /**
+   * Masks a secret value showing first few and last few characters
+   * @param {string} secret
+   * @returns {string}
+   */
+  function maskSecret(secret) {
+    if (!secret || secret.length < 8) {
+      return '••••••••';
+    }
+    
+    const start = secret.slice(0, 3);
+    const end = secret.slice(-4);
+    return `${start}...${end}`;
+  }
+
+  /**
+   * Handles credential delete click
+   * @param {Object} credential
+   */
+  function handleCredentialDeleteClick(credential) {
+    document.getElementById('delete-credential-id').value = credential.id;
+    document.getElementById('delete-credential-display-id').textContent = credential.id;
+    document.getElementById('delete-credential-display-type').textContent = getCredentialTypeText(credential);
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteCredentialModal'));
+    deleteModal.show();
   }
 
   /**
@@ -1236,6 +1536,73 @@
   }
 
   /**
+   * Handles the credential delete confirmation
+   */
+  function handleCredentialDeleteConfirm() {
+    const credentialId = document.getElementById('delete-credential-id').value;
+
+    // Disable the delete button
+    const deleteBtn = document.getElementById('delete-credential-confirm');
+    if (deleteBtn) {
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+    }
+
+    // Find credential to get its type
+    const credential = credentials.find(c => c.id === credentialId);
+    if (!credential) {
+      showToast('Error', 'Credential not found', 'danger');
+      return;
+    }
+
+    let credentialType;
+    if (credential.tokenEndpoint) {
+      credentialType = 'oauth2';
+    } else if (credential.header) {
+      credentialType = 'apikey';
+    } else {
+      credentialType = 'basic';
+    }
+
+    fetch(`../api/1.0/admin/credentials/${credentialType}/${encodeURIComponent(credentialId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then(text => {
+            throw new Error(text || 'Failed to delete credential');
+          });
+        }
+
+        // Remove from local data
+        credentials = credentials.filter(c => c.id !== credentialId);
+        filteredCredentials = filteredCredentials.filter(c => c.id !== credentialId);
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCredentialModal'));
+        modal?.hide();
+
+        // Re-render
+        renderCredentials();
+        showToast('Success', 'Credential deleted successfully', 'success');
+      })
+      .catch((error) => {
+        console.error('Error deleting credential:', error);
+        showToast('Error', error.message, 'danger');
+      })
+      .finally(() => {
+        // Re-enable the delete button
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+        }
+      });
+  }
+
+  /**
    * Handles search input
    */
   function handleSearch() {
@@ -1250,7 +1617,7 @@
   }
 
   /**
-   * Applies search and filter globally across configurations, webhooks, and users
+   * Applies search and filter globally across configurations, webhooks, users, and credentials
    */
   function applyFilters() {
     const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
@@ -1287,10 +1654,31 @@
       return userIdMatch || nicknameMatch || rolesMatch;
     });
 
+    filteredCredentials = credentials.filter((credential) => {
+      if (!searchTerm) return true;
+
+      const idMatch = credential.id.toLowerCase().includes(searchTerm);
+      const typeMatch = getCredentialTypeText(credential).toLowerCase().includes(searchTerm);
+      
+      // Search in credential-specific fields
+      let detailMatch = false;
+      if (credential.tokenEndpoint) {
+        detailMatch = credential.clientId.toLowerCase().includes(searchTerm) ||
+                     credential.tokenEndpoint.toLowerCase().includes(searchTerm);
+      } else if (credential.header) {
+        detailMatch = credential.header.toLowerCase().includes(searchTerm);
+      } else if (credential.username) {
+        detailMatch = credential.username.toLowerCase().includes(searchTerm);
+      }
+
+      return idMatch || typeMatch || detailMatch;
+    });
+
     sortConfigurations();
     renderConfigurations();
     renderWebhooks();
     renderUsers();
+    renderCredentials();
   }
 
   /**

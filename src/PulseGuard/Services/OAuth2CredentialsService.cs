@@ -3,34 +3,42 @@ using System.Collections.Concurrent;
 
 namespace PulseGuard.Services;
 
-internal sealed class TokenService(PulseContext context, IHttpClientFactory httpClientFactory)
+public sealed class OAuth2CredentialsService(PulseContext context, IHttpClientFactory httpClientFactory)
 {
     private readonly PulseContext _context = context;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-    private readonly ConcurrentDictionary<ClientCredentials, TokenRequestClient> _clients = new(ClientCredentialsComparer.Instance);
+    private readonly ConcurrentDictionary<OAuth2Credentials, TokenRequestClient> _clients = new(OAuth2CredentialsComparer.Instance);
 
     public async Task<ApiAccessToken> GetAsync(string id, CancellationToken token)
     {
-        var clientCredentials = await _context.Settings.FindClientCredentialsAsync(id, token)
+        var clientCredentials = await _context.Credentials.FindOAuth2CredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Client credentials with id '{id}' not found");
 
         var client = _clients.GetOrAdd(clientCredentials, _ => new TokenRequestClient(_httpClientFactory, clientCredentials));
         return await client.GetTokenAsync(token);
     }
 
-    public void Purge(ClientCredentials clientCredentials)
+    public void Purge(OAuth2Credentials clientCredentials)
     {
-        _clients.TryRemove(clientCredentials, out _);
+        if (_clients.TryRemove(clientCredentials, out TokenRequestClient? client))
+        {
+            client.Dispose();
+        }
     }
 
-    private sealed class TokenRequestClient(IHttpClientFactory httpClientFactory, ClientCredentials clientCredentials)
+    private sealed class TokenRequestClient(IHttpClientFactory httpClientFactory, OAuth2Credentials clientCredentials) : IDisposable
     {
         private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-        private readonly ClientCredentials _clientCredentials = clientCredentials;
+        private readonly OAuth2Credentials _clientCredentials = clientCredentials;
         private readonly SemaphoreSlim _readLock = new(1, 1);
 
         private ApiAccessToken? _accessToken;
+
+        public void Dispose()
+        {
+            _readLock.Dispose();
+        }
 
         public Task<ApiAccessToken> GetTokenAsync(CancellationToken cancellationToken)
         {

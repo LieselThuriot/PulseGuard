@@ -35,9 +35,11 @@
   };
 
   // Initialize
-  initialize();
+  (async () => {
+    await initialize();
+  })();
 
-  function initialize() {
+  async function initialize() {
     if (isUpdateMode && !id) {
       AdminCommon.showErrorMessage('Invalid parameters for update mode', 'error-message', 'error-text', ['loading-spinner', 'pulse-form']);
       return;
@@ -45,9 +47,13 @@
 
     updatePageTitle();
     setupEventListeners();
+    
+    // Load credentials first
+    const credentials = await AdminCommon.loadCredentials();
+    AdminCommon.populateCredentialDropdown(credentials, 'pulse-credential');
 
     if (isUpdateMode) {
-      loadConfigurationForEdit();
+      await loadConfigurationForEdit();
     } else {
       AdminCommon.hideLoading('loading-spinner', ['pulse-form']);
     }
@@ -163,6 +169,13 @@
       headers: collectHeaders()
     };
 
+    // Add credential selection
+    const credentialValue = document.getElementById('pulse-credential')?.value;
+    if (credentialValue) {
+      const [type, credId] = credentialValue.split(':');
+      data.credential = { type, id: credId };
+    }
+
     if (isUpdateMode) {
       updatePulseConfiguration(id, data);
     } else {
@@ -235,7 +248,7 @@
       }
       
       const config = await response.json();
-      populatePulseForm(config);
+      await populatePulseForm(config);
       AdminCommon.hideLoading('loading-spinner', ['pulse-form']);
     } catch (error) {
       console.error('Error loading configuration:', error);
@@ -243,7 +256,7 @@
     }
   }
 
-  function populatePulseForm(config) {
+  async function populatePulseForm(config) {
     // Populate all fields from PulseCreationRequest
     document.getElementById('pulse-group').value = config.group || '';
     document.getElementById('pulse-name').value = config.name || '';
@@ -260,6 +273,14 @@
 
     // Populate headers
     populateHeaders(config.headers);
+
+    // Set credential selection
+    if (config.credential) {
+      const credentialValue = `${config.credential.type}:${config.credential.id}`;
+      // Reload credentials and set selection to ensure it's available
+      const credentials = await AdminCommon.loadCredentials();
+      AdminCommon.populateCredentialDropdown(credentials, 'pulse-credential', credentialValue);
+    }
 
     // Make group and name fields readonly in update mode (they can't be changed)
     const groupInput = document.getElementById('pulse-group');

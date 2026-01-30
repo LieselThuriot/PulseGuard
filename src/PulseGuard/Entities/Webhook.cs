@@ -12,6 +12,29 @@ public sealed partial class Webhook
     public partial string Location { get; set; }
     public partial bool Enabled { get; set; }
     public partial WebhookType Type { get; set; }
+    public partial string? AuthenticationId { get; set; }
+
+    public void SetCredential(string? type, string? id)
+    {
+        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
+        {
+            AuthenticationId = null;
+            return;
+        }
+
+        AuthenticationId = type + '|' + id;
+    }
+
+    public (string Type, string Id)? GetCredential()
+    {
+        if (string.IsNullOrEmpty(AuthenticationId))
+        {
+            return null;
+        }
+
+        string[] split = AuthenticationId.Split('|', 2);
+        return (split[0], split[1]);
+    }
 }
 
 public enum WebhookType

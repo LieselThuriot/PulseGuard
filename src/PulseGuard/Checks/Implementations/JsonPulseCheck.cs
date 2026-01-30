@@ -5,7 +5,7 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Checks.Implementations;
 
-public sealed class JsonPulseCheck(HttpClient client, PulseConfiguration options, ILogger<PulseCheck> logger) : PulseCheck(client, options)
+public sealed class JsonPulseCheck(HttpClient client, PulseConfiguration options, Services.AuthService authenticationService, ILogger<PulseCheck> logger) : PulseCheck(client, options, authenticationService)
 {
     private readonly ILogger<PulseCheck> _logger = logger;
 

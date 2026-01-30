@@ -28,7 +28,7 @@ public static class AdminRoutes
                 return;
             }
 
-            builder.MapGet(UserEndpoint, static (ClaimsPrincipal user) => new Models.UserInfo(
+            builder.MapGet(UserEndpoint, static (ClaimsPrincipal user) => new UserInfo(
                     user.Identity?.Name,
                     user.FindFirstValue("firstname"),
                     user.FindFirstValue("lastname"),
@@ -36,13 +36,162 @@ public static class AdminRoutes
             ));
 
             var appGroup = builder.MapGroup("api/1.0/admin").RequireAuthorization(AuthSetup.AdministratorPolicy);
-            var configurations = appGroup.MapGroup("configurations").WithTags("Admin", "Overview");
 
+            var configurations = appGroup.MapGroup("configurations").WithTags("Admin", "Overview");
             configurations.CreateOverviewMappings();
             configurations.MapGroup("pulse").WithTags("Admin", "PulseConfigurations").CreateNormalMappings();
             configurations.MapGroup("agent").WithTags("Admin", "AgentConfigurations").CreateAgentMappings();
+
             appGroup.MapGroup("webhooks").WithTags("Admin", "Webhooks").CreateWebhookMappings();
             appGroup.MapGroup("users").WithTags("Admin", "Users").CreateUserMappings();
+            appGroup.MapGroup("credentials").WithTags("Admin", "Credentials").CreateCredentialMappings();
+        }
+
+        private void CreateCredentialMappings()
+        {
+            builder.MapGet("ids", static (PulseContext context) => context.Credentials.Select(x => new CredentialOverview(x.PartitionKey.Replace("Credentials", ""), x.RowKey)));
+
+            var creds = builder.MapGroup("").RequireAuthorization(AuthSetup.CredentialsPolicy);
+
+            creds.MapGet("", static async (PulseContext context, CancellationToken token) =>
+            {
+                var credentials = await context.Credentials.ToListAsync(token);
+                var entries = credentials.Select(x => x.SwitchCaseOrDefault<CredentialEntry>(static x => new OAuth2CredentialEntry(x.Id, x.TokenEndpoint, x.ClientId, x.ClientSecret, x.Scopes),
+                                                                                             static x => new BasicCredentialEntry(x.Id, x.Username, x.Password),
+                                                                                             static x => new ApiKeyCredentialEntry(x.Id, x.Header, x.ApiKey)));
+                return Results.Ok(entries);
+            });
+
+            creds.MapOAuth2Auth();
+            creds.MapBasicAuth();
+            creds.MapApiKeyAuth();
+        }
+
+        private void MapOAuth2Auth()
+        {
+            var oauth2 = builder.MapGroup("oauth2");
+            oauth2.MapDelete("{id}", static async (string id, PulseContext context, OAuth2CredentialsService service, CancellationToken token) =>
+            {
+                var credential = await context.Credentials.FindOAuth2CredentialsAsync(id, token);
+
+                if (credential is not null)
+                {
+                    await context.Credentials.DeleteOAuth2CredentialsAsync(id, token);
+                    service.Purge(credential);
+                }
+
+                return Results.NoContent();
+            });
+
+            oauth2.MapPost("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, CancellationToken token) =>
+            {
+                OAuth2Credentials credentials = new()
+                {
+                    Id = id,
+                    TokenEndpoint = request.TokenEndpoint,
+                    ClientId = request.ClientId,
+                    ClientSecret = request.ClientSecret,
+                    Scopes = request.Scopes
+                };
+
+                await context.Credentials.AddEntityAsync(credentials, token);
+                return Results.NoContent();
+            });
+
+            oauth2.MapPut("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, OAuth2CredentialsService service, CancellationToken token) =>
+            {
+                var existing = await context.Credentials.FindOAuth2CredentialsAsync(id, token);
+
+                OAuth2Credentials credentials = new()
+                {
+                    Id = id,
+                    TokenEndpoint = request.TokenEndpoint,
+                    ClientId = request.ClientId,
+                    ClientSecret = request.ClientSecret,
+                    Scopes = request.Scopes
+                };
+
+                await context.Credentials.UpdateEntityAsync(credentials, token);
+
+                if (existing is not null)
+                {
+                    service.Purge(existing);
+                }
+
+                return Results.NoContent();
+            });
+        }
+
+        private void MapBasicAuth()
+        {
+            var basic = builder.MapGroup("basic");
+            basic.MapDelete("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+            {
+                await context.Credentials.DeleteBasicCredentialsAsync(id, token);
+                return Results.NoContent();
+            });
+
+            basic.MapPost("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, CancellationToken token) =>
+            {
+                BasicCredentials credentials = new()
+                {
+                    Id = id,
+                    Username = request.Username,
+                    Password = request.Password
+                };
+
+                await context.Credentials.AddEntityAsync(credentials, token);
+                return Results.NoContent();
+            });
+
+            basic.MapPut("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, CancellationToken token) =>
+            {
+                BasicCredentials credentials = new()
+                {
+                    Id = id,
+                    Username = request.Username,
+                    Password = request.Password
+                };
+
+                await context.Credentials.UpdateEntityAsync(credentials, token);
+                return Results.NoContent();
+            });
+        }
+
+        private void MapApiKeyAuth()
+        {
+            var apikey = builder.MapGroup("apikey");
+            apikey.MapDelete("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+            {
+                await context.Credentials.DeleteApiKeyCredentialsAsync(id, token);
+                return Results.NoContent();
+            });
+
+            apikey.MapPost("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, CancellationToken token) =>
+            {
+                ApiKeyCredentials credentials = new()
+                {
+                    Id = id,
+                    Header = request.Header,
+                    ApiKey = request.ApiKey
+                };
+
+                await context.Credentials.AddEntityAsync(credentials, token);
+                return Results.NoContent();
+            });
+
+            apikey.MapPut("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, CancellationToken token) =>
+            {
+                ApiKeyCredentials credentials = new()
+                {
+                    Id = id,
+                    Header = request.Header,
+                    ApiKey = request.ApiKey
+                };
+
+                await context.Credentials.UpdateEntityAsync(credentials, token);
+                return Results.NoContent();
+            });
         }
 
         private void CreateUserMappings()
@@ -51,7 +200,7 @@ public static class AdminRoutes
 
             builder.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
             {
-                Entities.User? user = await context.Settings.FindUserAsync(id, token);
+                User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -64,7 +213,7 @@ public static class AdminRoutes
 
             builder.MapDelete("{id}", static async (string id, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                Entities.User? user = await context.Settings.FindUserAsync(id, token);
+                User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -77,9 +226,18 @@ public static class AdminRoutes
                 return Results.NoContent();
             });
 
-            builder.MapPut("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+            builder.MapPut("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, ClaimsPrincipal currentUser, CancellationToken token) =>
             {
-                Entities.User? user = await context.Settings.FindUserAsync(id, token);
+                if (request.Roles is not null)
+                {
+                    IEnumerable<string> myRoles = currentUser.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value);
+                    if (request.Roles.Except(myRoles).Any())
+                    {
+                        return Results.BadRequest("You're only allowed to give roles you have yourself.");
+                    }
+                }
+
+                User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -104,7 +262,7 @@ public static class AdminRoutes
 
             builder.MapPut("{id}/name", static async (string id, RenameUserRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                Entities.User? user = await context.Settings.FindUserAsync(id, token);
+                User? user = await context.Settings.FindUserAsync(id, token);
 
                 if (user is null)
                 {
@@ -129,7 +287,7 @@ public static class AdminRoutes
 
             builder.MapPost("{id}", static async (string id, UserCreateOrUpdateRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                Entities.User user = new()
+                User user = new()
                 {
                     UserId = id,
                     Nickname = request.Nickname,
@@ -204,13 +362,7 @@ public static class AdminRoutes
 
         private void CreateWebhookMappings()
         {
-            builder.MapGet("", static async (PulseContext context, CancellationToken token) =>
-            {
-                var webhooks = await context.Webhooks.ToListAsync(token);
-                var entries = webhooks.Select(x => new WebhookEntry(x.Id, x.Type, x.Group, x.Name, x.Location, x.Enabled));
-
-                return Results.Ok(entries);
-            });
+            builder.MapGet("", static (PulseContext context) => context.Webhooks.Select(x => new WebhookEntry(x.Id, x.Type, x.Group, x.Name, x.Location, x.Enabled, null)));
 
             builder.MapGet("{id}", static async (string id, PulseContext context, CancellationToken token) =>
             {
@@ -221,7 +373,19 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
-                WebhookEntry entry = new(webhook.Id, webhook.Type, webhook.Group, webhook.Name, webhook.Location, webhook.Enabled);
+                var credential = webhook.GetCredential();
+                CredentialOverview? credentialOverview;
+                if (credential.HasValue)
+                {
+                    var (credType, credId) = credential.GetValueOrDefault();
+                    credentialOverview = new(credType, credId);
+                }
+                else
+                {
+                    credentialOverview = null;
+                }
+
+                WebhookEntry entry = new(webhook.Id, webhook.Type, webhook.Group, webhook.Name, webhook.Location, webhook.Enabled, credentialOverview);
 
                 return Results.Ok(entry);
             });
@@ -255,6 +419,7 @@ public static class AdminRoutes
                 webhook.Name = request.Name;
                 webhook.Location = request.Location;
                 webhook.Enabled = request.Enabled;
+                webhook.SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -308,6 +473,8 @@ public static class AdminRoutes
                     Enabled = request.Enabled
                 };
 
+                webhook.SetCredential(request.Credential?.Type, request.Credential?.Id);
+
                 try
                 {
                     await context.Webhooks.AddEntityAsync(webhook, token);
@@ -334,6 +501,18 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
+                var credential = configuration.GetCredential();
+                CredentialOverview? credentialOverview;
+                if (credential.HasValue)
+                {
+                    var (credType, credId) = credential.GetValueOrDefault();
+                    credentialOverview = new(credType, credId);
+                }
+                else
+                {
+                    credentialOverview = null;
+                }
+
                 return Results.Ok(new PulseAgentCreationRequest()
                 {
                     Location = configuration.Location,
@@ -342,7 +521,8 @@ public static class AdminRoutes
                     BuildDefinitionId = configuration.BuildDefinitionId,
                     StageName = configuration.StageName,
                     Enabled = configuration.Enabled,
-                    Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values)
+                    Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values),
+                    Credential = credentialOverview
                 });
             });
 
@@ -390,6 +570,8 @@ public static class AdminRoutes
                     Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
                 };
 
+                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+
                 try
                 {
                     await context.AgentConfigurations.AddEntityAsync(config, token);
@@ -423,6 +605,8 @@ public static class AdminRoutes
                     Enabled = request.Enabled,
                     Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
                 };
+
+                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -465,6 +649,18 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
+                var credential = configuration.GetCredential();
+                CredentialOverview? credentialOverview;
+                if (credential.HasValue)
+                {
+                    var (credType, credId) = credential.GetValueOrDefault();
+                    credentialOverview = new(credType, credId);
+                }
+                else
+                {
+                    credentialOverview = null;
+                }
+
                 return Results.Ok(new PulseCreationRequest()
                 {
                     Group = configuration.Group,
@@ -476,13 +672,14 @@ public static class AdminRoutes
                     Enabled = configuration.Enabled,
                     IgnoreSslErrors = configuration.IgnoreSslErrors,
                     ComparisonValue = configuration.ComparisonValue,
-                    Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values)
+                    Headers = configuration.GetHeaders().ToDictionary(x => x.name, x => x.values),
+                    Credential = credentialOverview
                 });
             });
 
             builder.MapPost("", static async (PulseCreationRequest request, PulseStore store, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                if (request.Type is Checks.PulseCheckType.Json or Checks.PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
+                if (request.Type is PulseCheckType.Json or PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
                 {
                     return Results.BadRequest($"ComparisonValue is required for {request.Type} type.");
                 }
@@ -508,6 +705,8 @@ public static class AdminRoutes
                     Headers = PulseConfiguration.CreateHeaders(request.Headers)
                 };
 
+                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+
                 try
                 {
                     await context.Configurations.AddEntityAsync(config, token);
@@ -524,7 +723,7 @@ public static class AdminRoutes
 
             builder.MapPut("{id}", static async (string id, PulseCreationRequest request, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
-                if (request.Type is Checks.PulseCheckType.Json or Checks.PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
+                if (request.Type is PulseCheckType.Json or PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
                 {
                     return Results.BadRequest($"ComparisonValue is required for {request.Type} type.");
                 }
@@ -543,6 +742,8 @@ public static class AdminRoutes
                     ComparisonValue = request.ComparisonValue,
                     Headers = PulseConfiguration.CreateHeaders(request.Headers)
                 };
+
+                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {

@@ -43,6 +43,9 @@ public sealed partial class PulseConfiguration
     [ProtoMember(11)]
     public partial string Headers { get; set; }
 
+    [ProtoMember(12)]
+    public partial string AuthenticationId { get; set; }
+
     public IEnumerable<(string name, string values)> GetHeaders()
     {
         if (!string.IsNullOrEmpty(Headers))
@@ -63,5 +66,27 @@ public sealed partial class PulseConfiguration
         }
 
         return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
+    }
+
+    public void SetCredential(string type, string id)
+    {
+        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
+        {
+            AuthenticationId = null;
+            return;
+        }
+
+        AuthenticationId = type + '|' + id;
+    }
+
+    public (string Type, string Id)? GetCredential()
+    {
+        if (string.IsNullOrEmpty(AuthenticationId))
+        {
+            return null;
+        }
+
+        string[] split = AuthenticationId.Split('|', 2);
+        return (split[0], split[1]);
     }
 }

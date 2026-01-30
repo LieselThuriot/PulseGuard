@@ -187,7 +187,8 @@ public static class PulseRoutes
 
     private static ValueTask<Dictionary<string, string>> GetRelevantSqidsForGroup(string group, PulseContext context, CancellationToken token)
     {
-        return context.Settings.Where((UniqueIdentifier x) => x.Group == group)
+        return context.Settings.WhereUniqueIdentifier()
+                               .Where(x => x.Group == group)
                                .SelectFields(x => new { x.Id, x.Name })
                                .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken: token);
     }
