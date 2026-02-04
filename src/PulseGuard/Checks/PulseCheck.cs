@@ -25,6 +25,7 @@ public abstract class PulseCheck(HttpClient client, PulseConfiguration options, 
             request.Headers.TryAddWithoutValidation(name, value);
         }
 
+        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
         var authorization = await _authenticationService.GetAsync(Options, token);
         if (authorization is not null)
         {

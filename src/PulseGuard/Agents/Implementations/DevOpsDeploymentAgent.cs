@@ -44,11 +44,13 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
     private async Task HandleEnvironment(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string environmentId, string headers), PulseAgentConfiguration> environmentGroup, string project, string team, string environmentId, string headers, CancellationToken token)
     {
         var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-        var authHeader = await _authenticationService.GetAsync(_options[0], token);
 
-        if (authHeader is not null)
+        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
+        var authorization = await _authenticationService.GetAsync(_options[0], token);
+
+        if (authorization is not null)
         {
-            headerList = headerList.Append((authHeader.Header, authHeader.Value));
+            headerList = headerList.Append((authorization.Header, authorization.Value));
         }
 
         EnvironmentDeploymentRecords? response = await GetDeployments(project, team, environmentId, headerList, token).ConfigureAwait(false);

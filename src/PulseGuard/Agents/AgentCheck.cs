@@ -37,6 +37,7 @@ public abstract class AgentCheck(HttpClient client, IReadOnlyList<PulseAgentConf
             request.Headers.TryAddWithoutValidation(name, value);
         }
 
+        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
         var authorization = await _authenticationService.GetAsync(options, token);
         if (authorization is not null)
         {

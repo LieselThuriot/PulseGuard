@@ -99,6 +99,8 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
                 Content = content
             };
 
+            //TODO: Add Auth logic
+
             HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
 
             if (response.IsSuccessStatusCode)

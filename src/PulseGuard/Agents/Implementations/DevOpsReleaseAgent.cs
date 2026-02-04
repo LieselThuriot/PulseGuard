@@ -24,15 +24,16 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
     {
         List<AgentReport> reports = [];
 
-        var authHeader = await _authenticationService.GetAsync(_options[0], token);
+        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
+        var authorization = await _authenticationService.GetAsync(_options[0], token);
 
         foreach (var releaseGroup in _options.GroupBy(o => (project: o.Location, team: o.ApplicationName, releaseId: o.SubscriptionId, headers: o.Headers)))
         {
             var (project, team, releaseId, headers) = releaseGroup.Key;
             var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-            if (authHeader is not null)
+            if (authorization is not null)
             {
-                headerList = headerList.Append((authHeader.Header, authHeader.Value));
+                headerList = headerList.Append((authorization.Header, authorization.Value));
             }
 
             try

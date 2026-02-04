@@ -39,13 +39,13 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
         return Task.FromResult<AuthHeader?>(null);
     }
 
-    public async Task<AuthHeader> GetClientCredentialsAsync(string id, CancellationToken token)
+    private async Task<AuthHeader> GetClientCredentialsAsync(string id, CancellationToken token)
     {
         var result = await _tokenService.GetAsync(id, token);
         return new("Authorization", "Bearer " + result.AccessToken);
     }
 
-    public async Task<AuthHeader> GetBasicAuthenticationAsync(string id, CancellationToken token)
+    private async Task<AuthHeader> GetBasicAuthenticationAsync(string id, CancellationToken token)
     {
         var credentials = await _context.Credentials.FindBasicCredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Basic Auth credentials with id '{id}' not found");
@@ -57,7 +57,7 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
         return new("Authorization", authInfo);
     }
 
-    public async Task<AuthHeader> GetApiKeyAuthenticationAsync(string id, CancellationToken token)
+    private async Task<AuthHeader> GetApiKeyAuthenticationAsync(string id, CancellationToken token)
     {
         var credentials = await _context.Credentials.FindApiKeyCredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Basic Auth credentials with id '{id}' not found");
