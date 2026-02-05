@@ -7,11 +7,11 @@ namespace PulseGuard.Agents.Implementations;
 /// <summary>
 /// For Release pipelines using Stages
 /// </summary>
-public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : IAgentCheck
+public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization, ILogger<AgentCheck> logger) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
-    private readonly AuthService _authenticationService = authenticationService;
+    private readonly AuthHeader? _authorization = authorization;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
@@ -24,16 +24,14 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
     {
         List<AgentReport> reports = [];
 
-        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
-        var authorization = await _authenticationService.GetAsync(_options[0], token);
-
         foreach (var releaseGroup in _options.GroupBy(o => (project: o.Location, team: o.ApplicationName, releaseId: o.SubscriptionId, headers: o.Headers)))
         {
             var (project, team, releaseId, headers) = releaseGroup.Key;
             var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-            if (authorization is not null)
+            
+            if (_authorization is not null)
             {
-                headerList = headerList.Append((authorization.Header, authorization.Value));
+                headerList = headerList.Append((_authorization.Header, _authorization.Value));
             }
 
             try

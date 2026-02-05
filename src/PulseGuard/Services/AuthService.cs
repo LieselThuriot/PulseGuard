@@ -1,14 +1,21 @@
-﻿using PulseGuard.Entities;
+﻿using Microsoft.Extensions.Caching.Memory;
+using PulseGuard.Entities;
+using PulseGuard.Models;
 using System.Text;
 
 namespace PulseGuard.Services;
 
-public sealed record AuthHeader(string Header, string Value);
+public sealed record AuthHeader(string Header, string Value)
+{
+    public void ApplyTo(HttpRequestMessage request) => request.Headers.TryAddWithoutValidation(Header, Value);
+}
 
-public sealed class AuthService(PulseContext context, OAuth2CredentialsService tokenService)
+public sealed class AuthService(PulseContext context, OAuth2CredentialsService tokenService, IMemoryCache cache)
 {
     private readonly PulseContext _context = context;
     private readonly OAuth2CredentialsService _tokenService = tokenService;
+    private readonly IMemoryCache _cache = cache;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public Task<AuthHeader?> GetAsync(PulseAgentConfiguration configuration, CancellationToken token)
         => GetInternalAsync(configuration.GetCredential(), token);
@@ -16,24 +23,55 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
     public Task<AuthHeader?> GetAsync(PulseConfiguration configuration, CancellationToken token)
         => GetInternalAsync(configuration.GetCredential(), token);
 
-    private Task<AuthHeader?> GetInternalAsync((string, string)? credential, CancellationToken token)
-    {
-        if (credential is not null)
-        {
-            (string type, string id) = credential.GetValueOrDefault();
+    public Task<AuthHeader?> GetAsync(Webhook webhook, CancellationToken token)
+        => GetInternalAsync(webhook.GetCredential(), token);
 
-            if (type is nameof(OAuth2Credentials))
-            {
-                return GetClientCredentialsAsync(id, token)!;
-            }
-            else if (type is nameof(BasicCredentials))
-            {
-                return GetBasicAuthenticationAsync(id, token)!;
-            }
-            else if (type is nameof(ApiKeyCredentials))
-            {
-                return GetApiKeyAuthenticationAsync(id, token)!;
-            }
+    private async Task<AuthHeader?> GetInternalAsync((string, string)? credential, CancellationToken token)
+    {
+        if (credential is null)
+        {
+            return null;
+        }
+
+        (string type, string id) = credential.GetValueOrDefault();
+        string cacheKey = $"auth:{type}:{id}";
+
+        if (_cache.TryGetValue(cacheKey, out AuthHeader? value))
+        {
+            return value;
+        }
+
+        await _semaphore.WaitAsync(token);
+
+        if (_cache.TryGetValue(cacheKey, out value))
+        {
+            return value;
+        }
+
+        try
+        {
+            value = await GetInternalAsync(type, id, token);
+            return _cache.Set(cacheKey, value, TimeSpan.FromMinutes(1));
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    private Task<AuthHeader?> GetInternalAsync(string type, string id, CancellationToken token)
+    {
+        if (type is nameof(OAuth2Credentials))
+        {
+            return GetClientCredentialsAsync(id, token)!;
+        }
+        else if (type is nameof(BasicCredentials))
+        {
+            return GetBasicAuthenticationAsync(id, token)!;
+        }
+        else if (type is nameof(ApiKeyCredentials))
+        {
+            return GetApiKeyAuthenticationAsync(id, token)!;
         }
 
         return Task.FromResult<AuthHeader?>(null);

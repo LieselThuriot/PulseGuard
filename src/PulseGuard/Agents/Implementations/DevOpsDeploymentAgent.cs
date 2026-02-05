@@ -7,11 +7,11 @@ namespace PulseGuard.Agents.Implementations;
 /// <summary>
 /// For YAML pipelines using Environments and Deployments
 /// </summary>
-public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : IAgentCheck
+public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization, ILogger<AgentCheck> logger) : IAgentCheck
 {
     private readonly HttpClient _client = client;
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
-    private readonly AuthService _authenticationService = authenticationService;
+    private readonly AuthHeader? _authorization = authorization;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
@@ -44,14 +44,6 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
     private async Task HandleEnvironment(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string environmentId, string headers), PulseAgentConfiguration> environmentGroup, string project, string team, string environmentId, string headers, CancellationToken token)
     {
         var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-
-        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
-        var authorization = await _authenticationService.GetAsync(_options[0], token);
-
-        if (authorization is not null)
-        {
-            headerList = headerList.Append((authorization.Header, authorization.Value));
-        }
 
         EnvironmentDeploymentRecords? response = await GetDeployments(project, team, environmentId, headerList, token).ConfigureAwait(false);
 
@@ -103,6 +95,7 @@ public sealed class DevOpsDeploymentAgent(HttpClient client, IReadOnlyList<Pulse
             request.Headers.TryAddWithoutValidation(name, value);
         }
 
+        _authorization?.ApplyTo(request);
         return _client.SendAsync(request, token);
     }
 

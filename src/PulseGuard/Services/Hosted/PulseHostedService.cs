@@ -51,6 +51,7 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
         var agentConfigurations = await context.AgentConfigurations.Where(c => c.Enabled).ToListAsync(token);
 
         var store = scope.ServiceProvider.GetRequiredService<AsyncPulseStoreService>();
+        var authService = scope.ServiceProvider.GetRequiredService<AuthService>();
         var factory = scope.ServiceProvider.GetRequiredService<PulseCheckFactory>();
         var agentFactory = scope.ServiceProvider.GetRequiredService<AgentCheckFactory>();
 
@@ -90,7 +91,8 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
                     config.Name = identifier.Name;
                 }
 
-                PulseCheck check = factory.Create(config);
+                AuthHeader? auth = await authService.GetAsync(config, token);
+                PulseCheck check = factory.Create(config, auth);
                 await CheckPulseAsync(check, store, token);
             }
             catch (Exception ex)
@@ -109,7 +111,8 @@ public sealed class PulseHostedService(IServiceProvider services, SignalService 
             {
                 await semaphore.WaitAsync(token);
 
-                IAgentCheck check = agentFactory.Create(type, configs);
+                AuthHeader? auth = await authService.GetAsync(configs[0], token); // Grouped by AuthenticationId
+                IAgentCheck check = agentFactory.Create(type, configs, auth);
                 await CheckPulseAsync(check, store, token);
             }
             catch (Exception ex)

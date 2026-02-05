@@ -1,16 +1,18 @@
-﻿using PulseGuard.Entities;
+﻿using Microsoft.AspNetCore;
+using PulseGuard.Entities;
 using PulseGuard.Models;
 using SecureWebhooks;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
 
-public class WebhookHostedService(WebhookService webhookClient, SignalService signalService, IHttpClientFactory factory, PulseContext context, ILogger<WebhookHostedService> logger) : BackgroundService
+public class WebhookHostedService(WebhookService webhookClient, SignalService signalService, IHttpClientFactory factory, PulseContext context, AuthService authService, ILogger<WebhookHostedService> logger) : BackgroundService
 {
     private readonly WebhookService _webhookClient = webhookClient;
     private readonly SignalService _signalService = signalService;
     private readonly IHttpClientFactory _httpClientFactory = factory;
     private readonly PulseContext _context = context;
+    private readonly AuthService _authService = authService;
     private readonly ILogger<WebhookHostedService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,9 +43,14 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
 
     private async Task Handle(HttpClient client, ThresholdWebhookEvent webhookEvent, IEnumerable<Entities.Webhook> webhooks, CancellationToken cancellationToken)
     {
-        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name))
+        foreach (var group in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name).GroupBy(x => x.AuthenticationId ?? ""))
         {
-            await Send(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
+            AuthHeader? auth = await _authService.GetAsync(group.First(), cancellationToken);
+
+            foreach (Entities.Webhook webhook in group)
+            {
+                await Send(client, webhook.Secret, webhook.Location, auth, webhookEvent, cancellationToken);
+            }
         }
     }
 
@@ -82,13 +89,18 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
 
     private async Task Handle(HttpClient client, WebhookEvent webhookEvent, IEnumerable<Entities.Webhook> webhooks, CancellationToken cancellationToken)
     {
-        foreach (Entities.Webhook webhook in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name))
+        foreach (var group in FilterWebhooks(webhooks, webhookEvent.Group, webhookEvent.Name).GroupBy(x => x.AuthenticationId ?? ""))
         {
-            await Send(client, webhook.Secret, webhook.Location, webhookEvent, cancellationToken);
+            AuthHeader? auth = await _authService.GetAsync(group.First(), cancellationToken);
+
+            foreach (Entities.Webhook webhook in group)
+            {
+                await Send(client, webhook.Secret, webhook.Location, auth, webhookEvent, cancellationToken);
+            }
         }
     }
 
-    private async Task Send<T>(HttpClient client, string secret, string location, T webhookEvent, CancellationToken cancellationToken)
+    private async Task Send<T>(HttpClient client, string secret, string location, AuthHeader? authorization, T webhookEvent, CancellationToken cancellationToken)
         where T : WebhookEventBase
     {
         try
@@ -99,8 +111,7 @@ public class WebhookHostedService(WebhookService webhookClient, SignalService si
                 Content = content
             };
 
-            //TODO: Add Auth logic
-
+            authorization?.ApplyTo(request);
             HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
 
             if (response.IsSuccessStatusCode)

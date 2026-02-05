@@ -4,7 +4,7 @@ using PulseGuard.Services;
 
 namespace PulseGuard.Checks.Implementations;
 
-internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration options, AuthService authenticationService, ILogger<PulseCheck> logger) : PulseCheck(client, options, authenticationService)
+internal sealed class HealthApiPulseCheck(HttpClient client, PulseConfiguration options, AuthHeader? authorization, ILogger<PulseCheck> logger) : PulseCheck(client, options, authorization)
 {
     private readonly ILogger<PulseCheck> _logger = logger;
 

@@ -4,10 +4,10 @@ using PulseGuard.Services;
 
 namespace PulseGuard.Checks;
 
-public abstract class PulseCheck(HttpClient client, PulseConfiguration options, AuthService authenticationService)
+public abstract class PulseCheck(HttpClient client, PulseConfiguration options, AuthHeader? authorization)
 {
     private readonly HttpClient _client = client;
-    private readonly AuthService _authenticationService = authenticationService;
+    private readonly AuthHeader? _authorization = authorization;
 
     public PulseConfiguration Options { get; } = options;
 
@@ -25,12 +25,7 @@ public abstract class PulseCheck(HttpClient client, PulseConfiguration options, 
             request.Headers.TryAddWithoutValidation(name, value);
         }
 
-        //TODO: This shouldn't be counted towards the execution time of the request as it's not fair
-        var authorization = await _authenticationService.GetAsync(Options, token);
-        if (authorization is not null)
-        {
-            request.Headers.TryAddWithoutValidation(authorization.Header, authorization.Value);
-        }
+        _authorization?.ApplyTo(request);
 
         HttpResponseMessage response = await _client.SendAsync(request, token);
         return await CreateReport(response, token);

@@ -1,9 +1,10 @@
 ﻿using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Services;
 
 namespace PulseGuard.Checks.Implementations;
 
-public sealed class ContainsPulseCheck(HttpClient client, PulseConfiguration options, Services.AuthService authenticationService, ILogger<PulseCheck> logger) : PulseCheck(client, options, authenticationService)
+public sealed class ContainsPulseCheck(HttpClient client, PulseConfiguration options, AuthHeader? authorization, ILogger<PulseCheck> logger) : PulseCheck(client, options, authorization)
 {
     private readonly ILogger<PulseCheck> _logger = logger;
 

@@ -4,10 +4,11 @@ using Azure.Monitor.Query.Logs;
 using Azure.Monitor.Query.Logs.Models;
 using PulseGuard.Entities;
 using PulseGuard.Models;
+using PulseGuard.Services;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, Services.AuthService authenticationService, ILogger<AgentCheck> logger) : AgentCheck(client, options, authenticationService)
+public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization, ILogger<AgentCheck> logger) : AgentCheck(client, options, authorization)
 {
     private readonly ILogger<AgentCheck> _logger = logger;
 

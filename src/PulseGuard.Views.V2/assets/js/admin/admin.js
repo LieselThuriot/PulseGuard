@@ -220,6 +220,12 @@
       window.location.hash = 'credential';
       updateCreateButton();
     });
+
+    // If the URL hash indicates credential tab should be active, activate it now
+    const hash = window.location.hash;
+    if (hash === '#credential-tab' || hash === '#credential') {
+      activateTab('credential-tab');
+    }
   }
 
   /**
