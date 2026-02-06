@@ -10,7 +10,7 @@ public sealed record StatusApiResponse(
 
 public sealed record StatusApiDetails(
       PulseStates Status
-    //, long? Duration
-    //, string? Description
-    //, Dictionary<string, bool> Data
+//, long? Duration
+//, string? Description
+//, Dictionary<string, bool> Data
 );

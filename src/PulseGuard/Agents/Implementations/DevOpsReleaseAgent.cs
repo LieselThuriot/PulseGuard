@@ -28,7 +28,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
         {
             var (project, team, releaseId, headers) = releaseGroup.Key;
             var headerList = PulseAgentConfiguration.ParseHeaders(headers);
-            
+
             if (_authorization is not null)
             {
                 headerList = headerList.Append((_authorization.Header, _authorization.Value));

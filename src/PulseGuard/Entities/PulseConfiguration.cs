@@ -8,7 +8,7 @@ namespace PulseGuard.Entities;
 
 [ProtoContract(IgnoreListHandling = true, UseProtoMembersOnly = true)]
 [TableSet(PartitionKey = nameof(Group), RowKey = nameof(Name))]
-public sealed partial class PulseConfiguration
+public sealed partial class PulseConfiguration : IHaveCredentials
 {
     [ProtoMember(1)]
     public partial string Group { get; set; }
@@ -66,27 +66,5 @@ public sealed partial class PulseConfiguration
         }
 
         return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
-    }
-
-    public void SetCredential(CredentialType? type, string id)
-    {
-        if (!type.HasValue || string.IsNullOrEmpty(id))
-        {
-            AuthenticationId = null;
-            return;
-        }
-
-        AuthenticationId = $"{type.GetValueOrDefault()}|{id}";
-    }
-
-    public (CredentialType Type, string Id)? GetCredential()
-    {
-        if (string.IsNullOrEmpty(AuthenticationId))
-        {
-            return null;
-        }
-
-        string[] split = AuthenticationId.Split('|', 2);
-        return (split[0].ToCredentialType(), split[1]);
     }
 }

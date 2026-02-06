@@ -17,23 +17,23 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
     private readonly IMemoryCache _cache = cache;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public Task<AuthHeader?> GetAsync(PulseAgentConfiguration configuration, CancellationToken token)
-        => GetInternalAsync(configuration.GetCredential(), token);
-
-    public Task<AuthHeader?> GetAsync(PulseConfiguration configuration, CancellationToken token)
-        => GetInternalAsync(configuration.GetCredential(), token);
-
-    public Task<AuthHeader?> GetAsync(Webhook webhook, CancellationToken token)
-        => GetInternalAsync(webhook.GetCredential(), token);
-
-    private async Task<AuthHeader?> GetInternalAsync((CredentialType, string)? credential, CancellationToken token)
+    public Task<AuthHeader?> GetAsync<T>(T configuration, CancellationToken token) where T : IHaveCredentials
     {
-        if (credential is null)
-        {
-            return null;
-        }
+        var credential = configuration.GetCredential();
 
-        (CredentialType type, string id) = credential.GetValueOrDefault();
+        if (credential.HasValue)
+        {
+            var (credentialType, credentialId) = credential.GetValueOrDefault();
+            return GetAsync(credentialType, credentialId, token);
+        }
+        else
+        {
+            return Task.FromResult<AuthHeader?>(null);
+        }
+    }
+
+    public async Task<AuthHeader?> GetAsync(CredentialType type, string id, CancellationToken token)
+    {
         string cacheKey = $"auth:{type}:{id}";
 
         if (_cache.TryGetValue(cacheKey, out AuthHeader? value))

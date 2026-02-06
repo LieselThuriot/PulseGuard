@@ -5,7 +5,7 @@
 namespace PulseGuard.Entities;
 
 [TableSet(PartitionKey = nameof(Sqid), RowKey = nameof(Type))]
-public sealed partial class PulseAgentConfiguration
+public sealed partial class PulseAgentConfiguration : IHaveCredentials
 {
     public partial string Sqid { get; set; }
     public partial string Type { get; set; } //typeof AgentCheckType
@@ -40,27 +40,5 @@ public sealed partial class PulseAgentConfiguration
         }
 
         return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
-    }
-
-    public void SetCredential(CredentialType? type, string id)
-    {
-        if (!type.HasValue || string.IsNullOrEmpty(id))
-        {
-            AuthenticationId = null;
-            return;
-        }
-
-        AuthenticationId = $"{type.GetValueOrDefault()}|{id}";
-    }
-
-    public (CredentialType Type, string Id)? GetCredential()
-    {
-        if (string.IsNullOrEmpty(AuthenticationId))
-        {
-            return null;
-        }
-
-        string[] split = AuthenticationId.Split('|', 2);
-        return (split[0].ToCredentialType(), split[1]);
     }
 }

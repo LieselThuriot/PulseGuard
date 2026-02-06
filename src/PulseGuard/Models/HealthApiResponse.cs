@@ -11,8 +11,8 @@ public sealed record HealthApiResponse(
 public record HealthApiResponseDetail(
       string Name
     , PulseStates State
-    //, string ApplicationCode
-    //, int ElapsedTimeInMilliseconds
-    //, IEnumerable<HealthApiResponseDetail>? Dependencies
-    //, string[] FunctionalitiesSupported
+//, string ApplicationCode
+//, int ElapsedTimeInMilliseconds
+//, IEnumerable<HealthApiResponseDetail>? Dependencies
+//, string[] FunctionalitiesSupported
 );

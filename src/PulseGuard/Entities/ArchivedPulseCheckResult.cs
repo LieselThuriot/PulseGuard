@@ -1,5 +1,5 @@
-﻿using TableStorage;
-using ProtoBuf;
+﻿using ProtoBuf;
+using TableStorage;
 
 namespace PulseGuard.Entities;
 
@@ -15,10 +15,10 @@ public sealed partial class ArchivedPulseCheckResult
 
     [ProtoMember(3)]
     public partial string Group { get; set; }
-    
+
     [ProtoMember(4)]
     public partial string Name { get; set; }
-    
+
     [ProtoMember(5)]
     public partial PulseCheckResultDetails Items { get; set; }
 }

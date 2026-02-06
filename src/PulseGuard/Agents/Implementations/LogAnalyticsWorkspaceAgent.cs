@@ -41,14 +41,14 @@ public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<
             | summarize arg_max(TimeGenerated, *) by AppRoleName
             | project AppRoleName, CPU = toreal(['% Processor Time Normalized']), Memory = (toreal(['Private Bytes']) / toreal(['Available Bytes']) * 100), IO = toreal(['IO Data Bytes/sec'])
             """;
-            
+
             string workspaceId = Options[0].Location;
             Response<LogsQueryResult> result = await client.QueryWorkspaceAsync(workspaceId, query, timeRange, options, token);
 
             if (result.Value?.AllTables is not null && result.Value.AllTables.Count is not 0)
             {
                 List<PulseAgentReport> reports = new(Options.Count);
-                                
+
                 foreach (LogsTableRow row in result.Value.AllTables[0].Rows)
                 {
                     PulseAgentConfiguration configuration = Options.First(x => x.ApplicationName == row.GetString("AppRoleName"));

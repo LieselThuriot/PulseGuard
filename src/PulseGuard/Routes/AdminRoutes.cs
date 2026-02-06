@@ -373,7 +373,7 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
-                var credential = webhook.GetCredential();
+                var credential = ((IHaveCredentials)webhook).GetCredential();
                 CredentialOverview? credentialOverview;
                 if (credential.HasValue)
                 {
@@ -419,7 +419,7 @@ public static class AdminRoutes
                 webhook.Name = request.Name;
                 webhook.Location = request.Location;
                 webhook.Enabled = request.Enabled;
-                webhook.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)webhook).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -473,7 +473,7 @@ public static class AdminRoutes
                     Enabled = request.Enabled
                 };
 
-                webhook.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)webhook).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -501,7 +501,7 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
-                var credential = configuration.GetCredential();
+                var credential = ((IHaveCredentials)configuration).GetCredential();
                 CredentialOverview? credentialOverview;
                 if (credential.HasValue)
                 {
@@ -570,7 +570,7 @@ public static class AdminRoutes
                     Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
                 };
 
-                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)config).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -606,7 +606,7 @@ public static class AdminRoutes
                     Headers = PulseAgentConfiguration.CreateHeaders(request.Headers)
                 };
 
-                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)config).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -649,7 +649,7 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
-                var credential = configuration.GetCredential();
+                var credential = ((IHaveCredentials)configuration).GetCredential();
                 CredentialOverview? credentialOverview;
                 if (credential.HasValue)
                 {
@@ -705,7 +705,7 @@ public static class AdminRoutes
                     Headers = PulseConfiguration.CreateHeaders(request.Headers)
                 };
 
-                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)config).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
@@ -743,7 +743,7 @@ public static class AdminRoutes
                     Headers = PulseConfiguration.CreateHeaders(request.Headers)
                 };
 
-                config.SetCredential(request.Credential?.Type, request.Credential?.Id);
+                ((IHaveCredentials)config).SetCredential(request.Credential?.Type, request.Credential?.Id);
 
                 try
                 {
