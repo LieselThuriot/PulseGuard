@@ -14,18 +14,18 @@ public sealed partial class Webhook
     public partial WebhookType Type { get; set; }
     public partial string? AuthenticationId { get; set; }
 
-    public void SetCredential(string? type, string? id)
+    public void SetCredential(CredentialType? type, string? id)
     {
-        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
+        if (!type.HasValue || string.IsNullOrEmpty(id))
         {
             AuthenticationId = null;
             return;
         }
 
-        AuthenticationId = type + '|' + id;
+        AuthenticationId = $"{type.GetValueOrDefault()}|{id}";
     }
 
-    public (string Type, string Id)? GetCredential()
+    public (CredentialType Type, string Id)? GetCredential()
     {
         if (string.IsNullOrEmpty(AuthenticationId))
         {
@@ -33,7 +33,7 @@ public sealed partial class Webhook
         }
 
         string[] split = AuthenticationId.Split('|', 2);
-        return (split[0], split[1]);
+        return (split[0].ToCredentialType(), split[1]);
     }
 }
 

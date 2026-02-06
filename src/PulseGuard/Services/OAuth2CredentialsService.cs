@@ -80,7 +80,7 @@ public sealed class OAuth2CredentialsService(PulseContext context, IHttpClientFa
             var form = new List<KeyValuePair<string, string>>(4)
             {
                 KeyValuePair.Create("grant_type", "client_credentials"),
-                KeyValuePair.Create("client_id", "ClientId")
+                KeyValuePair.Create("client_id", _clientCredentials.ClientId)
             };
 
             if (!string.IsNullOrWhiteSpace(_clientCredentials.ClientSecret))

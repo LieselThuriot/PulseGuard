@@ -1,5 +1,4 @@
-﻿using PulseGuard.Models.Admin;
-using TableStorage;
+﻿using TableStorage;
 
 #nullable disable
 
@@ -43,18 +42,18 @@ public sealed partial class PulseAgentConfiguration
         return string.Join(";", headers.Select(x => x.Key + ":" + x.Value));
     }
 
-    public void SetCredential(string type, string id)
+    public void SetCredential(CredentialType? type, string id)
     {
-        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
+        if (!type.HasValue || string.IsNullOrEmpty(id))
         {
             AuthenticationId = null;
             return;
         }
 
-        AuthenticationId = type + '|' + id;
+        AuthenticationId = $"{type.GetValueOrDefault()}|{id}";
     }
 
-    public (string Type, string Id)? GetCredential()
+    public (CredentialType Type, string Id)? GetCredential()
     {
         if (string.IsNullOrEmpty(AuthenticationId))
         {
@@ -62,6 +61,6 @@ public sealed partial class PulseAgentConfiguration
         }
 
         string[] split = AuthenticationId.Split('|', 2);
-        return (split[0], split[1]);
+        return (split[0].ToCredentialType(), split[1]);
     }
 }

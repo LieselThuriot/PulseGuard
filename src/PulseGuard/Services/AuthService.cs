@@ -26,14 +26,14 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
     public Task<AuthHeader?> GetAsync(Webhook webhook, CancellationToken token)
         => GetInternalAsync(webhook.GetCredential(), token);
 
-    private async Task<AuthHeader?> GetInternalAsync((string, string)? credential, CancellationToken token)
+    private async Task<AuthHeader?> GetInternalAsync((CredentialType, string)? credential, CancellationToken token)
     {
         if (credential is null)
         {
             return null;
         }
 
-        (string type, string id) = credential.GetValueOrDefault();
+        (CredentialType type, string id) = credential.GetValueOrDefault();
         string cacheKey = $"auth:{type}:{id}";
 
         if (_cache.TryGetValue(cacheKey, out AuthHeader? value))
@@ -59,31 +59,21 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
         }
     }
 
-    private Task<AuthHeader?> GetInternalAsync(string type, string id, CancellationToken token)
+    private Task<AuthHeader?> GetInternalAsync(CredentialType type, string id, CancellationToken token) => type switch
     {
-        if (type is nameof(OAuth2Credentials))
-        {
-            return GetClientCredentialsAsync(id, token)!;
-        }
-        else if (type is nameof(BasicCredentials))
-        {
-            return GetBasicAuthenticationAsync(id, token)!;
-        }
-        else if (type is nameof(ApiKeyCredentials))
-        {
-            return GetApiKeyAuthenticationAsync(id, token)!;
-        }
+        CredentialType.OAuth2 => GetClientCredentialsAsync(id, token),
+        CredentialType.Basic => GetBasicAuthenticationAsync(id, token),
+        CredentialType.ApiKey => GetApiKeyAuthenticationAsync(id, token),
+        _ => Task.FromResult<AuthHeader?>(null)
+    };
 
-        return Task.FromResult<AuthHeader?>(null);
-    }
-
-    private async Task<AuthHeader> GetClientCredentialsAsync(string id, CancellationToken token)
+    private async Task<AuthHeader?> GetClientCredentialsAsync(string id, CancellationToken token)
     {
         var result = await _tokenService.GetAsync(id, token);
-        return new("Authorization", "Bearer " + result.AccessToken);
+        return new("Authorization", result.TokenType + " " + result.AccessToken);
     }
 
-    private async Task<AuthHeader> GetBasicAuthenticationAsync(string id, CancellationToken token)
+    private async Task<AuthHeader?> GetBasicAuthenticationAsync(string id, CancellationToken token)
     {
         var credentials = await _context.Credentials.FindBasicCredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Basic Auth credentials with id '{id}' not found");
@@ -95,7 +85,7 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
         return new("Authorization", authInfo);
     }
 
-    private async Task<AuthHeader> GetApiKeyAuthenticationAsync(string id, CancellationToken token)
+    private async Task<AuthHeader?> GetApiKeyAuthenticationAsync(string id, CancellationToken token)
     {
         var credentials = await _context.Credentials.FindApiKeyCredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Basic Auth credentials with id '{id}' not found");

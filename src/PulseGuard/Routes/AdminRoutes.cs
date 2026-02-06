@@ -49,7 +49,7 @@ public static class AdminRoutes
 
         private void CreateCredentialMappings()
         {
-            builder.MapGet("ids", static (PulseContext context) => context.Credentials.Select(x => new CredentialOverview(x.PartitionKey.Replace("Credentials", ""), x.RowKey)));
+            builder.MapGet("ids", static (PulseContext context) => context.Credentials.Select(x => new CredentialOverview(x.PartitionKey.ToCredentialType(), x.RowKey)));
 
             var creds = builder.MapGroup("").RequireAuthorization(AuthSetup.CredentialsPolicy);
 

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore;
-using PulseGuard.Entities;
+﻿using PulseGuard.Entities;
 using PulseGuard.Models;
 using SecureWebhooks;
 using TableStorage.Linq;

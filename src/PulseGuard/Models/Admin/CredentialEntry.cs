@@ -1,14 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using CredentialType = PulseGuard.Entities.CredentialType;
 
 namespace PulseGuard.Models.Admin;
 
-public sealed record CredentialOverview(string Type, string Id);
+public sealed record CredentialOverview(CredentialType Type, string Id);
 
 [JsonPolymorphic]
-[JsonDerivedType(typeof(ApiKeyCredentialEntry), "ApiKey")]
-[JsonDerivedType(typeof(BasicCredentialEntry), "Basic")]
-[JsonDerivedType(typeof(OAuth2CredentialEntry), "OAuth2")]
+[JsonDerivedType(typeof(ApiKeyCredentialEntry), nameof(CredentialType.ApiKey))]
+[JsonDerivedType(typeof(BasicCredentialEntry), nameof(CredentialType.Basic))]
+[JsonDerivedType(typeof(OAuth2CredentialEntry), nameof(CredentialType.OAuth2))]
 public abstract record CredentialEntry(string Id);
 
 public sealed record ApiKeyCredentialEntry(string Id, string Header, string ApiKey) : CredentialEntry(Id);
