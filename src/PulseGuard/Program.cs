@@ -30,7 +30,7 @@ builder.Services.AddPulseContext(storeConnectionString,
 );
 
 bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
-builder.Services.ConfigurePulseTelemetry(builder.Configuration, authorized);
+builder.Services.ConfigurePulseTelemetry(builder.Configuration);
 
 builder.Services.ConfigureHttpJsonOptions(x =>
 {

@@ -1,4 +1,5 @@
-﻿using Scalar.AspNetCore;
+﻿using PulseGuard.Infrastructure;
+using Scalar.AspNetCore;
 using System.Buffers;
 using System.Net.Mime;
 using System.Text;
@@ -15,6 +16,11 @@ public static class Routes
         {
             app.UseAuthentication();
             app.UseAuthorization();
+
+            if (!(bool.TryParse(app.Configuration["APPLICATIONINSIGHTS_DISABLE_USER_TRACKING"], out bool parsedUserTrack) && parsedUserTrack))
+            {
+                app.UsePulseTelemetry();
+            }
 
             routes.MapGet("access-denied", () => Results.Content("You do not have permission to access this resource.", MediaTypeNames.Text.Plain, Encoding.UTF8, 403))
                   .WithTags("Authorization")

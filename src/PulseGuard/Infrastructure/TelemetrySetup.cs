@@ -1,11 +1,11 @@
-﻿using Microsoft.ApplicationInsights.Channel;
-using Microsoft.ApplicationInsights.Extensibility;
+﻿using Microsoft.ApplicationInsights;
+using System.Security.Principal;
 
 namespace PulseGuard.Infrastructure;
 
 internal static class TelemetrySetup
 {
-    public static void ConfigurePulseTelemetry(this IServiceCollection services, ConfigurationManager configuration, bool authorized)
+    public static void ConfigurePulseTelemetry(this IServiceCollection services, ConfigurationManager configuration)
     {
         string? connectionstring = configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
         bool track = bool.TryParse(configuration["APPLICATIONINSIGHTS_DEPENDENCY_TRACKING"], out bool parsedTrack) && parsedTrack;
@@ -15,33 +15,31 @@ internal static class TelemetrySetup
             x.ConnectionString = connectionstring;
             x.EnableDependencyTrackingTelemetryModule = track;
         });
-
-        if (authorized)
-        {
-            bool disableUserTracking = bool.TryParse(configuration["APPLICATIONINSIGHTS_DISABLE_USER_TRACKING"], out bool parsedUserTrack) && parsedUserTrack;
-
-            if (!disableUserTracking)
-            {
-                services.AddHttpContextAccessor();
-                services.AddSingleton<ITelemetryInitializer, UserTelemetryInitializer>();
-            }
-        }
     }
 
-    internal sealed class UserTelemetryInitializer(IHttpContextAccessor httpContextAccessor) : ITelemetryInitializer
+    public static void UsePulseTelemetry(this WebApplication app)
     {
-        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        app.UseMiddleware<UserIdMiddleware>();
+    }
 
-        public void Initialize(ITelemetry telemetry)
+    private sealed class UserIdMiddleware(RequestDelegate next, TelemetryClient client)
+    {
+        private readonly RequestDelegate _next = next;
+        private readonly TelemetryClient _client = client;
+
+        public Task InvokeAsync(HttpContext context)
         {
-            string? userId = _httpContextAccessor?.HttpContext?.User?.Identity?.Name;
+            IIdentity? identity = context.User?.Identity;
 
-            if (userId is null)
+            if (identity?.IsAuthenticated == true)
             {
-                return;
+                var user = _client.Context.User;
+
+                user.AuthenticatedUserId = identity.Name;
+                user.UserAgent = context.Request.Headers.UserAgent;
             }
 
-            telemetry.Context.User.AuthenticatedUserId = userId;
+            return _next(context);
         }
     }
 }

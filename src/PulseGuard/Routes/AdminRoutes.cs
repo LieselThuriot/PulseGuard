@@ -136,7 +136,7 @@ public static class AdminRoutes
                 BasicCredentials credentials = new()
                 {
                     Id = id,
-                    Username = request.Username,
+                    Username = request.Username ?? "",
                     Password = request.Password
                 };
 
@@ -149,7 +149,7 @@ public static class AdminRoutes
                 BasicCredentials credentials = new()
                 {
                     Id = id,
-                    Username = request.Username,
+                    Username = request.Username ?? "",
                     Password = request.Password
                 };
 
