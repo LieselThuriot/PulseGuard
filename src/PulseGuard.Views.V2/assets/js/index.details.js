@@ -436,6 +436,40 @@
   })();
 
   /**
+   * Merges archived and regular results, prepending archived items to maintain chronological order.
+   * @param {PulseDetailResultGroup|null} regularData - The regular (current) result group
+   * @param {PulseDetailResultGroup|null} archivedData - The archived result group
+   * @returns {PulseDetailResultGroup|null} Merged result with archived items prepended, or the non-null input
+   */
+  function mergeDetailResults(regularData, archivedData) {
+    if (!regularData && !archivedData) return null;
+    if (!archivedData) return regularData;
+    if (!regularData) return archivedData;
+
+    const merged = new PulseDetailResultGroup();
+    merged.group = regularData.group;
+    merged.name = regularData.name;
+    merged.items = [...(archivedData.items || []), ...(regularData.items || [])];
+    return merged;
+  }
+
+  /**
+   * Merges archived and regular metrics results, prepending archived items to maintain chronological order.
+   * @param {PulseMetricsResultGroup|null} regularMetrics - The regular (current) metrics
+   * @param {PulseMetricsResultGroup|null} archivedMetrics - The archived metrics
+   * @returns {PulseMetricsResultGroup|null} Merged metrics with archived items prepended
+   */
+  function mergeMetricsResults(regularMetrics, archivedMetrics) {
+    if (!regularMetrics && !archivedMetrics) return null;
+    if (!archivedMetrics) return regularMetrics;
+    if (!regularMetrics) return archivedMetrics;
+
+    const merged = new PulseMetricsResultGroup();
+    merged.items = [...(archivedMetrics.items || []), ...(regularMetrics.items || [])];
+    return merged;
+  }
+
+  /**
    * Fetches pulse details data from the API and handles the response.
    * @param {string} sqid - The unique identifier for the pulse details.
    * @param {string[]} sqidOverlays - The unique identifier for the pulse details used as overlays.
@@ -527,50 +561,209 @@
         return null;
       });
 
-    Promise.all([...promises, metricsPromise, deploymentsPromise])
-      .then((results) => {
+    // First, fetch all regular data
+    Promise.all([
+      ...promises,
+      metricsPromise,
+      deploymentsPromise,
+    ])
+      .then((regularResults) => {
+        // Calculate the count of sqids (main + overlays)
+        const sqidCount = 1 + uniqueSqidOverlays.size;
+
+        // Extract regular results
         /** @type {PulseDetailResultGroup|null} */
-        const data = results[0];
+        const regularData = regularResults[0];
 
         /** @type {PulseMetricsResultGroup|null} */
-        const metrics = results[results.length - 2];
+        const regularMetrics = regularResults[sqidCount];
 
         /** @type {{id: string, items: PulseDeployment[]}|null} */
-        const deploymentsResponse = results[results.length - 1];
+        const deploymentsResponse = regularResults[sqidCount + 1];
 
         /** @type {PulseDeployment[]|null} */
         const deployments = deploymentsResponse?.items || null;
 
-        /** @type {PulseDetailResultGroup[]|null} */
-        const overlays = results.slice(1, -2);
+        /** @type {PulseDetailResultGroup[]} */
+        const regularOverlays = regularResults.slice(1, sqidCount);
 
-        if (!data && !abortSignal.aborted) {
-          let toast = {
-            header: "PulseGuard",
-            headerSmall: "",
-            closeButton: true,
-            closeButtonLabel: "close",
-            closeButtonClass: "",
-            animation: true,
-            delay: 5000,
-            position: "bottom-0 end-0",
-            direction: "append",
-            ariaLive: "assertive",
-          };
+        // Only fetch archived if there are items
+        const archivedDetailsPromises = [];
+        const archivedIndexMap = {}; // Maps archive promise index to sqid index
 
-          toast.header = "❌ PulseGuard";
-          toast.body = "Failed to resolve details for the selected pulse.";
-          toast.toastClass = "toast-danger";
-          bootstrap.showToast(toast);
+        // Add archived main data fetch if it has items
+        if (regularData?.items?.length > 0) {
+          archivedIndexMap[archivedDetailsPromises.length] = 0;
+          archivedDetailsPromises.push(
+            fetch(`api/1.0/pulses/details/${sqid}/archived`, {
+              method: "get",
+              signal: abortSignal,
+            })
+              .then(async (response) => {
+                if (!response.ok) {
+                  throw new Error(
+                    "Network response was not ok " + response.statusText
+                  );
+                }
 
-          resetDetails(false);
+                const buffer = await response.arrayBuffer();
+                const view = new Uint8Array(buffer);
+
+                /** @type {PulseDetailResultGroup} */
+                return PulseDetailResultGroup.decode(view);
+              })
+              .catch((error) => {
+                return null;
+              })
+          );
+        }
+
+        // Add archived overlay fetches if they have items
+        regularOverlays.forEach((overlay, overlayIndex) => {
+          if (overlay?.items?.length > 0) {
+            const overlayId = [...uniqueSqidOverlays][overlayIndex];
+            archivedIndexMap[archivedDetailsPromises.length] = overlayIndex + 1;
+            archivedDetailsPromises.push(
+              fetch(`api/1.0/pulses/details/${overlayId}/archived`, {
+                method: "get",
+                signal: abortSignal,
+              })
+                .then(async (response) => {
+                  if (!response.ok) {
+                    throw new Error(
+                      "Network response was not ok " + response.statusText
+                    );
+                  }
+
+                  const buffer = await response.arrayBuffer();
+                  const view = new Uint8Array(buffer);
+
+                  /** @type {PulseDetailResultGroup} */
+                  return PulseDetailResultGroup.decode(view);
+                })
+                .catch((error) => {
+                  return null;
+                })
+            );
+          }
+        });
+
+        // Add archived metrics fetch if it has items
+        let archivedMetricsPromise = null;
+        if (regularMetrics?.items?.length > 0) {
+          archivedMetricsPromise = fetch(`api/1.0/metrics/${sqid}/archived`, {
+            method: "get",
+            signal: abortSignal,
+          })
+            .then(async (response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok " + response.statusText);
+              }
+              const buffer = await response.arrayBuffer();
+              const view = new Uint8Array(buffer);
+              /** @type {PulseMetricsResultGroup} */
+              return PulseMetricsResultGroup.decode(view);
+            })
+            .catch((error) => {
+              if (!(error && error.name === "AbortError")) {
+                // console.warn("Failed to fetch archived metrics for", sqid, error);
+              }
+              return null;
+            });
+        }
+
+        // If no archived data to fetch, handle immediately
+        if (archivedDetailsPromises.length === 0 && !archivedMetricsPromise) {
+          if (!regularData && !abortSignal.aborted) {
+            let toast = {
+              header: "PulseGuard",
+              headerSmall: "",
+              closeButton: true,
+              closeButtonLabel: "close",
+              closeButtonClass: "",
+              animation: true,
+              delay: 5000,
+              position: "bottom-0 end-0",
+              direction: "append",
+              ariaLive: "assertive",
+            };
+
+            toast.header = "❌ PulseGuard";
+            toast.body = "Failed to resolve details for the selected pulse.";
+            toast.toastClass = "toast-danger";
+            bootstrap.showToast(toast);
+
+            resetDetails(false);
+            return;
+          }
+
+          const overlayData = (regularOverlays || []).filter((o) => o !== null);
+          handleData(regularData, overlayData, regularMetrics, deployments);
           return;
         }
 
-        const overlayData = (overlays || []).filter((o) => o !== null);
-        handleData(data, overlayData, metrics, deployments);
+        // Fetch archived data
+        const archivedPromises = [...archivedDetailsPromises];
+        if (archivedMetricsPromise) {
+          archivedPromises.push(archivedMetricsPromise);
+        }
+
+        Promise.all(archivedPromises)
+          .then((archivedResults) => {
+            // Create sparse arrays for archived data matching the sqid structure
+            const archivedDetailsMap = {};
+            archivedDetailsPromises.forEach((_, promiseIndex) => {
+              const sqidIndex = archivedIndexMap[promiseIndex];
+              archivedDetailsMap[sqidIndex] = archivedResults[promiseIndex];
+            });
+
+            const archivedData = archivedDetailsMap[0] || null;
+            const archivedOverlays = regularOverlays.map((_, index) => archivedDetailsMap[index + 1] || null);
+            const archivedMetrics = archivedMetricsPromise ? archivedResults[archivedResults.length - 1] : null;
+
+            // Merge regular and archived results
+            const mergedData = mergeDetailResults(regularData, archivedData);
+            const mergedMetrics = mergeMetricsResults(regularMetrics, archivedMetrics);
+
+            // Merge overlay data with their archived counterparts
+            const mergedOverlays = regularOverlays.map((overlay, index) =>
+              mergeDetailResults(overlay, archivedOverlays[index])
+            );
+
+            if (!mergedData && !abortSignal.aborted) {
+              let toast = {
+                header: "PulseGuard",
+                headerSmall: "",
+                closeButton: true,
+                closeButtonLabel: "close",
+                closeButtonClass: "",
+                animation: true,
+                delay: 5000,
+                position: "bottom-0 end-0",
+                direction: "append",
+                ariaLive: "assertive",
+              };
+
+              toast.header = "❌ PulseGuard";
+              toast.body = "Failed to resolve details for the selected pulse.";
+              toast.toastClass = "toast-danger";
+              bootstrap.showToast(toast);
+
+              resetDetails(false);
+              return;
+            }
+
+            const overlayData = (mergedOverlays || []).filter((o) => o !== null);
+            handleData(mergedData, overlayData, mergedMetrics, deployments);
+          })
+          .finally(() => {
+            fetchAbortController = null;
+          });
       })
-      .finally(() => {
+      .catch((error) => {
+        if (!(error && error.name === "AbortError")) {
+          // console.warn("Failed to fetch regular data", error);
+        }
         fetchAbortController = null;
       });
   }

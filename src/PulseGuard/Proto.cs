@@ -4,7 +4,8 @@ namespace PulseGuard;
 
 internal static class Proto
 {
-    public static ProtoResult Result(object result) => new(result);
+    public static ProtoResult Result(object result) => new(result, false);
+    public static ProtoResult ImmutableResult(object result) => new(result, true);
 
     public static BinaryData Serialize<T>(T value)
     {

@@ -11,12 +11,13 @@ namespace PulseGuard;
 /// Initializes a new instance of the <see cref="ProtoResult"/> class.
 /// </remarks>
 /// <param name="value">The value to serialize as protobuf.</param>
-public sealed class ProtoResult(object value) : IResult, IEndpointMetadataProvider, IStatusCodeHttpResult, IContentTypeHttpResult
+public sealed class ProtoResult(object value, bool immutable) : IResult, IEndpointMetadataProvider, IStatusCodeHttpResult, IContentTypeHttpResult
 {
-    private const string ProtoContentType = "application/protobuf";
+    internal const string ProtoContentType = "application/protobuf";
     private const int StatusCodeValue = 200;
 
     private readonly object _value = value;
+    private readonly bool _immutable = immutable;
 
     public int? StatusCode => StatusCodeValue;
 
@@ -32,6 +33,14 @@ public sealed class ProtoResult(object value) : IResult, IEndpointMetadataProvid
     {
         httpContext.Response.StatusCode = StatusCodeValue;
         httpContext.Response.ContentType = ProtoContentType;
+
+        if (_immutable)
+        {
+            // cache until the end of the day, since these results are immutable and we want to avoid unnecessary deserialization on the client side
+            string maxAge = ((int)(DateTimeOffset.UtcNow.Date.AddDays(1) - DateTimeOffset.UtcNow).TotalSeconds).ToString();
+            httpContext.Response.Headers.CacheControl = $"public, max-age={maxAge}, immutable";
+        }
+
         Serializer.Serialize(httpContext.Response.BodyWriter, _value);
         return Task.CompletedTask;
     }

@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
+using PulseGuard;
 using PulseGuard.Entities;
 using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
 using PulseGuard.Services;
+using System.IO.Compression;
 using System.Text.Json.Serialization;
 using TableStorage;
 
@@ -22,6 +25,9 @@ builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("
                         throw new InvalidOperationException("Encryption password must be provided.");
                     }
                 });
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
 var createIfNotExists = builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled;
 builder.Services.AddPulseContext(storeConnectionString,
@@ -59,8 +65,17 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
 });
 
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = [.. ResponseCompressionDefaults.MimeTypes, ProtoResult.ProtoContentType];
+});
+
 var app = builder.Build();
 
+app.UseResponseCompression();
 app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
