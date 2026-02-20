@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using PulseGuard.Entities;
 using System.Security.Claims;
-using TableStorage.Linq;
 
 namespace PulseGuard.Infrastructure;
 

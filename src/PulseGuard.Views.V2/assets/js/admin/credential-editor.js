@@ -7,7 +7,6 @@
 
   let isUpdateMode = mode === 'update';
 
-  // Initialize
   initialize();
 
   async function initialize() {
@@ -31,12 +30,21 @@
     document.getElementById('page-title').textContent = title;
     document.title = `PulseGuard - ${title}`;
 
-    // Update submit button text
     document.getElementById('credential-submit-text').textContent = isUpdateMode ? 'Update Credential' : 'Create Credential';
 
-    // Show delete button in update mode
     if (isUpdateMode) {
       document.getElementById('header-delete-btn')?.classList.remove('d-none');
+    }
+
+    if (isUpdateMode) {
+      const secret = document.getElementById('oauth2-client-secret');
+      if (secret) secret.placeholder = 'Leave blank to keep current secret';
+      
+      const pwd = document.getElementById('basic-password');
+      if (pwd) pwd.placeholder = 'Leave blank to keep current password';
+      
+      const apikey = document.getElementById('apikey-value');
+      if (apikey) apikey.placeholder = 'Leave blank to keep current API key';
     }
   }
 
@@ -46,7 +54,6 @@
     document.getElementById('header-delete-btn')?.addEventListener('click', handleDeleteClick);
     document.getElementById('delete-confirm')?.addEventListener('click', handleDeleteConfirm);
 
-    // Alphanumeric and space validation for ID field
     document.getElementById('credential-id')?.addEventListener('input', function (e) {
       e.target.value = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
     });
@@ -55,40 +62,35 @@
   function handleCredentialTypeChange(e) {
     const selectedType = e.target.value;
     
-    // Hide all credential type fields
     document.querySelectorAll('.credential-type-fields').forEach(field => {
       field.classList.add('d-none');
     });
 
-    // Show fields for selected type
     if (selectedType) {
       const fieldsContainer = document.getElementById(`${selectedType.toLowerCase()}-fields`);
       fieldsContainer?.classList.remove('d-none');
       
-      // Set required attributes
       updateRequiredFields(selectedType);
     }
   }
 
   function updateRequiredFields(credentialType) {
-    // Remove all required attributes first
     document.querySelectorAll('.credential-type-fields input').forEach(input => {
       input.removeAttribute('required');
     });
 
-    // Add required attributes based on type
     switch (credentialType) {
       case 'OAuth2':
         document.getElementById('oauth2-token-endpoint').required = true;
         document.getElementById('oauth2-client-id').required = true;
-        document.getElementById('oauth2-client-secret').required = true;
+        document.getElementById('oauth2-client-secret').required = !isUpdateMode;
         break;
       case 'Basic':
-        document.getElementById('basic-password').required = true;
+        document.getElementById('basic-password').required = !isUpdateMode;
         break;
       case 'ApiKey':
         document.getElementById('apikey-header').required = true;
-        document.getElementById('apikey-value').required = true;
+        document.getElementById('apikey-value').required = !isUpdateMode;
         break;
     }
   }
@@ -145,52 +147,58 @@
 
   function buildCredentialData(credentialType) {
     switch (credentialType) {
-      case 'OAuth2':
+      case 'OAuth2': {
         const tokenEndpoint = document.getElementById('oauth2-token-endpoint').value;
         const clientId = document.getElementById('oauth2-client-id').value;
         const clientSecret = document.getElementById('oauth2-client-secret').value;
         const scopes = document.getElementById('oauth2-scopes').value || null;
 
-        if (!tokenEndpoint || !clientId || !clientSecret) {
+        if (!tokenEndpoint || !clientId || (!isUpdateMode && !clientSecret)) {
           AdminCommon.showErrorMessage('All OAuth2 required fields must be filled', 'error-message', 'error-text');
           return null;
         }
 
-        return {
+        // Only include clientSecret if set (for update)
+        const data = {
           tokenEndpoint: tokenEndpoint,
           clientId: clientId,
-          clientSecret: clientSecret,
           scopes: scopes
         };
-
-      case 'Basic':
+        if (!isUpdateMode || clientSecret) {
+          data.clientSecret = clientSecret;
+        }
+        return data;
+      }
+      case 'Basic': {
         const username = document.getElementById('basic-username').value || null;
         const password = document.getElementById('basic-password').value;
 
-        if (!password) {
+        if (!isUpdateMode && !password) {
           AdminCommon.showErrorMessage('Password is required for Basic authentication', 'error-message', 'error-text');
           return null;
         }
 
-        return {
-          username: username,
-          password: password
-        };
-
-      case 'ApiKey':
+        const data = { username: username };
+        if (!isUpdateMode || password) {
+          data.password = password;
+        }
+        return data;
+      }
+      case 'ApiKey': {
         const header = document.getElementById('apikey-header').value;
         const apiKey = document.getElementById('apikey-value').value;
 
-        if (!header || !apiKey) {
+        if (!header || (!isUpdateMode && !apiKey)) {
           AdminCommon.showErrorMessage('Header and API Key are required', 'error-message', 'error-text');
           return null;
         }
 
-        return {
-          header: header,
-          apiKey: apiKey
-        };
-
+        const data = { header: header };
+        if (!isUpdateMode || apiKey) {
+          data.apiKey = apiKey;
+        }
+        return data;
+      }
       default:
         AdminCommon.showErrorMessage('Invalid credential type', 'error-message', 'error-text');
         return null;
@@ -240,21 +248,21 @@
     document.getElementById('credential-type').value = credentialType;
     handleCredentialTypeChange({ target: { value: credentialType } });
 
-    // Populate fields based on type
+    // Populate fields based on type (never prefill sensitive fields)
     switch (credentialType) {
       case 'OAuth2':
         document.getElementById('oauth2-token-endpoint').value = credential.tokenEndpoint || '';
         document.getElementById('oauth2-client-id').value = credential.clientId || '';
-        document.getElementById('oauth2-client-secret').value = credential.clientSecret || '';
+        document.getElementById('oauth2-client-secret').value = '';
         document.getElementById('oauth2-scopes').value = credential.scopes || '';
         break;
       case 'Basic':
         document.getElementById('basic-username').value = credential.username || '';
-        document.getElementById('basic-password').value = credential.password || '';
+        document.getElementById('basic-password').value = '';
         break;
       case 'ApiKey':
         document.getElementById('apikey-header').value = credential.header || '';
-        document.getElementById('apikey-value').value = credential.apiKey || '';
+        document.getElementById('apikey-value').value = '';
         break;
     }
   }

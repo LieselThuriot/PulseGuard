@@ -3,11 +3,11 @@ using System.Collections.Concurrent;
 
 namespace PulseGuard.Services;
 
-public sealed class OAuth2CredentialsService(PulseContext context, IHttpClientFactory httpClientFactory)
+public sealed class OAuth2CredentialsService(PulseContext context, IHttpClientFactory httpClientFactory, EncryptionService encryptionService)
 {
     private readonly PulseContext _context = context;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-
+    private readonly EncryptionService _encryptionService = encryptionService;
     private readonly ConcurrentDictionary<OAuth2Credentials, TokenRequestClient> _clients = new(OAuth2CredentialsComparer.Instance);
 
     public async Task<ApiAccessToken> GetAsync(string id, CancellationToken token)
@@ -15,7 +15,9 @@ public sealed class OAuth2CredentialsService(PulseContext context, IHttpClientFa
         var clientCredentials = await _context.Credentials.FindOAuth2CredentialsAsync(id, token)
                                     ?? throw new InvalidOperationException($"Client credentials with id '{id}' not found");
 
+        clientCredentials.ClientSecret = _encryptionService.Decrypt(clientCredentials.ClientSecret);
         var client = _clients.GetOrAdd(clientCredentials, _ => new TokenRequestClient(_httpClientFactory, clientCredentials));
+
         return await client.GetTokenAsync(token);
     }
 

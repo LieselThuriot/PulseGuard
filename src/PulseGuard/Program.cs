@@ -4,15 +4,24 @@ using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
+using PulseGuard.Services;
 using System.Text.Json.Serialization;
 using TableStorage;
-using TableStorage.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
 string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
 builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
                 .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
+
+builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("encryption"))
+                .PostConfigure<EncryptionOptions>(options =>
+                {
+                    if (string.IsNullOrEmpty(options.Password))
+                    {
+                        throw new InvalidOperationException("Encryption password must be provided.");
+                    }
+                });
 
 var createIfNotExists = builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled;
 builder.Services.AddPulseContext(storeConnectionString,

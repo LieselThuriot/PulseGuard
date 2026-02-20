@@ -56,9 +56,9 @@ public static class AdminRoutes
             creds.MapGet("", static async (PulseContext context, CancellationToken token) =>
             {
                 var credentials = await context.Credentials.ToListAsync(token);
-                var entries = credentials.Select(x => x.SwitchCaseOrDefault<CredentialEntry>(static x => new OAuth2CredentialEntry(x.Id, x.TokenEndpoint, x.ClientId, x.ClientSecret, x.Scopes),
-                                                                                             static x => new BasicCredentialEntry(x.Id, x.Username, x.Password),
-                                                                                             static x => new ApiKeyCredentialEntry(x.Id, x.Header, x.ApiKey)));
+                var entries = credentials.Select(x => x.SwitchCaseOrDefault<CredentialEntry>(static x => new OAuth2CredentialEntry(x.Id, x.TokenEndpoint, x.ClientId, x.Scopes),
+                                                                                             static x => new BasicCredentialEntry(x.Id, x.Username),
+                                                                                             static x => new ApiKeyCredentialEntry(x.Id, x.Header)));
                 return Results.Ok(entries);
             });
 
@@ -83,14 +83,14 @@ public static class AdminRoutes
                 return Results.NoContent();
             });
 
-            oauth2.MapPost("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, CancellationToken token) =>
+            oauth2.MapPost("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, EncryptionService encryptionService, CancellationToken token) =>
             {
                 OAuth2Credentials credentials = new()
                 {
                     Id = id,
                     TokenEndpoint = request.TokenEndpoint,
                     ClientId = request.ClientId,
-                    ClientSecret = request.ClientSecret,
+                    ClientSecret = encryptionService.Encrypt(request.ClientSecret),
                     Scopes = request.Scopes
                 };
 
@@ -98,7 +98,7 @@ public static class AdminRoutes
                 return Results.NoContent();
             });
 
-            oauth2.MapPut("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, OAuth2CredentialsService service, CancellationToken token) =>
+            oauth2.MapPut("{id}", static async (string id, OAuth2CredentialRequest request, PulseContext context, OAuth2CredentialsService service, EncryptionService encryptionService, CancellationToken token) =>
             {
                 var existing = await context.Credentials.FindOAuth2CredentialsAsync(id, token);
 
@@ -107,9 +107,13 @@ public static class AdminRoutes
                     Id = id,
                     TokenEndpoint = request.TokenEndpoint,
                     ClientId = request.ClientId,
-                    ClientSecret = request.ClientSecret,
                     Scopes = request.Scopes
                 };
+
+                if (!string.IsNullOrEmpty(request.ClientSecret))
+                {
+                    credentials.ClientSecret = encryptionService.Encrypt(request.ClientSecret);
+                }
 
                 await context.Credentials.UpdateEntityAsync(credentials, token);
 
@@ -131,27 +135,31 @@ public static class AdminRoutes
                 return Results.NoContent();
             });
 
-            basic.MapPost("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, CancellationToken token) =>
+            basic.MapPost("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, EncryptionService encryptionService, CancellationToken token) =>
             {
                 BasicCredentials credentials = new()
                 {
                     Id = id,
                     Username = request.Username ?? "",
-                    Password = request.Password
+                    Password = encryptionService.Encrypt(request.Password)
                 };
 
                 await context.Credentials.AddEntityAsync(credentials, token);
                 return Results.NoContent();
             });
 
-            basic.MapPut("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, CancellationToken token) =>
+            basic.MapPut("{id}", static async (string id, BasicCredentialRequest request, PulseContext context, EncryptionService encryptionService, CancellationToken token) =>
             {
                 BasicCredentials credentials = new()
                 {
                     Id = id,
-                    Username = request.Username ?? "",
-                    Password = request.Password
+                    Username = request.Username ?? ""
                 };
+
+                if (!string.IsNullOrEmpty(request.Password))
+                {
+                    credentials.Password = encryptionService.Encrypt(request.Password);
+                }
 
                 await context.Credentials.UpdateEntityAsync(credentials, token);
                 return Results.NoContent();
@@ -167,27 +175,31 @@ public static class AdminRoutes
                 return Results.NoContent();
             });
 
-            apikey.MapPost("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, CancellationToken token) =>
+            apikey.MapPost("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, EncryptionService encryptionService, CancellationToken token) =>
             {
                 ApiKeyCredentials credentials = new()
                 {
                     Id = id,
                     Header = request.Header,
-                    ApiKey = request.ApiKey
+                    ApiKey = encryptionService.Encrypt(request.ApiKey)
                 };
 
                 await context.Credentials.AddEntityAsync(credentials, token);
                 return Results.NoContent();
             });
 
-            apikey.MapPut("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, CancellationToken token) =>
+            apikey.MapPut("{id}", static async (string id, ApiKeyCredentialRequest request, PulseContext context, EncryptionService encryptionService, CancellationToken token) =>
             {
                 ApiKeyCredentials credentials = new()
                 {
                     Id = id,
-                    Header = request.Header,
-                    ApiKey = request.ApiKey
+                    Header = request.Header
                 };
+
+                if (!string.IsNullOrEmpty(request.ApiKey))
+                {
+                    credentials.ApiKey = encryptionService.Encrypt(request.ApiKey);
+                }
 
                 await context.Credentials.UpdateEntityAsync(credentials, token);
                 return Results.NoContent();

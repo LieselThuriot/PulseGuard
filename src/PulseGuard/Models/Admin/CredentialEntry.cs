@@ -12,9 +12,9 @@ public sealed record CredentialOverview(CredentialType Type, string Id);
 [JsonDerivedType(typeof(OAuth2CredentialEntry), nameof(CredentialType.OAuth2))]
 public abstract record CredentialEntry(string Id);
 
-public sealed record ApiKeyCredentialEntry(string Id, string Header, string ApiKey) : CredentialEntry(Id);
-public sealed record BasicCredentialEntry(string Id, string? Username, string Password) : CredentialEntry(Id);
-public sealed record OAuth2CredentialEntry(string Id, string TokenEndpoint, string ClientId, string ClientSecret, string? Scopes) : CredentialEntry(Id);
+public sealed record ApiKeyCredentialEntry(string Id, string Header) : CredentialEntry(Id);
+public sealed record BasicCredentialEntry(string Id, string? Username) : CredentialEntry(Id);
+public sealed record OAuth2CredentialEntry(string Id, string TokenEndpoint, string ClientId, string? Scopes) : CredentialEntry(Id);
 
 public sealed record ApiKeyCredentialRequest([Required] string Header, [Required] string ApiKey);
 public sealed record BasicCredentialRequest(string? Username, [Required] string Password);
