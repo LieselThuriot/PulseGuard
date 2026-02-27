@@ -36,21 +36,12 @@ public static class ProtoPulseRoutes
 
             builder.MapGet("{id}/archived", async Task<Results<ProtoResult, NotFound>> (string id, PulseContext context, IMemoryCache cache, CancellationToken token) =>
             {
-                var results = await context.PulseAgentResults.Where(x => x.Sqid == id).OrderBy(x => x.Day).ToListAsync(token);
-
-                if (results.Count is 0)
-                {
-                    return TypedResults.NotFound();
-                }
-
                 var archivedItems = await cache.GetCached($"PulseMetrics-{id}", () => context.ArchivedPulseAgentResults.FindPartitionsAsync(id, token)
                                                                                              .Select((string x, CancellationToken ct) => context.ArchivedPulseAgentResults.GetEntityAsync(x, id, ct).AsValue())
                                                                                              .SelectMany(x => x!.Items)
                                                                                              .ToListAsync(token));
 
-                var items = archivedItems.Concat(results.SelectMany(x => x.Items));
-
-                PulseMetricsResultGroup result = new(items);
+                PulseMetricsResultGroup result = new(archivedItems);
                 return Proto.ImmutableResult(result);
             });
         }
