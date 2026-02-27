@@ -1,4 +1,5 @@
-﻿using PulseGuard.Models;
+﻿using ProtoBuf;
+using PulseGuard.Models;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -22,7 +23,7 @@ public sealed partial class PulseCheckResult
             Sqid = report.Options.Sqid,
             Group = report.Options.Group,
             Name = report.Options.Name,
-            Items = [new(report.State, creation.ToUnixTimeSeconds(), elapsedMilliseconds)]
+            Items = [new() { State = report.State, Timestamp = creation.ToUnixTimeSeconds(), ElapsedMilliseconds = elapsedMilliseconds }]
         };
     }
 
@@ -83,6 +84,7 @@ public sealed partial class PulseCheckResult
     public static string GetCurrentPartition() => DateTimeOffset.UtcNow.ToString(PartitionKeyFormat);
 }
 
+[ProtoContract]
 public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
 {
     public PulseCheckResultDetails() { }
@@ -105,8 +107,18 @@ public sealed class PulseCheckResultDetails : List<PulseCheckResultDetail>
     }
 }
 
-public sealed record PulseCheckResultDetail(PulseStates State, long Timestamp, long? ElapsedMilliseconds)
+[ProtoContract]
+public readonly struct PulseCheckResultDetail
 {
+    [ProtoMember(1)]
+    public PulseStates State { get; init; }
+
+    [ProtoMember(2)]
+    public long Timestamp { get; init; }
+
+    [ProtoMember(3)]
+    public long? ElapsedMilliseconds { get; init; }
+
     public const char Separator = ';';
 
     public string Serialize() => Serialize(State, Timestamp, ElapsedMilliseconds);
@@ -120,7 +132,7 @@ public sealed record PulseCheckResultDetail(PulseStates State, long Timestamp, l
         long creationTimestamp = long.Parse(value[..splitIdx]);
         long? elapsedMilliseconds = long.TryParse(value[(splitIdx + 1)..], out long elapsed) ? elapsed : null;
 
-        return new(state, creationTimestamp, elapsedMilliseconds);
+        return new() { State = state, Timestamp = creationTimestamp, ElapsedMilliseconds = elapsedMilliseconds };
     }
 
     public static string Serialize(PulseStates state, long timestamp, long? elapsedMilliseconds)

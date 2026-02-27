@@ -1,4 +1,5 @@
-﻿using PulseGuard.Models;
+﻿using ProtoBuf;
+using PulseGuard.Models;
 using TableStorage;
 
 namespace PulseGuard.Entities;
@@ -18,7 +19,7 @@ public sealed partial class PulseAgentCheckResult
         {
             Day = creation.ToString(PartitionKeyFormat),
             Sqid = report.Options.Sqid,
-            Items = [new(creation.ToUnixTimeSeconds(), report.CpuPercentage, report.Memory, report.InputOutput)]
+            Items = [new() { Timestamp = creation.ToUnixTimeSeconds(), Cpu = report.CpuPercentage, Memory = report.Memory, InputOutput = report.InputOutput }]
         };
     }
 
@@ -73,6 +74,7 @@ public sealed partial class PulseAgentCheckResult
     public static string GetCurrentPartition() => DateTimeOffset.UtcNow.ToString(PartitionKeyFormat);
 }
 
+[ProtoContract]
 public sealed class PulseAgentCheckResultDetails : List<PulseAgentCheckResultDetail>
 {
     public PulseAgentCheckResultDetails() { }
@@ -95,8 +97,21 @@ public sealed class PulseAgentCheckResultDetails : List<PulseAgentCheckResultDet
     }
 }
 
-public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, double? Memory, double? InputOutput)
+[ProtoContract]
+public readonly struct PulseAgentCheckResultDetail
 {
+    [ProtoMember(1)]
+    public long Timestamp { get; init; }
+
+    [ProtoMember(2)]
+    public double? Cpu { get; init; }
+
+    [ProtoMember(3)]
+    public double? Memory { get; init; }
+
+    [ProtoMember(4)]
+    public double? InputOutput { get; init; }
+
     public const char Separator = ';';
 
     public string Serialize() => Serialize(Timestamp, Cpu, Memory, InputOutput);
@@ -128,7 +143,7 @@ public sealed record PulseAgentCheckResultDetail(long Timestamp, double? Cpu, do
             headerSplitIdx++;
         }
 
-        return new(timestamp, cpu, memory, inputoutput);
+        return new() { Timestamp = timestamp, Cpu = cpu, Memory = memory, InputOutput = inputoutput };
     }
 
     public static string Serialize(long timestamp, double? cpu, double? memory, double? inputoutput)

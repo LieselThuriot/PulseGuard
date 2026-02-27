@@ -19,6 +19,6 @@ public sealed partial class ArchivedPulseAgentCheckResult
     [ProtoMember(4)]
     public partial string Name { get; set; }
 
-    [ProtoMember(5)]
+    [ProtoMember(5, DataFormat = DataFormat.Group)]
     public partial PulseAgentCheckResultDetails Items { get; set; }
 }

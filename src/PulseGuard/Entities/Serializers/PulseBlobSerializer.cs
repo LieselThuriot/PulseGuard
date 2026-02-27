@@ -13,7 +13,13 @@ public class PulseBlobSerializer : IBlobSerializer
 
     static PulseBlobSerializer()
     {
-        RuntimeTypeModel.Default.Add(typeof(DateTimeOffset), false).SetSurrogate(typeof(DateTimeOffsetSurrogate));
+        var @default = RuntimeTypeModel.Default;
+        @default.Add(typeof(DateTimeOffset), false).SetSurrogate(typeof(DateTimeOffsetSurrogate));
+
+        @default[typeof(ArchivedPulseCheckResult)].CompileInPlace();
+        @default[typeof(ArchivedPulseAgentCheckResult)].CompileInPlace();
+        @default[typeof(PulseMetricsResultGroup)].CompileInPlace();
+        @default[typeof(PulseDetailResultGroup)].CompileInPlace();
     }
 
     public async ValueTask<T?> DeserializeAsync<T>(string _, Stream entity, CancellationToken cancellationToken) where T : IBlobEntity
