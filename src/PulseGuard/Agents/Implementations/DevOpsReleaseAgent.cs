@@ -59,10 +59,10 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
         return _client.SendAsync(request, token);
     }
 
-    private async Task<DevOpsReleaseRecords?> GetRelease(string project, string team, string releaseId, IEnumerable<(string name, string values)> headers, CancellationToken token)
+    private async Task<DevOpsReleaseDeployments?> GetRelease(string project, string team, string releaseId, IEnumerable<(string name, string values)> headers, CancellationToken token)
     {
         // Requires Read access to Release
-        string releaseUrl = $"https://vsrm.dev.azure.com/{project}/{team}/_apis/release/releases?definitionId={releaseId}&queryOrder=descending&$top=5&api-version=7.1";
+        string releaseUrl = $"https://vsrm.dev.azure.com/{project}/{team}/_apis/release/deployments?definitionId={releaseId}&latestAttemptsOnly=true&queryOrder=descending&$top=5&api-version=7.1";
 
         HttpResponseMessage result = await Send(releaseUrl, headers, token);
 
@@ -72,80 +72,94 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
             return null;
         }
 
-        return await PulseSerializerContext.Default.DevOpsReleaseRecords.DeserializeAsync(result, token);
+        return await PulseSerializerContext.Default.DevOpsReleaseDeployments.DeserializeAsync(result, token);
     }
 
     private async Task HandleRelease(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string releaseId, string headers), PulseAgentConfiguration> releaseGroup, string project, string team, string releaseId, IEnumerable<(string name, string values)> headerList, CancellationToken token)
     {
-        DevOpsReleaseRecords? response = await GetRelease(project, team, releaseId, headerList, token);
+        DevOpsReleaseDeployments? response = await GetRelease(project, team, releaseId, headerList, token);
 
         if (response?.Value is null)
         {
             return;
         }
 
-        foreach (var release in response.Value.Where(x => x.CreatedOn >= window || x.ModifiedOn >= window))
+        var releases = response.GetRelevantItems().ToLookup(x => x.ReleaseEnvironment.Name, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in releaseGroup)
         {
-            try
+            foreach (var release in releases[entry.StageName])
             {
-                await HandleReleaseDetails(window, reports, releaseGroup, project, team, release.Id, headerList, token);
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorProcessingReleaseDetails(ex, project, team, releaseId, release.Id.ToString());
+                try
+                {
+                    DeploymentAgentReport? report = await HandleReleaseDetails(entry, window, release.ReleaseEnvironment, headerList, token);
+
+                    if (report is not null)
+                    {
+                        reports.Add(report);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.ErrorProcessingReleaseDetails(ex, project, team, releaseId, release.Id.ToString());
+                }
             }
         }
     }
 
-    private async Task HandleReleaseDetails(DateTimeOffset window, List<AgentReport> reports, IGrouping<(string project, string team, string releaseId, string headers), PulseAgentConfiguration> releaseGroup, string project, string team, int id, IEnumerable<(string name, string values)> headerList, CancellationToken token)
+    private async Task<DeploymentAgentReport?> HandleReleaseDetails(PulseAgentConfiguration option, DateTimeOffset window, DevOpsReleaseDeploymentEnvironment release, IEnumerable<(string name, string values)> headerList, CancellationToken token)
     {
         // Requires Read access to Release
-        string releaseDetailsUrl = $"https://vsrm.dev.azure.com/{project}/{team}/_apis/release/releases/{id}?api-version=7.1";
-        HttpResponseMessage result = await Send(releaseDetailsUrl, headerList, token);
+        HttpResponseMessage result = await Send(release.Url, headerList, token);
 
         if (!result.IsSuccessStatusCode)
         {
-            _logger.FailedToRetrieveReleaseDetails(id.ToString(), (int)result.StatusCode);
-            return;
+            _logger.FailedToRetrieveReleaseDetails(release.Url, (int)result.StatusCode);
+            return null;
         }
 
-        DevOpsReleaseDetails? details = await PulseSerializerContext.Default.DevOpsReleaseDetails.DeserializeAsync(result, token);
+        DevOpsReleaseDetailsEnvironment? details = await PulseSerializerContext.Default.DevOpsReleaseDetailsEnvironment.DeserializeAsync(result, token);
 
-        if (details is null)
+        if (details?.IsInWindow(window) != true)
         {
-            return;
+            return null;
         }
 
-        string? author = details.CreatedBy?.DisplayName;
+        (DateTimeOffset? start, DateTimeOffset? end) = details.GetRange();
 
-        var stages = details.Environments.Where(e => e.IsInWindow(window)).ToLookup(x => x.Name);
+        if (!start.HasValue)
+        {
+            return null;
+        }
 
-        var reportsToAdd = releaseGroup.SelectMany(option => stages[option.StageName]
-                                                                   .Select(x => (range: x.GetRange(), environment: x))
-                                                                   .Where(x => x.range.Start.HasValue)
-                                                                   .Select(x => new DeploymentAgentReport(option,
-                                                                                                  author,
-                                                                                                  x.environment.Status,
-                                                                                                  x.range.Start.GetValueOrDefault(),
-                                                                                                  x.range.End,
-                                                                                                  "Deployment",
-                                                                                                  null,
-                                                                                                  null
-                                                                                     )
-                                                                   )
-                                                  );
-
-        reports.AddRange(reportsToAdd);
+        return new(option,
+                   details.ReleaseCreatedBy?.DisplayName,
+                   details.Status,
+                   start.GetValueOrDefault(),
+                   end,
+                   "Deployment",
+                   null,
+                   null);
     }
 }
 
-public sealed record DevOpsReleaseRecords(IReadOnlyList<DevOpsReleaseRecord>? Value);
-public sealed record DevOpsReleaseRecord(int Id, DateTimeOffset CreatedOn, DateTimeOffset ModifiedOn);
-public sealed record DevOpsReleaseDetails(DevOpsReleaseDetailsCreatedby CreatedBy, List<DevOpsReleaseDetailsEnvironment> Environments);
-public sealed record DevOpsReleaseDetailsCreatedby(string DisplayName);
-public sealed record DevOpsReleaseDetailsEnvironment(string Name, string Status, List<DevOpsReleaseDetailsEnvironmentDeploySteps>? DeploySteps)
+// Releases
+public sealed record DevOpsReleaseDeployments(List<DevOpsReleaseDeploymentItem> Value)
 {
-    public bool IsInWindow(DateTimeOffset offset) => Status is not "cancelled" && DeploySteps?.Any(step => step.IsInWindow(offset)) == true;
+    public IEnumerable<DevOpsReleaseDeploymentItem> GetRelevantItems() => Value?.Where(x => x.IsInteresting()) ?? [];
+}
+
+public sealed record DevOpsReleaseDeploymentItem(int Id, string DeploymentStatus, DevOpsReleaseDeploymentEnvironment ReleaseEnvironment)
+{
+    public bool IsInteresting() => DeploymentStatus is not ("notDeployed" or "inProgress") && ReleaseEnvironment is not null;
+}
+
+public sealed record DevOpsReleaseDeploymentEnvironment(string Name, string Url);
+
+// Environment Details
+public sealed record DevOpsReleaseDetailsEnvironment(string Status, DevOpsReleaseEnvironmentCreatedBy ReleaseCreatedBy, List<DevOpsReleaseDetailsEnvironmentDeploySteps>? DeploySteps)
+{
+    public bool IsInWindow(DateTimeOffset offset) => Status is not ("inProgress" or "cancelled") && DeploySteps?.Any(step => step.IsInWindow(offset)) == true;
 
     public (DateTimeOffset? Start, DateTimeOffset? End) GetRange()
     {
@@ -166,16 +180,22 @@ public sealed record DevOpsReleaseDetailsEnvironment(string Name, string Status,
         return (start, end);
     }
 }
+
+public sealed record DevOpsReleaseEnvironmentCreatedBy(string DisplayName);
+
 public sealed record DevOpsReleaseDetailsEnvironmentDeploySteps(List<DevOpsReleaseDetailsEnvironmentReleaseDeployPhases>? ReleaseDeployPhases)
 {
     public bool IsInWindow(DateTimeOffset offset) => ReleaseDeployPhases?.Any(phase => phase.IsInWindow(offset)) == true;
 }
+
 public sealed record DevOpsReleaseDetailsEnvironmentReleaseDeployPhases(List<DevOpsReleaseDetailsEnvironmentDeploymentJobs>? DeploymentJobs)
 {
     public bool IsInWindow(DateTimeOffset offset) => DeploymentJobs?.Any(job => job.IsInWindow(offset)) == true;
 }
+
 public sealed record DevOpsReleaseDetailsEnvironmentDeploymentJobs(DevOpsReleaseDetailsEnvironmentDeploymentJob? Job)
 {
     public bool IsInWindow(DateTimeOffset offset) => Job is not null && Job.StartTime >= offset;
 }
+
 public sealed record DevOpsReleaseDetailsEnvironmentDeploymentJob(DateTimeOffset StartTime, DateTimeOffset? FinishTime);

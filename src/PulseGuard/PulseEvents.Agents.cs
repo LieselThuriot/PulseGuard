@@ -33,8 +33,8 @@ public static partial class PulseEvents
     [LoggerMessage(EventId = 159, Level = LogLevel.Error, Message = "Error processing release details for project {Project}, team {Team}, release ID {ReleaseId}, release {ReleaseRecordId}")]
     public static partial void ErrorProcessingReleaseDetails(this ILogger logger, Exception ex, string project, string team, string releaseId, string releaseRecordId);
 
-    [LoggerMessage(EventId = 160, Level = LogLevel.Error, Message = "Failed to retrieve release details for release ID {ReleaseId}. Status Code: {StatusCode}")]
-    public static partial void FailedToRetrieveReleaseDetails(this ILogger logger, string releaseId, int statusCode);
+    [LoggerMessage(EventId = 160, Level = LogLevel.Error, Message = "Failed to retrieve release details for release URL {ReleaseUrl}. Status Code: {StatusCode}")]
+    public static partial void FailedToRetrieveReleaseDetails(this ILogger logger, string releaseUrl, int statusCode);
 
     [LoggerMessage(EventId = 161, Level = LogLevel.Error, Message = "Error processing deployments for project {Project}, team {Team}, environment ID {EnvironmentId}")]
     public static partial void ErrorProcessingDeploymentsDevOps(this ILogger logger, Exception ex, string project, string team, string environmentId);

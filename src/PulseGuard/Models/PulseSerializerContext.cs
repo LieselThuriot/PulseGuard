@@ -65,8 +65,8 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Agents.Implementations.DeploymentMessageData))]
 [JsonSerializable(typeof(Agents.Implementations.EnvironmentDeploymentRecords))]
 [JsonSerializable(typeof(Agents.Implementations.EnvironmentDeploymentBuildRecord))]
-[JsonSerializable(typeof(Agents.Implementations.DevOpsReleaseRecords))]
-[JsonSerializable(typeof(Agents.Implementations.DevOpsReleaseDetails))]
+[JsonSerializable(typeof(Agents.Implementations.DevOpsReleaseDeployments))]
+[JsonSerializable(typeof(Agents.Implementations.DevOpsReleaseDetailsEnvironment))]
 public sealed partial class PulseSerializerContext : JsonSerializerContext;
 
 internal static class SerializerExtensions
