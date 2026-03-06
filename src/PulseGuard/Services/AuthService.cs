@@ -15,6 +15,7 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
     private readonly OAuth2CredentialsService _tokenService = tokenService;
     private readonly IMemoryCache _cache = cache;
     private readonly EncryptionService _encryptionService = encryptionService;
+
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public Task<AuthHeader?> GetAsync<T>(T configuration, CancellationToken token) where T : IHaveCredentials
@@ -43,15 +44,15 @@ public sealed class AuthService(PulseContext context, OAuth2CredentialsService t
 
         await _semaphore.WaitAsync(token);
 
-        if (_cache.TryGetValue(cacheKey, out value))
-        {
-            return value;
-        }
-
         try
         {
-            value = await GetInternalAsync(type, id, token);
-            return _cache.Set(cacheKey, value, TimeSpan.FromMinutes(1));
+            if (!_cache.TryGetValue(cacheKey, out value))
+            {
+                value = await GetInternalAsync(type, id, token);
+                _cache.Set(cacheKey, value, TimeSpan.FromMinutes(1));
+            }
+
+            return value;
         }
         finally
         {
