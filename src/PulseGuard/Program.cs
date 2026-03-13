@@ -1,3 +1,4 @@
+using Azure.Data.Tables;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using PulseGuard;
@@ -10,6 +11,7 @@ using PulseGuard.Services;
 using System.IO.Compression;
 using System.Text.Json.Serialization;
 using TableStorage;
+using TableStorage.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,5 +93,53 @@ if (!string.IsNullOrEmpty(pathBase))
 
 app.UseRouting();
 app.MapRoutes(authorized);
+
+// only once
+{
+    List<Heatmap> maps = [];
+
+    var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
+
+    await foreach (var results in context.ArchivedPulseCheckResults)
+    {
+        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
+        {
+            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
+            {
+                Sqid = results.Sqid,
+                Day = pulses.Key
+            };
+
+            foreach (var pulse in pulses)
+            {
+                heatmap.Increment(pulse.State);
+            }
+
+            maps.Add(heatmap);
+        }
+    }
+
+    await foreach (var results in context.PulseCheckResults)
+    {
+        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
+        {
+            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
+            {
+                Sqid = results.Sqid,
+                Day = pulses.Key
+            };
+
+            foreach (var pulse in pulses)
+            {
+                heatmap.Increment(pulse.State);
+            }
+
+            maps.Add(heatmap);
+        }
+    }
+
+    await context.Heatmaps.BulkUpsertAsync(maps, default);
+}
 
 app.Run();

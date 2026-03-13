@@ -31,6 +31,8 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(EmptyUserInfo))]
 [JsonSerializable(typeof(PulseDeployments))]
 [JsonSerializable(typeof(PulseDeployment))]
+[JsonSerializable(typeof(PulseHeatmaps))]
+[JsonSerializable(typeof(PulseHeatmap))]
 
 [JsonSerializable(typeof(Admin.PulseEntryType))]
 [JsonSerializable(typeof(Admin.PulseEntry))]

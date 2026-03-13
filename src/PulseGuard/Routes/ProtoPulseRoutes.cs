@@ -89,6 +89,25 @@ public static class ProtoPulseRoutes
 
                 return Proto.ImmutableResult(result);
             });
+
+            builder.MapGet("details/{id}/heatmap", async Task<Results<NotFound, ProtoResult>> (string id, PulseContext context, CancellationToken token) =>
+            {
+                var entries = await context.Heatmaps.Where(x => x.Sqid == id)
+                                           .Select(x => new PulseHeatmap(x.Day,
+                                                                         x.Unknown,
+                                                                         x.Healthy,
+                                                                         x.Degraded,
+                                                                         x.Unhealthy,
+                                                                         x.TimedOut))
+                                            .ToListAsync(token);
+
+                if (entries.Count is 0)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                return Proto.Result(new PulseHeatmaps(id, entries));
+            });
         }
     }
 

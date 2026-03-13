@@ -15,3 +15,5 @@ public sealed record PulseDetailResultGroup(string Group, string Name, IEnumerab
 public sealed record PulseMetricsResultGroup(IEnumerable<PulseAgentCheckResultDetail> Items);
 public sealed record PulseDeployments(string Id, IEnumerable<PulseDeployment> Items);
 public sealed record PulseDeployment(string Status, DateTimeOffset From, DateTimeOffset? To, string? Author, string? Type, string? CommitId, string? BuildNumber);
+public sealed record PulseHeatmaps(string Id, IEnumerable<PulseHeatmap> Items);
+public sealed record PulseHeatmap(string Day, int Unknown, int Healthy, int Degraded, int Unhealthy, int TimedOut);

@@ -74,7 +74,9 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
             await _context.Pulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
             await _context.RecentPulses.UpsertEntityAsync(pulse, TableUpdateMode.Replace, token);
+
             await TrackFailures(report, pulse, token);
+            await TrackHeatmap(pulse, token);
 
             if (webhookTask is not null)
             {
@@ -85,6 +87,20 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         {
             _logger.FailedToStorePulseReport(e, report.Options.Sqid, report.Options.Name);
         }
+    }
+
+    private async Task TrackHeatmap(Pulse pulse, CancellationToken token)
+    {
+        string day = pulse.LastUpdatedTimestamp.ToString(PulseCheckResult.PartitionKeyFormat);
+        Heatmap heatmap = await _context.Heatmaps.FindAsync(pulse.Sqid, day, token) ?? new Heatmap()
+        {
+            Sqid = pulse.Sqid,
+            Day = day
+        };
+
+        heatmap.Increment(pulse.State);
+
+        await _context.Heatmaps.UpsertEntityAsync(heatmap, TableUpdateMode.Replace, token);
     }
 
     private async Task TrackFailures(PulseReport report, Pulse pulse, CancellationToken token)
@@ -223,6 +239,26 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
                 catch (Exception innerEx)
                 {
                     _logger.FailedToCleanUpPulses(innerEx, pulse.Day, pulse.Sqid);
+                }
+
+                try
+                {
+                    Heatmap heatmap = new()
+                    {
+                        Sqid = pulse.Sqid,
+                        Day = pulse.Day
+                    };
+
+                    foreach (PulseCheckResultDetail item in pulse.Items)
+                    {
+                        heatmap.Increment(item.State);
+                    }
+
+                    await _context.Heatmaps.UpsertEntityAsync(heatmap, CancellationToken.None);
+                }
+                catch (Exception innerEx)
+                {
+                    _logger.FailedToUpdateHeatmap(innerEx, pulse.Day, pulse.Sqid);
                 }
             }
         }

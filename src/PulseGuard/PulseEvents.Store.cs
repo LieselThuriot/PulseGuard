@@ -65,4 +65,7 @@ public static partial class PulseEvents
 
     [LoggerMessage(EventId = 321, Level = LogLevel.Warning, Message = "Sqid {Sqid} already exists, generating random one. ( Attempt {attempt} )")]
     public static partial void SqidAlreadyExists(this ILogger logger, Exception ex, string sqid, int attempt);
+
+    [LoggerMessage(EventId = 322, Level = LogLevel.Error, Message = "Failed to update heatmap for sqid {Sqid} and day {Day}")]
+    public static partial void FailedToUpdateHeatmap(this ILogger logger, Exception ex, string day, string sqid);
 }

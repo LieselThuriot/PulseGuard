@@ -37,7 +37,8 @@ public sealed class ProtoResult(object value, bool immutable) : IResult, IEndpoi
         if (_immutable)
         {
             // cache until the end of the day, since these results are immutable and we want to avoid unnecessary deserialization on the client side
-            string maxAge = ((int)(DateTimeOffset.UtcNow.Date.AddDays(1) - DateTimeOffset.UtcNow).TotalSeconds).ToString();
+            DateTimeOffset utcNow = DateTimeOffset.UtcNow;
+            string maxAge = ((int)(utcNow.Date.AddDays(1) - utcNow).TotalSeconds).ToString();
             httpContext.Response.Headers.CacheControl = $"public, max-age={maxAge}, immutable";
         }
 
