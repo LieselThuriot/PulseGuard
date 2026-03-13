@@ -16,6 +16,7 @@ public static class BadgeRoutes
 
             group.MapGet("{id}", async (string id, PulseContext context, IHttpClientFactory clientFactory, HttpContext httpContext, CancellationToken token) =>
             {
+
                 UniqueIdentifier? identifier = await context.Settings.FindUniqueIdentifierAsync(id, token);
 
                 if (identifier is null)
@@ -23,21 +24,18 @@ public static class BadgeRoutes
                     return UnknownBadge();
                 }
 
-                Pulse? pulse = await context.Pulses.Where(x => x.Sqid == id)
-                                                   .SelectFields(x => new { x.State, x.CreationTimestamp })
-                                                   .FirstOrDefaultAsync(token);
-
-                if (pulse is null)
-                {
-                    return UnknownBadge();
-                }
+                PulseStates state = await context.RecentPulses.Where(x => x.Sqid == id)
+                                                 .SelectFields(x => new { x.State })
+                                                 .Take(1)
+                                                 .Select(x => x.State)
+                                                 .FirstOrDefaultAsync(token);
 
                 string name = identifier.GetFullName()
                                         .Replace("_", "__")
                                         .Replace("-", "--")
                                         .Replace(" ", "_");
 
-                string url = $"{name}-{pulse.State}-{pulse.State switch
+                string url = $"{name}-{state}-{state switch
                 {
                     PulseStates.Healthy => "04AA6D",
                     PulseStates.Degraded => "FF9800",
@@ -48,7 +46,10 @@ public static class BadgeRoutes
 
                 return Badge(url);
 
-                HttpResponseMessageResult UnknownBadge() => Badge("Pulse > Unknown > " + UnknownColor);
+                HttpResponseMessageResult UnknownBadge()
+                {
+                    return Badge("Pulse-Unknown-" + UnknownColor);
+                }
 
                 HttpResponseMessageResult Badge(string url)
                 {
