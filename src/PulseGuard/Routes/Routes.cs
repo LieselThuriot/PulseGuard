@@ -67,7 +67,7 @@ public static class Routes
 
     private static void MapViews(WebApplication app, bool authorized, IEndpointRouteBuilder routes)
     {
-        var noRedirectPaths = SearchValues.Create(["/api/", "/assets/", "/signin-oidc", "/signout-oidc"], StringComparison.OrdinalIgnoreCase);
+        var noRedirectPaths = SearchValues.Create(["/api/", "/assets/", "/img/", "/signin-oidc", "/signout-oidc"], StringComparison.OrdinalIgnoreCase);
         app.Use((context, next) =>
         {
             if (context.Request.Path.HasValue)
@@ -88,7 +88,7 @@ public static class Routes
         {
             if (route.AsSpan().ContainsAny(adminRoutesSearch))
             {
-                builder.RequireAuthorization(Infrastructure.AuthSetup.AdministratorPolicy);
+                builder.RequireAuthorization(AuthSetup.AdministratorPolicy);
             }
         },
         route => !route.AsSpan().ContainsAny(adminRoutesSearch) || authorized);

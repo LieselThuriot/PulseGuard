@@ -363,7 +363,7 @@
     console.warn("Detail Live pulse view action button not found.");
   }
 
-  var myOffcanvas = document.getElementById("live-pulse-view");
+  const myOffcanvas = document.getElementById("live-pulse-view");
   if (myOffcanvas) {
     myOffcanvas.addEventListener("hidden.bs.offcanvas", function () {
       closePulseSocket();

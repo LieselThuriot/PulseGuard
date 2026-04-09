@@ -36,7 +36,11 @@
   let filteredCredentials = [];
   let sortColumn = null; // null means use default sort
   let sortDirection = 'asc';
-  let tooltipInstances = []; // Track tooltip instances to prevent memory leaks
+  // Per-table tooltip instances — kept separate so rendering one table doesn't destroy another's tooltips
+  let configTooltipInstances = [];
+  let webhookTooltipInstances = [];
+  let userTooltipInstances = [];
+  let credentialTooltipInstances = [];
   let activeRequests = { configs: null, webhooks: null, users: null, credentials: null }; // Track active fetch requests
   let loadRetryCount = { configs: 0, webhooks: 0, users: 0, credentials: 0 }; // Track retry attempts
 
@@ -459,13 +463,14 @@
       agentConfigs.forEach(config => renderConfigRow(agentTbody, config));
     }
 
-    // Dispose old tooltips to prevent memory leaks
-    tooltipInstances.forEach(tooltip => tooltip.dispose());
-    tooltipInstances = [];
-
-    // Initialize tooltips for the newly created buttons
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // Dispose old tooltips and reinitialise scoped to config tables only
+    configTooltipInstances.forEach(tooltip => tooltip.dispose());
+    configTooltipInstances = [];
+    [pulseTbody, agentTbody].forEach(container => {
+      container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        configTooltipInstances.push(new bootstrap.Tooltip(el));
+      });
+    });
   }
 
   /**
@@ -640,13 +645,12 @@
       sortedWebhooks.forEach(webhook => renderWebhookRow(webhookTbody, webhook));
     }
 
-    // Dispose old tooltips to prevent memory leaks
-    tooltipInstances.forEach(tooltip => tooltip.dispose());
-    tooltipInstances = [];
-
-    // Initialize tooltips for the newly created buttons
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // Dispose old tooltips and reinitialise scoped to webhook table only
+    webhookTooltipInstances.forEach(tooltip => tooltip.dispose());
+    webhookTooltipInstances = [];
+    webhookTbody.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      webhookTooltipInstances.push(new bootstrap.Tooltip(el));
+    });
   }
 
   /**
@@ -780,13 +784,12 @@
       sortedUsers.forEach(user => renderUserRow(userTbody, user));
     }
 
-    // Dispose old tooltips to prevent memory leaks
-    tooltipInstances.forEach(tooltip => tooltip.dispose());
-    tooltipInstances = [];
-
-    // Initialize tooltips for the newly created buttons
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // Dispose old tooltips and reinitialise scoped to user table only
+    userTooltipInstances.forEach(tooltip => tooltip.dispose());
+    userTooltipInstances = [];
+    userTbody.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      userTooltipInstances.push(new bootstrap.Tooltip(el));
+    });
   }
 
   /**
@@ -905,13 +908,12 @@
       sortedCredentials.forEach(credential => renderCredentialRow(credentialTbody, credential));
     }
 
-    // Dispose old tooltips to prevent memory leaks
-    tooltipInstances.forEach(tooltip => tooltip.dispose());
-    tooltipInstances = [];
-
-    // Initialize tooltips for the newly created buttons
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipInstances = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // Dispose old tooltips and reinitialise scoped to credential table only
+    credentialTooltipInstances.forEach(tooltip => tooltip.dispose());
+    credentialTooltipInstances = [];
+    credentialTbody.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      credentialTooltipInstances.push(new bootstrap.Tooltip(el));
+    });
   }
 
   /**
@@ -993,15 +995,15 @@
   function getCredentialDetails(credential) {
     if (credential.tokenEndpoint) {
       // OAuth2
-      return `<strong>Client ID:</strong> ${credential.clientId}<br><strong>Endpoint:</strong> ${credential.tokenEndpoint}`;
+      return `<strong>Client ID:</strong> ${escapeHtml(credential.clientId)}<br><strong>Endpoint:</strong> ${escapeHtml(credential.tokenEndpoint)}`;
     } else if (credential.header) {
       // API Key
       const maskedApiKey = maskSecret(credential.apiKey);
-      return `<strong>Header:</strong> ${credential.header}<br><strong>Key:</strong> ${maskedApiKey}`;
+      return `<strong>Header:</strong> ${escapeHtml(credential.header)}<br><strong>Key:</strong> ${maskedApiKey}`;
     } else {
       // Basic Auth
       const maskedPassword = maskSecret(credential.password);
-      const username = credential.username ? credential.username : '<em>none</em>';
+      const username = credential.username ? escapeHtml(credential.username) : '<em>none</em>';
       return `<strong>Username:</strong> ${username}<br><strong>Password:</strong> ${maskedPassword}`;
     }
   }
@@ -1216,7 +1218,7 @@
           break;
       }
       
-      subTypeElement.innerHTML = `<i class="bi ${subTypeIcon}"></i> ${config.subType}`;
+      subTypeElement.innerHTML = `<i class="bi ${subTypeIcon}"></i> ${escapeHtml(config.subType)}`;
       subTypeElement.className = `badge ${subTypeBadge} ms-1`;
     } else {
       subTypeElement.innerHTML = '';
@@ -1265,9 +1267,9 @@
         throw new Error(text || 'Failed to delete configuration');
       }
 
-      // Remove from local data
-      configurations = configurations.filter(c => !(c.id === id && c.type === type));
-      filteredConfigurations = filteredConfigurations.filter(c => !(c.id === id && c.type === type));
+      // Remove from local data — match on id only; the local type may be a string or number
+      configurations = configurations.filter(c => c.id !== id);
+      filteredConfigurations = filteredConfigurations.filter(c => c.id !== id);
 
       // Close modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
@@ -1293,33 +1295,34 @@
    * @param {Webhook} webhook
    * @param {boolean} enabled
    */
-  function handleWebhookToggle(webhook, enabled) {
-    fetch(`../api/1.0/admin/webhooks/${webhook.id}/${enabled}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to update webhook');
-        }
-        webhook.enabled = enabled;
-        showToast(
-          'Success',
-          `Webhook ${enabled ? 'enabled' : 'disabled'} successfully`,
-          'success'
-        );
-      })
-      .catch((error) => {
-        console.error('Error updating webhook:', error);
-        showToast('Error', 'Failed to update webhook: ' + error.message, 'danger');
-        // Revert checkbox
-        const checkbox = document.getElementById(`toggle-webhook-${webhook.id}`);
-        if (checkbox) {
-          checkbox.checked = !enabled;
+  async function handleWebhookToggle(webhook, enabled) {
+    try {
+      const response = await fetch(`../api/1.0/admin/webhooks/${webhook.id}/${enabled}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update webhook');
+      }
+
+      webhook.enabled = enabled;
+      showToast(
+        'Success',
+        `Webhook ${enabled ? 'enabled' : 'disabled'} successfully`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error updating webhook:', error);
+      showToast('Error', 'Failed to update webhook: ' + error.message, 'danger');
+      // Revert checkbox
+      const checkbox = document.getElementById(`toggle-webhook-${webhook.id}`);
+      if (checkbox) {
+        checkbox.checked = !enabled;
+      }
+    }
   }
 
   /**
@@ -1493,7 +1496,7 @@
   /**
    * Handles the user delete confirmation
    */
-  function handleUserDeleteConfirm() {
+  async function handleUserDeleteConfirm() {
     const userId = document.getElementById('delete-user-id').value;
 
     // Disable the delete button
@@ -1503,48 +1506,46 @@
       deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
     }
 
-    fetch(`../api/1.0/admin/users/${encodeURIComponent(userId)}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete user');
-          });
-        }
-
-        // Remove from local data
-        users = users.filter(u => u.id !== userId);
-        filteredUsers = filteredUsers.filter(u => u.id !== userId);
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
-        modal?.hide();
-
-        // Re-render
-        renderUsers();
-        showToast('Success', 'User deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error deleting user:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(`../api/1.0/admin/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete user');
+      }
+
+      // Remove from local data
+      users = users.filter(u => u.id !== userId);
+      filteredUsers = filteredUsers.filter(u => u.id !== userId);
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+      modal?.hide();
+
+      // Re-render
+      renderUsers();
+      showToast('Success', 'User deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showToast('Error', error.message, 'danger');
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 
   /**
    * Handles the credential delete confirmation
    */
-  function handleCredentialDeleteConfirm() {
+  async function handleCredentialDeleteConfirm() {
     const credentialId = document.getElementById('delete-credential-id').value;
 
     // Disable the delete button
@@ -1570,42 +1571,40 @@
       credentialType = 'basic';
     }
 
-    fetch(`../api/1.0/admin/credentials/${credentialType}/${encodeURIComponent(credentialId)}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(text || 'Failed to delete credential');
-          });
-        }
-
-        // Remove from local data
-        credentials = credentials.filter(c => c.id !== credentialId);
-        filteredCredentials = filteredCredentials.filter(c => c.id !== credentialId);
-
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCredentialModal'));
-        modal?.hide();
-
-        // Re-render
-        renderCredentials();
-        showToast('Success', 'Credential deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error deleting credential:', error);
-        showToast('Error', error.message, 'danger');
-      })
-      .finally(() => {
-        // Re-enable the delete button
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    try {
+      const response = await fetch(`../api/1.0/admin/credentials/${credentialType}/${encodeURIComponent(credentialId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to delete credential');
+      }
+
+      // Remove from local data
+      credentials = credentials.filter(c => c.id !== credentialId);
+      filteredCredentials = filteredCredentials.filter(c => c.id !== credentialId);
+
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCredentialModal'));
+      modal?.hide();
+
+      // Re-render
+      renderCredentials();
+      showToast('Success', 'Credential deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting credential:', error);
+      showToast('Error', error.message, 'danger');
+    } finally {
+      // Re-enable the delete button
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    }
   }
 
   /**
@@ -1855,21 +1854,7 @@
     };
   }
 
-  /**
-   * Shows a toast notification
-   * @param {string} title
-   * @param {string} message
-   * @param {string} type - 'success', 'danger', 'warning', 'info'
-   */
-  function showToast(title, message, type) {
-    if (typeof bootstrap !== 'undefined' && bootstrap.showToast) {
-      bootstrap.showToast({
-        header: title,
-        body: message,
-        toastClass: `toast-${type}`
-      });
-    }
-  }
+  const showToast = AdminCommon.showToast;
 
   /**
    * Escape HTML to prevent XSS attacks
@@ -1883,17 +1868,5 @@
     return div.innerHTML;
   }
 
-  /**
-   * Debounce function to limit function execution rate
-   * @param {Function} func - Function to debounce
-   * @param {number} delay - Delay in milliseconds
-   * @returns {Function} Debounced function
-   */
-  function debounce(func, delay) {
-    let timeoutId;
-    return function (...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func.apply(this, args), delay);
-    };
-  }
+  const debounce = AdminCommon.debounce;
 })();

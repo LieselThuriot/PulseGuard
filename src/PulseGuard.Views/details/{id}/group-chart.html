@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <title>PulseGuard</title>
-    <link rel="icon" type="image/x-icon" href="../../favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito&family=Noto%20Color%20Emoji&display=swap"
           rel="stylesheet">
@@ -100,7 +100,7 @@
 <body>
     <div class="header-wrap">
         <header id="page-header">
-            <a href="../../">
+            <a href="../../../">
                 <h2>PulseGuard</h2>
             </a>
         </header>
@@ -118,7 +118,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const days = urlParams.get('days') || 14;
 
-        const sqid = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/group-chart')).split('/').pop();
+        const sqid = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/group-chart')).split('/').filter(x => !!x).pop();
 
         const container = document.getElementById('container');
 
@@ -157,7 +157,7 @@
 
         let myChart;
 
-        fetch(`../../../api/1.0/pulses/group/${sqid}/states?days=${days}`)
+        fetch(`../../../../api/1.0/pulses/group/${sqid}/states?days=${days}`)
             .then(response => response.json())
             .then(data => {
 

@@ -230,6 +230,28 @@
   /** @type {Chart|null} */
   let detailCardChart = null;
 
+  /**
+   * Shows a toast notification.
+   * @param {string} message - The message to display.
+   * @param {'success'|'danger'|'warning'|'info'} type - The toast type.
+   */
+  function showToast(message, type = 'info') {
+    bootstrap.showToast({
+      header: type === 'danger' ? "❌ PulseGuard" : type === 'success' ? "✅ PulseGuard" : "PulseGuard",
+      headerSmall: "",
+      closeButton: true,
+      closeButtonLabel: "close",
+      closeButtonClass: "",
+      animation: true,
+      delay: 5000,
+      position: "bottom-0 end-0",
+      direction: "append",
+      ariaLive: "assertive",
+      body: message,
+      toastClass: `toast-${type}`,
+    });
+  }
+
   /** @type {Chart|null} */
   let detailMetricsCpuChart = null;
 
@@ -245,8 +267,8 @@
   /** @type {string|null} */
   let currentSqid = null;
 
-  /** @type {string[]} */
-  let overlaySqids = [];
+  /** @type {string|null} */
+  let overlaySqids = null;
 
   /** @type {PulseMetricsResultGroup|null} */
   let currentMetrics = null;
@@ -675,24 +697,7 @@
         // If no archived data to fetch, handle immediately
         if (archivedDetailsPromises.length === 0 && !archivedMetricsPromise) {
           if (!regularData && !abortSignal.aborted) {
-            let toast = {
-              header: "PulseGuard",
-              headerSmall: "",
-              closeButton: true,
-              closeButtonLabel: "close",
-              closeButtonClass: "",
-              animation: true,
-              delay: 5000,
-              position: "bottom-0 end-0",
-              direction: "append",
-              ariaLive: "assertive",
-            };
-
-            toast.header = "❌ PulseGuard";
-            toast.body = "Failed to resolve details for the selected pulse.";
-            toast.toastClass = "toast-danger";
-            bootstrap.showToast(toast);
-
+            showToast("Failed to resolve details for the selected pulse.", "danger");
             resetDetails(false);
             return;
           }
@@ -731,24 +736,7 @@
             );
 
             if (!mergedData && !abortSignal.aborted) {
-              let toast = {
-                header: "PulseGuard",
-                headerSmall: "",
-                closeButton: true,
-                closeButtonLabel: "close",
-                closeButtonClass: "",
-                animation: true,
-                delay: 5000,
-                position: "bottom-0 end-0",
-                direction: "append",
-                ariaLive: "assertive",
-              };
-
-              toast.header = "❌ PulseGuard";
-              toast.body = "Failed to resolve details for the selected pulse.";
-              toast.toastClass = "toast-danger";
-              bootstrap.showToast(toast);
-
+              showToast("Failed to resolve details for the selected pulse.", "danger");
               resetDetails(false);
               return;
             }
@@ -2694,7 +2682,6 @@
   function createMetricsTimeStructures(filteredMetrics) {
     // Filter out null/undefined values and sort by timestamp
     const validMetrics = filteredMetrics
-      //.filter((x) => (x.cpu !== null && x.cpu !== undefined) || (x.memory !== null && x.memory !== undefined))
       .sort((a, b) => a.timestamp - b.timestamp);
 
     if (validMetrics.length === 0) {
@@ -2711,9 +2698,14 @@
       timeMap.set(itemTime.getTime(), item);
     });
 
-    // Calculate min/max timestamps from the map keys
-    const minTimestamp = Math.min(...timeMap.keys());
-    const maxTimestamp = Math.max(...timeMap.keys());
+    // Calculate min/max timestamps from the map keys — use an explicit loop to
+    // avoid stack overflow when spreading a large iterator into Math.min/max.
+    let minTimestamp = Infinity;
+    let maxTimestamp = -Infinity;
+    for (const key of timeMap.keys()) {
+      if (key < minTimestamp) minTimestamp = key;
+      if (key > maxTimestamp) maxTimestamp = key;
+    }
 
     // Build labels array like renderChart does
     const labels = [];

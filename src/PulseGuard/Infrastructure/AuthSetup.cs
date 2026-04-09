@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using PulseGuard.Entities;
 using System.Security.Claims;
+using TableStorage;
 
 namespace PulseGuard.Infrastructure;
 
@@ -124,20 +125,30 @@ internal static class AuthSetup
                                     PulseContext db = ctx.HttpContext.RequestServices.GetRequiredService<PulseContext>();
                                     User? user = await db.Settings.FindUserAsync(identity.Name);
 
-                                    if (user is not null)
+                                    if (user is null)
+                                    {
+                                        if (!upsertUnknownUsers)
+                                        {
+                                            return;
+                                        }
+
+                                        string? firstname = identity.FindFirst("firstname")?.Value;
+                                        string? lastname = identity.FindFirst("lastname")?.Value;
+                                        string nickname = $"{firstname} {lastname}".Trim();
+
+                                        user = new()
+                                        {
+                                            UserId = identity.Name,
+                                            Nickname = nickname.Length is 0 ? null : nickname,
+                                        };
+                                    }
+                                    else
                                     {
                                         identity.AddClaims(user.GetRoles().Select(r => new Claim(identity.RoleClaimType, r)));
                                     }
 
-                                    if (user is not null || upsertUnknownUsers)
-                                    {
-                                        await db.Settings.UpsertEntityAsync(new User
-                                        {
-                                            UserId = identity.Name,
-                                            LastVisited = DateTimeOffset.UtcNow
-                                        },
-                                        Azure.Data.Tables.TableUpdateMode.Merge);
-                                    }
+                                    user.LastVisited = DateTimeOffset.UtcNow;
+                                    await db.Settings.UpsertEntityAsync(user, Azure.Data.Tables.TableUpdateMode.Merge);
                                 }
                             }
 

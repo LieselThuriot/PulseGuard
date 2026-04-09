@@ -23,7 +23,6 @@
     pulseComparison: document.getElementById('pulse-comparison'),
     pulseComparisonGroup: document.getElementById('pulse-comparison-group'),
     pulseEnabled: document.getElementById('pulse-enabled'),
-    pulseFlakyDetection: document.getElementById('pulse-flaky-detection'),
     pulseHeadersContainer: document.getElementById('pulse-headers-container'),
     addPulseHeaderBtn: document.getElementById('add-pulse-header'),
     headerDeleteBtn: document.getElementById('header-delete-btn'),

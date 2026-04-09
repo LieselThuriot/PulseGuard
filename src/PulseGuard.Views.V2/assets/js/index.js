@@ -49,8 +49,7 @@
         throw new Error("Network response was not ok " + response.statusText);
       }
       /** @type {PulseGroup[]} */
-      const data = response.json();
-      return data;
+      return response.json();
     })
     .then((data) => {
       handleData(data);
@@ -243,8 +242,9 @@
             const from = new Date(pulse.from);
             const to = new Date(pulse.to);
 
-            // Clamp the from date to not be earlier than 12 hours ago
-            const clampedFrom = from < twelveHoursAgo ? twelveHoursAgo : from;
+            // Clamp the from date to not be earlier than 12 hours ago.
+            // Create a new Date so we don't mutate the shared twelveHoursAgo reference.
+            const clampedFrom = from < twelveHoursAgo ? new Date(twelveHoursAgo) : from;
             clampedFrom.setSeconds(0, 0);
             to.setSeconds(0, 0);
             const duration = to - clampedFrom;
@@ -355,11 +355,6 @@
         liveEventsIcon.setAttribute("data-live-pulse-type", "group");
         liveEventsIcon.setAttribute("data-live-pulses", text);
       }
-
-      liveEventsIcon.setAttribute(
-        "data-live-pulse-type",
-        !("group" in item) ? "pulse" : "group"
-      );
       new bootstrap.Tooltip(liveEventsIcon);
       liveDiv.appendChild(liveEventsIcon);
       a.appendChild(liveDiv);
@@ -514,7 +509,7 @@
     }
 
     if (!!itemToShow) {
-      showDetails(itemToShow, groupToShow.group);
+      showDetails(itemToShow, groupToShow?.group);
     }
   }
 

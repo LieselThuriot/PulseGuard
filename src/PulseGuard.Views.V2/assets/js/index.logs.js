@@ -160,32 +160,33 @@
           icon.className = "bi bi-exclamation-triangle-fill";
           icon.setAttribute("role", "button");
           icon.addEventListener("click", () => {
-            let toast = {
-              header: "PulseGuard",
-              headerSmall: "",
-              closeButton: true,
-              closeButtonLabel: "close",
-              closeButtonClass: "",
-              animation: true,
-              delay: 5000,
-              position: "bottom-0 end-0",
-              direction: "append",
-              ariaLive: "assertive",
-            };
-
             navigator.clipboard
               .writeText(item.error)
               .then(() => {
-                toast.header = "✅ PulseGuard";
-                toast.body = "Error message copied to clipboard";
-                toast.toastClass = "toast-success";
-                bootstrap.showToast(toast);
+                bootstrap.showToast({
+                  header: "✅ PulseGuard",
+                  closeButton: true,
+                  animation: true,
+                  delay: 5000,
+                  position: "bottom-0 end-0",
+                  direction: "append",
+                  ariaLive: "assertive",
+                  body: "Error message copied to clipboard",
+                  toastClass: "toast-success",
+                });
               })
               .catch((err) => {
-                toast.header = "❌ PulseGuard";
-                toast.body = "Failed to copy error message";
-                toast.toastClass = "toast-danger";
-                bootstrap.showToast(toast);
+                bootstrap.showToast({
+                  header: "❌ PulseGuard",
+                  closeButton: true,
+                  animation: true,
+                  delay: 5000,
+                  position: "bottom-0 end-0",
+                  direction: "append",
+                  ariaLive: "assertive",
+                  body: "Failed to copy error message",
+                  toastClass: "toast-danger",
+                });
                 console.error("Failed to copy error message: ", err);
               });
           });

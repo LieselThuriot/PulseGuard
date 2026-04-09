@@ -778,8 +778,7 @@
 
     // Display volatility table
     const tbody = document.getElementById('forecast-volatility-body');
-    tbody.innerHTML = '';
-    data.states.forEach(state => {
+    tbody.innerHTML = data.states.map(state => {
       const histVol = data.historicalVolatility[state] || 0;
       const foreVol = data.forecastVolatility[state] || 0;
       
@@ -793,7 +792,7 @@
         changeText = `${changeIcon} ${Math.abs(change).toFixed(1)}%`;
       }
       
-      tbody.innerHTML += `
+      return `
         <tr>
           <td><span class="badge" style="background-color: ${STATE_COLORS[state]}">${state}</span></td>
           <td>${histVol.toFixed(2)}</td>
@@ -801,7 +800,7 @@
           <td class="${changeClass}">${changeText}</td>
         </tr>
       `;
-    });
+    }).join('');
   }
 
   // ====== EVENT HANDLERS ======
