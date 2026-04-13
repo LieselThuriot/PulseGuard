@@ -129,6 +129,7 @@ internal static class AuthSetup
                                     {
                                         if (!upsertUnknownUsers)
                                         {
+                                            ctx.Fail("User does not exist.");
                                             return;
                                         }
 
