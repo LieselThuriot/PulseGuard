@@ -243,17 +243,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
                 try
                 {
-                    Heatmap heatmap = new()
-                    {
-                        Sqid = pulse.Sqid,
-                        Day = pulse.Day
-                    };
-
-                    foreach (PulseCheckResultDetail item in pulse.Items)
-                    {
-                        heatmap.Increment(item.State);
-                    }
-
+                    var heatmap = Heatmap.From(pulse);
                     await _context.Heatmaps.UpsertEntityAsync(heatmap, CancellationToken.None);
                 }
                 catch (Exception innerEx)

@@ -40,4 +40,25 @@ public sealed partial class Heatmap
                 break;
         }
     }
+
+    public static Heatmap From(PulseCheckResult pulse)
+    {
+        var counter = pulse.Items.CountBy(x => x.State).ToList();
+
+        int GetValueOrDefault(PulseStates key)
+        {
+            return counter.FirstOrDefault(x => x.Key == key).Value;
+        }
+
+        return new()
+        {
+            Sqid = pulse.Sqid,
+            Day = pulse.Day,
+            Unknown = GetValueOrDefault(PulseStates.Unknown),
+            Healthy = GetValueOrDefault(PulseStates.Healthy),
+            Degraded = GetValueOrDefault(PulseStates.Degraded),
+            Unhealthy = GetValueOrDefault(PulseStates.Unhealthy),
+            TimedOut = GetValueOrDefault(PulseStates.TimedOut),
+        };
+    }
 }

@@ -156,20 +156,20 @@
                                         <i class="bi bi-arrow-right text-secondary-emphasis"></i>
                                     </button>
 
-                                    <ul class="dropdown-menu">
-                                        <li><a id="detail-card-filter-0-5" class="dropdown-item" href="#">Last 12 hours</a></li>
-                                        <li><a id="detail-card-filter-1" class="dropdown-item" href="#">Last 24 hours</a></li>
-                                        <li><a id="detail-card-filter-2" class="dropdown-item" href="#">Last 48 hours</a></li>
-                                        <li><a id="detail-card-filter-7" class="dropdown-item" href="#">Last week</a></li>
-                                        <li><a id="detail-card-filter-14" class="dropdown-item" href="#">Last 2 weeks</a></li>
-                                        <li><a id="detail-card-filter-30" class="dropdown-item" href="#">Last 30 days</a></li>
-                                        <li><a id="detail-card-filter-90" class="dropdown-item" href="#">Last 90 days</a></li>
+                                    <ul id="detail-card-filter-items" class="dropdown-menu">
+                                        <li><a data-days="0.5" class="dropdown-item" href="#">Last 12 hours</a></li>
+                                        <li><a data-days="1" class="dropdown-item" href="#">Last 24 hours</a></li>
+                                        <li><a data-days="2" class="dropdown-item" href="#">Last 48 hours</a></li>
+                                        <li><a data-days="7" class="dropdown-item" href="#">Last week</a></li>
+                                        <li><a data-days="14" class="dropdown-item" href="#">Last 2 weeks</a></li>
+                                        <li><a data-days="30" class="dropdown-item" href="#">Last 30 days</a></li>
+                                        <li><a data-days="90" class="dropdown-item" href="#">Last 90 days</a></li>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
-                                        <li><a id="detail-card-filter-all" class="dropdown-item" href="#">All Pulses</a></li>
+                                        <li><a data-days="today" class="dropdown-item" href="#">Today</a></li>
+                                        <li><a data-days="all" class="dropdown-item" href="#">All Pulses</a></li>
                                     </ul>
-
 
                                     <input id="detail-card-chart-to" class="form-control" type="datetime-local" disabled />
                                 </div>

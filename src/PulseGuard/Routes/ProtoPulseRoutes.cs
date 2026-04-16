@@ -90,9 +90,11 @@ public static class ProtoPulseRoutes
                 return Proto.ImmutableResult(result);
             });
 
-            builder.MapGet("details/{id}/heatmap", async Task<Results<NotFound, ProtoResult>> (string id, PulseContext context, CancellationToken token) =>
+            builder.MapGet("heatmap/{id}", async Task<Results<NotFound, ProtoResult>> (string id, PulseContext context, CancellationToken token) =>
             {
                 var entries = await context.Heatmaps.Where(x => x.Sqid == id)
+                                           .OrderBy(x => x.Day)
+                                           .TakeLast(370)
                                            .Select(x => new PulseHeatmap(x.Day,
                                                                          x.Unknown,
                                                                          x.Healthy,

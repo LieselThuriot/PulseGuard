@@ -227,6 +227,96 @@
     }
   }
 
+  /**
+   * PulseHeatmap message: Represents a single day's aggregated heatmap entry
+   * @typedef {Object} PulseHeatmap
+   * @property {string} day
+   * @property {number} unknown
+   * @property {number} healthy
+   * @property {number} degraded
+   * @property {number} unhealthy
+   * @property {number} timedOut
+   */
+  class PulseHeatmap {
+    constructor() {
+      this.day = "";
+      this.unknown = 0;
+      this.healthy = 0;
+      this.degraded = 0;
+      this.unhealthy = 0;
+      this.timedOut = 0;
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseHeatmap();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.day = reader.string();
+            break;
+          case 2:
+            message.unknown = reader.int32();
+            break;
+          case 3:
+            message.healthy = reader.int32();
+            break;
+          case 4:
+            message.degraded = reader.int32();
+            break;
+          case 5:
+            message.unhealthy = reader.int32();
+            break;
+          case 6:
+            message.timedOut = reader.int32();
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
+  /**
+   * PulseHeatmaps message: Represents a collection of heatmap entries
+   * @typedef {Object} PulseHeatmaps
+   * @property {string} id
+   * @property {PulseHeatmap[]} items
+   */
+  class PulseHeatmaps {
+    constructor() {
+      this.id = "";
+      this.items = [];
+    }
+    static decode(reader, length) {
+      if (!(reader instanceof protobuf.Reader))
+        reader = protobuf.Reader.create(reader);
+      let end = length === undefined ? reader.len : reader.pos + length;
+      let message = new PulseHeatmaps();
+      while (reader.pos < end) {
+        let tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.id = reader.string();
+            break;
+          case 2:
+            message.items.push(
+              PulseHeatmap.decode(reader, reader.uint32())
+            );
+            break;
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+      return message;
+    }
+  }
+
   /** @type {Chart|null} */
   let detailCardChart = null;
 
@@ -278,6 +368,9 @@
 
   /** @type {AbortController|null} */
   let fetchAbortController;
+
+  /** @type {boolean} */
+  let archivedFetched = false;
 
   /**
    * Handles changes to the query parameters in the URL.
@@ -391,70 +484,60 @@
       };
     }
 
+    function setTodayRange()
     {
-      const { fromDate, toDate } = getRangeForDays(1);
-      fromSelect.value = fromDate;
-      toSelect.value = toDate;
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const midnightUtc = new Date(now);
+      midnightUtc.setUTCHours(0, 0, 0, 0);
+      fromSelect.value = `${midnightUtc.getFullYear()}-${pad(midnightUtc.getMonth() + 1)}-${pad(midnightUtc.getDate())}T${pad(midnightUtc.getHours())}:${pad(midnightUtc.getMinutes())}`;
+      
+      const endUtc = new Date(midnightUtc.getTime() + 24 * 60 * 60 * 1000);
+      toSelect.value = `${endUtc.getFullYear()}-${pad(endUtc.getMonth() + 1)}-${pad(endUtc.getDate())}T${pad(endUtc.getHours())}:${pad(endUtc.getMinutes())}`;
     }
 
-    [
-      { id: "detail-card-filter-0-5", days: 0.5 },
-      { id: "detail-card-filter-1", days: 1 },
-      { id: "detail-card-filter-2", days: 2 },
-      { id: "detail-card-filter-7", days: 7 },
-      { id: "detail-card-filter-14", days: 14 },
-      { id: "detail-card-filter-30", days: 30 },
-      { id: "detail-card-filter-90", days: 90 },
-      { id: "detail-card-filter-all", days: null },
-    ].forEach(({ id, days }) => {
-      const button = document.getElementById(id);
-      if (!button) {
-        console.error(`Error getting button with id ${id}`);
-        return;
-      }
+    setTodayRange();
 
-      button.addEventListener("click", () => {
-        if (days) {
+    const filterContainer = document.getElementById("detail-card-filter-items");
+    if (filterContainer) {
+      filterContainer.addEventListener("click", (event) => {
+        const button = event.target.closest(".dropdown-item[data-days]");
+        if (!button) return;
+
+        event.preventDefault();
+
+        const daysAttr = button.getAttribute("data-days");
+        const days = daysAttr === "today" ? "today" : daysAttr === "all" ? null : parseFloat(daysAttr);
+
+        if (days === "today") {
+          setTodayRange();
+        } else if (days) {
           const { fromDate, toDate } = getRangeForDays(days);
-
-          const urlParams = new URLSearchParams(window.location.search);
-
-          if (fromSelect) {
-            fromSelect.value = fromDate;
-            urlParams.set("from", fromSelect.value);
-          } else {
-            urlParams.delete("from");
-          }
-
-          if (toSelect) {
-            toSelect.value = toDate;
-            urlParams.set("to", toSelect.value);
-          } else {
-            urlParams.delete("to");
-          }
-
-          const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-          window.history.pushState({}, "", newUrl);
+          if (fromSelect) fromSelect.value = fromDate;
+          if (toSelect) toSelect.value = toDate;
         } else {
-          if (fromSelect) {
-            fromSelect.value = "";
-          }
-          if (toSelect) {
-            toSelect.value = "";
-          }
-
-          const urlParams = new URLSearchParams(window.location.search);
-          urlParams.delete("from");
-          urlParams.delete("to");
-          const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-          window.history.pushState({}, "", newUrl);
+          if (fromSelect) fromSelect.value = "";
+          if (toSelect) toSelect.value = "";
         }
 
-        if (!!renderChartListener) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (fromSelect?.value) {
+          urlParams.set("from", fromSelect.value);
+        } else {
+          urlParams.delete("from");
+        }
+        if (toSelect?.value) {
+          urlParams.set("to", toSelect.value);
+        } else {
+          urlParams.delete("to");
+        }
+        window.history.pushState({}, "", `${window.location.pathname}?${urlParams.toString()}`);
+
+        if (renderChartListener) {
           renderChartListener();
         }
       });
-    });
+    }
   })();
 
   /**
@@ -583,11 +666,32 @@
         return null;
       });
 
+    const heatmapPromise = fetch(`api/1.0/pulses/heatmap/${sqid}`, {
+      method: "get",
+      signal: abortSignal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
+        }
+        const buffer = await response.arrayBuffer();
+        const view = new Uint8Array(buffer);
+        /** @type {PulseHeatmaps} */
+        return PulseHeatmaps.decode(view);
+      })
+      .catch((error) => {
+        if (!(error && error.name === "AbortError")) {
+          // console.warn("Failed to fetch heatmap for", sqid, error);
+        }
+        return null;
+      });
+
     // First, fetch all regular data
     Promise.all([
       ...promises,
       metricsPromise,
       deploymentsPromise,
+      heatmapPromise,
     ])
       .then((regularResults) => {
         // Calculate the count of sqids (main + overlays)
@@ -606,15 +710,25 @@
         /** @type {PulseDeployment[]|null} */
         const deployments = deploymentsResponse?.items || null;
 
+        /** @type {PulseHeatmaps|null} */
+        const heatmapData = regularResults[sqidCount + 2];
+
         /** @type {PulseDetailResultGroup[]} */
         const regularOverlays = regularResults.slice(1, sqidCount);
 
-        // Only fetch archived if there are items
+        // Skip archived fetches if the selected "from" date starts at or after midnight UTC today
+        const { fromSelect: currentFromSelect } = getDetailCardElements();
+        const fromValue = currentFromSelect?.value ? Date.parse(currentFromSelect.value) : null;
+        const midnightUtc = new Date();
+        midnightUtc.setUTCHours(0, 0, 0, 0);
+        const skipArchived = fromValue !== null && !isNaN(fromValue) && fromValue >= midnightUtc.getTime();
+
+        // Only fetch archived if there are items and the date range requires it
         const archivedDetailsPromises = [];
         const archivedIndexMap = {}; // Maps archive promise index to sqid index
 
         // Add archived main data fetch if it has items
-        if (regularData?.items?.length > 0) {
+        if (!skipArchived && regularData?.items?.length > 0) {
           archivedIndexMap[archivedDetailsPromises.length] = 0;
           archivedDetailsPromises.push(
             fetch(`api/1.0/pulses/details/${sqid}/archived`, {
@@ -642,7 +756,7 @@
 
         // Add archived overlay fetches if they have items
         regularOverlays.forEach((overlay, overlayIndex) => {
-          if (overlay?.items?.length > 0) {
+          if (!skipArchived && overlay?.items?.length > 0) {
             const overlayId = [...uniqueSqidOverlays][overlayIndex];
             archivedIndexMap[archivedDetailsPromises.length] = overlayIndex + 1;
             archivedDetailsPromises.push(
@@ -672,7 +786,7 @@
 
         // Add archived metrics fetch if it has items
         let archivedMetricsPromise = null;
-        if (regularMetrics?.items?.length > 0) {
+        if (!skipArchived && regularMetrics?.items?.length > 0) {
           archivedMetricsPromise = fetch(`api/1.0/metrics/${sqid}/archived`, {
             method: "get",
             signal: abortSignal,
@@ -703,7 +817,8 @@
           }
 
           const overlayData = (regularOverlays || []).filter((o) => o !== null);
-          handleData(regularData, overlayData, regularMetrics, deployments);
+          archivedFetched = !skipArchived;
+          handleData(regularData, overlayData, regularMetrics, deployments, heatmapData);
           return;
         }
 
@@ -742,7 +857,8 @@
             }
 
             const overlayData = (mergedOverlays || []).filter((o) => o !== null);
-            handleData(mergedData, overlayData, mergedMetrics, deployments);
+            archivedFetched = true;
+            handleData(mergedData, overlayData, mergedMetrics, deployments, heatmapData);
           })
           .finally(() => {
             fetchAbortController = null;
@@ -825,8 +941,9 @@
    * @param {PulseDetailResultGroup[]} overlays - The data to handle.
    * @param {PulseMetricsResultGroup | null} metrics - The metrics for the current data.
    * @param {PulseDeployment[] | null} deployments - The deployments for the current data.
+   * @param {PulseHeatmaps | null} heatmapData - The pre-aggregated heatmap data from the API.
    */
-  function handleData(data, overlays, metrics, deployments) {
+  function handleData(data, overlays, metrics, deployments, heatmapData) {
     currentMetrics = metrics;
     currentDeployments = deployments;
 
@@ -845,6 +962,27 @@
     const updateChart = function () {
       destroyAllCharts();
 
+      // If the date range now extends before midnight UTC and we haven't fetched archived data yet, re-fetch
+      if (!archivedFetched && currentSqid) {
+        const fromStr = detailCardElements.fromSelect?.value || null;
+        if (fromStr) {
+          const fromMs = Date.parse(fromStr);
+          const midnight = new Date();
+          midnight.setUTCHours(0, 0, 0, 0);
+          if (!isNaN(fromMs) && fromMs < midnight.getTime()) {
+            const urlParams = new URLSearchParams(window.location.search);
+            refreshData(currentSqid, urlParams.getAll("overlay"));
+            return;
+          }
+        } else {
+          // No from value means "all" — need archived
+          const urlParams = new URLSearchParams(window.location.search);
+          refreshData(currentSqid, urlParams.getAll("overlay"));
+          return;
+        }
+      }
+
+      
       const filteredData = filterDataByDateRange(
         data.items,
         detailCardElements.fromSelect,
@@ -933,7 +1071,7 @@
     updateChart();
 
     setBadge(detailCardElements.badge, data.items);
-    renderHeatMap(detailCardElements.heatmap, data.items);
+    renderHeatMap(detailCardElements.heatmap, heatmapData);
 
     toggleSpinner(detailCardElements.spinner, false);
     toggleSpinner(detailCardElements.heatmapSpinner, false);
@@ -947,7 +1085,7 @@
    * Tooltips and click events allow users to inspect and filter data for specific days.
    *
    * @param {HTMLElement} heatmapContainer - The DOM element where the heatmap will be rendered.
-   * @param {Array<PulseDetailResult>} data - Array of PulseDetailResult objects, each representing a measurement or event.
+   * @param {PulseHeatmaps|null} data - Pre-aggregated heatmap data from the API.
    */
   function renderHeatMap(heatmapContainer, data) {
     heatmapContainer.innerHTML = "";
@@ -975,25 +1113,29 @@
     }
 
     /**
-     * Groups an array of data objects by day based on their Unix timestamp.
+     * Converts API day format (yyyyMMdd) to ISO day key (YYYY-MM-DD).
      *
-     * @param {Array<PulseDetailResult>} data - The array of data objects, each containing a `timestamp` property (in seconds).
-     * @returns {Object} An object where each key is a day identifier (as returned by `getDayKey(date)`), and the value is an array of data objects for that day.
+     * @param {string} apiDay - The day string in yyyyMMdd format.
+     * @returns {string} The formatted date string in 'YYYY-MM-DD' format.
      */
-    function groupDataByDay(data) {
+    function apiDayToDayKey(apiDay) {
+      return `${apiDay.slice(0, 4)}-${apiDay.slice(4, 6)}-${apiDay.slice(6, 8)}`;
+    }
+
+    /**
+     * Builds a lookup from ISO day key to PulseHeatmap entry from the API data.
+     *
+     * @param {PulseHeatmaps|null} data - The heatmap API response.
+     * @returns {Object<string, PulseHeatmap>} Map of day key to heatmap entry.
+     */
+    function buildDayBuckets(data) {
       const buckets = {};
-      data.forEach((item) => {
-        const date = new Date(item.timestamp * 1000);
-        date.setUTCFullYear(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate()
-        );
-        date.setUTCHours(0, 0, 0, 0);
-        const key = getDayKey(date);
-        if (!buckets[key]) buckets[key] = [];
-        buckets[key].push(item);
-      });
+      if (data && data.items) {
+        data.items.forEach((item) => {
+          const key = apiDayToDayKey(item.day);
+          buckets[key] = item;
+        });
+      }
       return buckets;
     }
 
@@ -1051,18 +1193,18 @@
     }
 
     /**
-     * Calculates the overall state, statistics, and intensity for a given array of items representing day states.
+     * Calculates the overall state, statistics, and intensity for a given heatmap entry.
      *
-     * @param {Array<PulseDetailResult>} items - The array of items, each with a `state` property (one of "Healthy", "Degraded", "Unhealthy", "TimedOut", "Unknown") and an optional `elapsedMilliseconds` property.
+     * @param {PulseHeatmap|undefined} entry - The heatmap entry with aggregated counts.
      * @param {string} dayKey - The day key to check for deployments.
-     * @returns {PulseDetailResult} A PulseDetailResult
+     * @returns {{state: string, stats: string, intensity: number, hasDeployment: boolean}}
      */
-    function getDayStateAndStats(items, dayKey) {
+    function getDayStateAndStats(entry, dayKey) {
       // Check deployment status first - independent of whether there are items
       const deploymentCount = deploymentsByDay[dayKey] || 0;
       const hasDeployment = deploymentCount > 0;
       
-      if (!items || items.length === 0) {
+      if (!entry) {
         const lines = ["No data"];
         if (hasDeployment) {
           lines.push(`Deployed: ${deploymentCount} time${deploymentCount > 1 ? 's' : ''}`);
@@ -1070,23 +1212,25 @@
         return { state: "Unknown", stats: lines.join("<br>"), intensity: 1, hasDeployment };
       }
       const counts = {
-        Healthy: 0,
-        Degraded: 0,
-        Unhealthy: 0,
-        TimedOut: 0,
-        Unknown: 0,
+        Healthy: entry.healthy || 0,
+        Degraded: entry.degraded || 0,
+        Unhealthy: entry.unhealthy || 0,
+        TimedOut: entry.timedOut || 0,
+        Unknown: entry.unknown || 0,
       };
-      let sum = 0;
-      for (const x of items) {
-        counts[x.state] = (counts[x.state] || 0) + 1;
-        sum += x.elapsedMilliseconds || 0;
+      const total = counts.Healthy + counts.Degraded + counts.Unhealthy + counts.TimedOut + counts.Unknown;
+      if (total === 0) {
+        const lines = ["No data"];
+        if (hasDeployment) {
+          lines.push(`Deployed: ${deploymentCount} time${deploymentCount > 1 ? 's' : ''}`);
+        }
+        return { state: "Unknown", stats: lines.join("<br>"), intensity: 1, hasDeployment };
       }
-      const total = items.length;
       let state = "Degraded";
       let intensity = 0.5;
-      const timedOutPct = (counts["TimedOut"] || 0) / total;
-      const unhealthyPct = (counts["Unhealthy"] || 0) / total;
-      const healthyPct = (counts["Healthy"] || 0) / total;
+      const timedOutPct = counts.TimedOut / total;
+      const unhealthyPct = counts.Unhealthy / total;
+      const healthyPct = counts.Healthy / total;
       if (unhealthyPct >= timedOutPct && unhealthyPct >= 0.02) {
         state = "Unhealthy";
         intensity = 0.33 + 0.67 * ((unhealthyPct - 0.02) / 0.13);
@@ -1097,7 +1241,7 @@
         state = "Healthy";
         intensity = 0.33 + 0.67 * ((healthyPct - 0.98) / 0.02);
       } else {
-        intensity = 0.33 + 0.67 * ((counts[state] || 0) / total);
+        intensity = 0.33 + 0.67 * (counts[state] / total);
       }
       intensity = Math.max(0.33, Math.min(1, intensity));
       const lines = [];
@@ -1114,7 +1258,6 @@
           );
         }
       }
-      lines.push(`Avg: ${total ? (sum / total).toFixed(2) : "?"}ms`);
       
       // Add deployment info if available
       if (hasDeployment) {
@@ -1146,7 +1289,7 @@
     }
 
     // --- Data Preparation ---
-    const dayBuckets = groupDataByDay(data);
+    const dayBuckets = buildDayBuckets(data);
     const { startDate, today } = getHeatmapRange();
     const days = buildDaysArray(startDate, today);
     const weeks = buildWeeks(days);
