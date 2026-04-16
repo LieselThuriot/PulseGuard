@@ -1,0 +1,80 @@
+<div class="container-fluid my-3">
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0"><i class="bi bi-robot"></i> {{ isCreate() ? 'Create Agent Check' : 'Edit Agent Check' }}</h2>
+      <a routerLink="/admin" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+    <div class="card-body">
+      @if (loading()) {
+        <app-loading-spinner />
+      } @else {
+        <form (ngSubmit)="save()">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="group" class="form-label">Group</label>
+              <input type="text" class="form-control" id="group" [ngModel]="config().group" (ngModelChange)="updateField('group', $event)" name="group" />
+            </div>
+            <div class="col-md-6">
+              <label for="name" class="form-label">Name</label>
+              <input type="text" class="form-control" id="name" [ngModel]="config().name" (ngModelChange)="updateField('name', $event)" name="name" required />
+            </div>
+            <div class="col-md-6">
+              <label for="type" class="form-label">Type</label>
+              <select class="form-select" id="type" [ngModel]="config().type" (ngModelChange)="updateField('type', $event)" name="type">
+                @for (t of agentCheckTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" [ngModel]="config().location" (ngModelChange)="updateField('location', $event)" name="location" />
+            </div>
+            <div class="col-md-6">
+              <label for="applicationName" class="form-label">Application Name</label>
+              <input type="text" class="form-control" id="applicationName" [ngModel]="config().applicationName" (ngModelChange)="updateField('applicationName', $event)" name="applicationName" />
+            </div>
+            <div class="col-md-6">
+              <label for="subscriptionId" class="form-label">Subscription ID</label>
+              <input type="text" class="form-control" id="subscriptionId" [ngModel]="config().subscriptionId" (ngModelChange)="updateField('subscriptionId', $event)" name="subscriptionId" />
+            </div>
+            <div class="col-md-4">
+              <label for="buildDefinitionId" class="form-label">Build Definition ID</label>
+              <input type="number" class="form-control" id="buildDefinitionId" [ngModel]="config().buildDefinitionId" (ngModelChange)="updateField('buildDefinitionId', $event)" name="buildDefinitionId" />
+            </div>
+            <div class="col-md-4">
+              <label for="stageName" class="form-label">Stage Name</label>
+              <input type="text" class="form-control" id="stageName" [ngModel]="config().stageName" (ngModelChange)="updateField('stageName', $event)" name="stageName" />
+            </div>
+            <div class="col-md-4">
+              <label for="authenticationId" class="form-label">Credential</label>
+              <select class="form-select" id="authenticationId" [ngModel]="config().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
+                <option value="">None</option>
+                @for (cred of credentials(); track cred.id) {
+                  <option [value]="cred.id">{{ cred.name }} ({{ cred.type }})</option>
+                }
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="headers" class="form-label">Headers (JSON)</label>
+              <textarea class="form-control" id="headers" rows="3" [ngModel]="config().headers" (ngModelChange)="updateField('headers', $event)" name="headers"></textarea>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enabled" [ngModel]="config().isEnabled" (ngModelChange)="updateField('isEnabled', $event)" name="enabled" />
+                <label class="form-check-label" for="enabled">Enabled</label>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              @if (saving()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+              {{ isCreate() ? 'Create' : 'Save' }}
+            </button>
+            <a routerLink="/admin" class="btn btn-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

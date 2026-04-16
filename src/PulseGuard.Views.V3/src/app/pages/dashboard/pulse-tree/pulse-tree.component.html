@@ -1,0 +1,55 @@
+<div class="card shadow-sm">
+  <div class="card-header d-none d-lg-block">
+    <div class="d-flex flex-row justify-content-between">
+      <div><i class="bi bi-layers"></i> Overview</div>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary py-0"
+                (click)="pulseService.toggleFilter()">
+          @if (pulseService.filterUnhealthy()) {
+            <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy
+          } @else {
+            <i class="bi bi-list-check me-1"></i>All
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body p-0" style="max-height: calc(100vh - 10rem); overflow: auto">
+    @if (pulseService.loading()) {
+      <app-loading-spinner />
+    } @else {
+      <div class="list-group list-group-flush">
+        @for (group of filteredGroups(); track group.group) {
+          <!-- Group header (if named group) -->
+          @if (group.group) {
+            <a href="#" class="list-group-item list-group-item-action rounded d-flex flex-row overflow-hidden"
+               (click)="$event.preventDefault(); toggleGroup(group.group)">
+              <i class="bi bi-heart-pulse me-2"
+                 [class]="getStateIconClass(getGroupState(group))"></i>
+              <span class="flex-grow-1 text-truncate me-4 fw-semibold">{{ group.group }}</span>
+              <app-health-bar [items]="getAllPulseItems(group)" />
+            </a>
+          }
+
+          <!-- Pulse items -->
+          @for (item of group.items; track item.id) {
+            <div [ngbCollapse]="group.group ? !isExpanded(group.group) : false">
+              <a href="#" class="list-group-item list-group-item-action rounded d-flex flex-row overflow-hidden"
+                 [class.active]="isSelected(item.id)"
+                 (click)="$event.preventDefault(); selectPulse(item)">
+                <i class="bi bi-activity me-2"
+                   [class]="getStateIconClass(getLastState(item))"
+                   [class.ms-4]="!!group.group"></i>
+                <app-uptime-badge class="m-auto me-2 d-none d-xl-inline-block"
+                                  [percentage]="calculateUptime(item)" />
+                <span class="flex-grow-1 text-truncate me-4">{{ item.name }}</span>
+                <app-health-bar [items]="item.items" />
+              </a>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+</div>

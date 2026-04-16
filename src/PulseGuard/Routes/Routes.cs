@@ -1,8 +1,8 @@
 ﻿using PulseGuard.Infrastructure;
 using Scalar.AspNetCore;
-using System.Buffers;
 using System.Net.Mime;
 using System.Text;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace PulseGuard.Routes;
 
@@ -30,12 +30,6 @@ public static class Routes
             routes = routes.MapGroup("").RequireAuthorization();
         }
 
-        //if (app.Environment.IsDevelopment())
-        {
-            routes.MapOpenApi();
-            routes.MapScalarApiReference();
-        }
-
         app.Use((context, next) =>
         {
             context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
@@ -51,6 +45,18 @@ public static class Routes
                 "form-action 'self'";
             return next();
         });
+        
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseDefaultFiles();
+            routes.MapStaticAssets();
+        }
+
+        //if (app.Environment.IsDevelopment())
+        {
+            routes.MapOpenApi();
+            routes.MapScalarApiReference();
+        }
 
         routes.MapPulses();
         routes.MapProtoPulses();
@@ -62,37 +68,21 @@ public static class Routes
 
         routes.MapAdministration(authorized);
 
-        MapViews(app, authorized, routes);
-    }
-
-    private static void MapViews(WebApplication app, bool authorized, IEndpointRouteBuilder routes)
-    {
-        var noRedirectPaths = SearchValues.Create(["/api/", "/assets/", "/img/", "/signin-oidc", "/signout-oidc"], StringComparison.OrdinalIgnoreCase);
-        app.Use((context, next) =>
+        if (app.Environment.IsDevelopment())
         {
-            if (context.Request.Path.HasValue)
+            var forwarder = app.Services.GetRequiredService<IHttpForwarder>();
+            var httpClient = new HttpMessageInvoker(new SocketsHttpHandler());
+            string spaDevServerUrl = app.Configuration["SpaDevServerUrl"] ?? "http://localhost:4200";
+
+            routes.MapFallback("/{**catch-all}", async context =>
             {
-                string path = context.Request.Path.Value;
-                if (path.EndsWith('/') || path.AsSpan().ContainsAny(noRedirectPaths))
-                {
-                    return next();
-                }
-            }
-
-            context.Response.Redirect(context.Request.PathBase + context.Request.Path + "/" + context.Request.QueryString);
-            return Task.CompletedTask;
-        });
-
-        var adminRoutesSearch = SearchValues.Create(["/admin"], StringComparison.OrdinalIgnoreCase);
-        Views.V2.Routes.MapViews(routes.MapGroup("").WithTags("Views V2").ExcludeFromDescription(), (RouteHandlerBuilder builder, string route) =>
+                await forwarder.SendAsync(context, spaDevServerUrl, httpClient,
+                    new ForwarderRequestConfig(), HttpTransformer.Default);
+            });
+        }
+        else
         {
-            if (route.AsSpan().ContainsAny(adminRoutesSearch))
-            {
-                builder.RequireAuthorization(AuthSetup.AdministratorPolicy);
-            }
-        },
-        route => !route.AsSpan().ContainsAny(adminRoutesSearch) || authorized);
-
-        Views.Routes.MapViews(routes.MapGroup("v1").WithTags("Views V1").ExcludeFromDescription());
+            routes.MapFallbackToFile("/index.html");
+        }
     }
 }

@@ -1,0 +1,138 @@
+@if (loading()) {
+  <app-loading-spinner />
+} @else if (detailData()) {
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between">
+      <span>{{ headerText() }}</span>
+      <div class="d-flex flex-nowrap my-auto">
+        <app-status-badge [state]="currentState()" class="my-auto mx-2" />
+        <button class="btn btn-outline-secondary btn-sm" title="Open Log" (click)="showLogs.set(true)">
+          <i class="bi bi-journal-text text-secondary-emphasis"></i>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm ms-2" title="Live Pulse View" (click)="showLive.set(true)">
+          <i class="bi bi-broadcast-pin text-success bi-glow"></i>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm ms-2" title="State Forecast" (click)="showForecast.set(true)">
+          <i class="bi bi-graph-up-arrow text-info"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body d-flex flex-column">
+      <!-- Controls row -->
+      <div class="row mb-2">
+        <div class="col-12 col-lg-6">
+          <app-date-range-selector (rangeChange)="onDateRangeChange($event)" />
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="input-group input-group-sm">
+            <label class="input-group-text" for="decimation-select">M</label>
+            <select class="form-select" id="decimation-select" [value]="decimation()" (change)="onDecimationChange(+$any($event.target).value)">
+              <option [value]="5">5 minutes</option>
+              <option [value]="15">15 minutes</option>
+              <option [value]="60">1 hour</option>
+              <option [value]="180">3 hours</option>
+              <option [value]="300">5 hours</option>
+              <option [value]="720">12 hours</option>
+              <option [value]="1440">1 day</option>
+              <option [value]="1">None</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="input-group input-group-sm">
+            <label class="input-group-text" for="percentile-select"><i class="bi bi-percent"></i></label>
+            <select class="form-select" id="percentile-select" [value]="percentile()" (change)="onPercentileChange(+$any($event.target).value)">
+              <option [value]="50">P50</option>
+              <option [value]="75">P75</option>
+              <option [value]="90">P90</option>
+              <option [value]="95">P95</option>
+              <option [value]="99">P99</option>
+              <option [value]="100">P100</option>
+              <option [value]="0">Average</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health bar -->
+      <div class="row mb-2">
+        <div class="col-12">
+          <app-health-bar [items]="detailData()!.items" [tiny]="false" />
+        </div>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="row mb-2">
+        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-play-fill me-2"></i>Since</div>
+            <div class="card-body"><p class="card-text">{{ stats().since }}</p></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-stopwatch me-2"></i>Average</div>
+            <div class="card-body"><p class="card-text">{{ stats().average }}</p></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-check-all me-2"></i>Uptime</div>
+            <div class="card-body"><p class="card-text">{{ stats().uptime }}</p></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-bug me-2"></i>Error Rate</div>
+            <div class="card-body"><p class="card-text">{{ stats().errorRate }}</p></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>Time-out Rate</div>
+            <div class="card-body"><p class="card-text">{{ stats().timeoutRate }}</p></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-2 mb-0">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-arrow-down-up me-2"></i>Volatility</div>
+            <div class="card-body"><p class="card-text">{{ stats().volatility }}</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response chart -->
+      <div class="row d-flex flex-grow-1 mb-2">
+        <div class="col-12">
+          <app-response-chart
+            [items]="filteredItems()"
+            [decimation]="decimation()"
+            [percentile]="percentile()"
+            [deployments]="deployments()" />
+        </div>
+      </div>
+
+      <!-- Metrics charts -->
+      @if (metricsData(); as metrics) {
+        <app-metrics-chart [metrics]="metrics" [decimation]="decimation()" />
+      }
+
+      <!-- Heatmap -->
+      @if (heatmapData(); as heatmap) {
+        <app-heatmap [data]="heatmap" [deployments]="deployments()" />
+      }
+    </div>
+  </div>
+
+  <!-- Offcanvas panels -->
+  @if (showLogs()) {
+    <app-log-entries [pulseId]="pulseId()" (close)="showLogs.set(false)" />
+  }
+  @if (showLive()) {
+    <app-live-pulse [pulseId]="pulseId()" (close)="showLive.set(false)" />
+  }
+  @if (showForecast()) {
+    <app-forecast [items]="detailData()!.items" (close)="showForecast.set(false)" />
+  }
+}

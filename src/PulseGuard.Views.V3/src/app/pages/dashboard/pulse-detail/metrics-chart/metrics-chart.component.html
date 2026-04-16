@@ -1,0 +1,32 @@
+<div class="row d-flex flex-wrap">
+  @if (hasCpu()) {
+    <div class="col-lg-4 flex-fill mb-2">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-cpu"></i> CPU</div>
+        <div class="card-body metric-chart-container">
+          <canvas baseChart type="line" [data]="cpuData()" [options]="chartOptions"></canvas>
+        </div>
+      </div>
+    </div>
+  }
+  @if (hasMemory()) {
+    <div class="col-lg-4 flex-fill mb-2">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-memory"></i> Memory</div>
+        <div class="card-body metric-chart-container">
+          <canvas baseChart type="line" [data]="memoryData()" [options]="chartOptions"></canvas>
+        </div>
+      </div>
+    </div>
+  }
+  @if (hasIo()) {
+    <div class="col-lg-4 flex-fill mb-2">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-router"></i> IO</div>
+        <div class="card-body metric-chart-container">
+          <canvas baseChart type="line" [data]="ioData()" [options]="chartOptions"></canvas>
+        </div>
+      </div>
+    </div>
+  }
+</div>

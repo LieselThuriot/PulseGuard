@@ -6,7 +6,9 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Project Path="PulseGuard.Views.V2/PulseGuard.Views.V2.csproj" />
-  <Project Path="PulseGuard.Views/PulseGuard.Views.csproj" />
+  <Project Path="PulseGuard.Views.V3/PulseGuard.Views.V3.esproj">
+    <Build />
+    <Deploy />
+  </Project>
   <Project Path="PulseGuard/PulseGuard.csproj" />
 </Solution>

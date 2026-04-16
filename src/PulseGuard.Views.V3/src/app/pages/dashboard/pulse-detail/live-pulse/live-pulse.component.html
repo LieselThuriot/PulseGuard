@@ -1,0 +1,23 @@
+<div class="offcanvas offcanvas-start show" tabindex="-1">
+  <div class="offcanvas-header">
+    <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
+    <span class="navbar-brand-title ms-2">PulseGuard</span>
+    <span class="mx-2">&ndash;</span>
+    <h5 class="offcanvas-title">
+      <i class="bi bi-broadcast-pin text-success bi-glow"></i> Live Pulses
+    </h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="onClose()"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="live-chart-container">
+      <canvas baseChart type="line" [data]="chartData()" [options]="chartOptions"></canvas>
+    </div>
+    @if (!connected()) {
+      <div class="text-center text-muted mt-3">
+        <div class="spinner-border spinner-border-sm me-2"></div>
+        Connecting...
+      </div>
+    }
+  </div>
+</div>
+<div class="offcanvas-backdrop fade show" (click)="onClose()"></div>

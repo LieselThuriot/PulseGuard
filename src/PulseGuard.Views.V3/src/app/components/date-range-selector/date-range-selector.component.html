@@ -1,0 +1,16 @@
+<div class="btn-group btn-group-sm">
+  @for (preset of presets; track preset.label) {
+    <button class="btn"
+            [class.btn-primary]="activeLabel() === preset.label"
+            [class.btn-outline-secondary]="activeLabel() !== preset.label"
+            (click)="selectPreset(preset)">
+      {{ preset.label }}
+    </button>
+  }
+  <button class="btn"
+          [class.btn-primary]="activeLabel() === 'All'"
+          [class.btn-outline-secondary]="activeLabel() !== 'All'"
+          (click)="selectAll()">
+    All
+  </button>
+</div>

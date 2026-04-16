@@ -1,0 +1,10 @@
+.forecast-chart-container {
+  position: relative;
+  height: 400px;
+}
+
+.forecast-log {
+  max-height: 150px;
+  overflow-y: auto;
+  font-family: monospace;
+}

@@ -1,0 +1,115 @@
+<div class="offcanvas offcanvas-start show" tabindex="-1">
+  <div class="offcanvas-header">
+    <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
+    <span class="navbar-brand-title ms-2">PulseGuard</span>
+    <span class="mx-2">&ndash;</span>
+    <h5 class="offcanvas-title"><i class="bi bi-graph-up-arrow"></i> State Forecast</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="onClose()"></button>
+  </div>
+  <div class="offcanvas-body">
+    <p class="text-muted small mb-3">
+      <i class="bi bi-info-circle"></i> Vector AutoRegression (VAR) Model with Volatility Preservation
+    </p>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-sliders"></i> Parameters</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6">
+            <label for="forecast-historical-days" class="form-label small">Historical Days</label>
+            <input type="number" class="form-control form-control-sm" id="forecast-historical-days"
+                   [ngModel]="params().historicalDays" (ngModelChange)="updateParam('historicalDays', $event)"
+                   min="7" max="365" />
+          </div>
+          <div class="col-6">
+            <label for="forecast-periods" class="form-label small">Forecast Days</label>
+            <input type="number" class="form-control form-control-sm" id="forecast-periods"
+                   [ngModel]="params().forecastPeriods" (ngModelChange)="updateParam('forecastPeriods', $event)"
+                   min="1" max="30" />
+          </div>
+          <div class="col-6">
+            <label for="forecast-maxlags" class="form-label small">Max Lags</label>
+            <input type="number" class="form-control form-control-sm" id="forecast-maxlags"
+                   [ngModel]="params().maxLags" (ngModelChange)="updateParam('maxLags', $event)"
+                   min="1" max="72" />
+          </div>
+          <div class="col-6">
+            <label for="forecast-volatility" class="form-label small">Volatility Scale</label>
+            <input type="number" class="form-control form-control-sm" id="forecast-volatility"
+                   [ngModel]="params().volatilityScale" (ngModelChange)="updateParam('volatilityScale', $event)"
+                   min="0" max="2" step="0.1" />
+          </div>
+          <div class="col-6">
+            <label for="forecast-pattern" class="form-label small">Pattern Strength</label>
+            <input type="number" class="form-control form-control-sm" id="forecast-pattern"
+                   [ngModel]="params().patternStrength" (ngModelChange)="updateParam('patternStrength', $event)"
+                   min="0" max="1" step="0.1" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-100 mb-3" [disabled]="generating()" (click)="generate()">
+      @if (generating()) {
+        <span class="spinner-border spinner-border-sm me-2"></span> Generating...
+      } @else {
+        <i class="bi bi-play-circle"></i> Generate Forecast
+      }
+    </button>
+
+    @if (error(); as err) {
+      <div class="alert alert-danger">{{ err }}</div>
+    }
+
+    @if (logMessages().length > 0) {
+      <div class="forecast-log small text-muted mb-3">
+        @for (msg of logMessages(); track $index) {
+          <div>{{ msg }}</div>
+        }
+      </div>
+    }
+
+    @if (showResults()) {
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-bar-chart"></i> Forecast Statistics</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>State</th>
+                  <th>Historical &sigma;</th>
+                  <th>Forecast &sigma;</th>
+                  <th>Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (stat of forecastStats(); track stat.state) {
+                  <tr>
+                    <td>{{ stat.state }}</td>
+                    <td>{{ stat.histStd }}</td>
+                    <td>{{ stat.forecastStd }}</td>
+                    <td>{{ stat.change }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><i class="bi bi-graph-up"></i> Overview</div>
+        <div class="card-body">
+          <p class="small text-muted mb-2">
+            <i class="bi bi-hand-index"></i> Use mouse wheel to zoom, drag to pan. Double-click to reset.
+          </p>
+          <div class="forecast-chart-container">
+            <canvas baseChart type="line" [data]="chartData()" [options]="chartOptions"></canvas>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+<div class="offcanvas-backdrop fade show" (click)="onClose()"></div>

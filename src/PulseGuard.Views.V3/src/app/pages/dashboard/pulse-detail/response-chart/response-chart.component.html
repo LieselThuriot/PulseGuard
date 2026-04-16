@@ -1,0 +1,10 @@
+<div class="card h-100 min-vh-50">
+  <div class="card-header"><i class="bi bi-activity me-2"></i>Pulses</div>
+  <div class="card-body chart-container">
+    <canvas baseChart
+            type="line"
+            [data]="chartData()"
+            [options]="chartOptions()">
+    </canvas>
+  </div>
+</div>

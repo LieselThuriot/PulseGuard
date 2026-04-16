@@ -1,0 +1,8 @@
+<div [class]="'d-flex flex-row border rounded p-1 gap-1 bg-body-secondary m-auto ' + (tiny() ? 'healthbar-tiny' : 'healthbar')">
+  @for (bucket of buckets(); track $index) {
+    <div class="rounded"
+         [class]="bucket.cssClass"
+         [ngbTooltip]="bucket.tooltip"
+         placement="top"></div>
+  }
+</div>

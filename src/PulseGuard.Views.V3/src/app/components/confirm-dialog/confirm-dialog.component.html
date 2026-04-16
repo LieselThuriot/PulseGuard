@@ -1,0 +1,16 @@
+<div class="modal-header">
+  <h5 class="modal-title">{{ title() }}</h5>
+  <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+</div>
+<div class="modal-body">
+  <div class="admin-delete-warning">
+    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+    {{ message() }}
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+  <button type="button" class="btn btn-danger" (click)="modal.close(true)">
+    <i class="bi bi-trash me-1"></i> Delete
+  </button>
+</div>

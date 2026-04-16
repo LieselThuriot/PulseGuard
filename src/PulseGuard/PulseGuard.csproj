@@ -26,6 +26,7 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Yarp.ReverseProxy" />
 		<PackageReference Include="Scalar.AspNetCore" />
 		<PackageReference Include="SecureWebhooks.SystemTextJson" />
 		<PackageReference Include="Sqids" />
@@ -39,7 +40,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\PulseGuard.Views.V2\PulseGuard.Views.V2.csproj" />
-		<ProjectReference Include="..\PulseGuard.Views\PulseGuard.Views.csproj" />
+		<ProjectReference Include="..\PulseGuard.Views.V3\PulseGuard.Views.V3.esproj">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+		</ProjectReference>
 	</ItemGroup>
 </Project>

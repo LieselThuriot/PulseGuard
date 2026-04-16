@@ -24,6 +24,7 @@
     <PackageVersion Include="Polly" Version="8.6.6" />
     <PackageVersion Include="protobuf-net" Version="3.2.56" />
     <PackageVersion Include="protobuf-net.BuildTools" Version="3.2.52" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.13.1" />
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.1" />
     <PackageVersion Include="Sqids" Version="3.2.1" />

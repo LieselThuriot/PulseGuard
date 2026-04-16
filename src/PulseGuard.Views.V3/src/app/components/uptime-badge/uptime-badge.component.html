@@ -1,0 +1,7 @@
+<span class="badge rounded-pill d-inline-block"
+      [class]="cssClass()"
+      [style.--bs-bg-opacity]="opacity()"
+      [ngbTooltip]="tooltip()"
+      placement="top">
+  {{ percentage().toFixed(2) }}%
+</span>

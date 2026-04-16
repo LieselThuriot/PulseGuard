@@ -60,6 +60,11 @@ builder.Services.ConfigurePulseServices();
 
 builder.Services.AddOpenApi();
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHttpForwarder();
+}
+
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.All;
@@ -95,51 +100,51 @@ app.UseRouting();
 app.MapRoutes(authorized);
 
 // only once
-{
-    List<Heatmap> maps = [];
+//{
+//    List<Heatmap> maps = [];
 
-    var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
+//    var scope = app.Services.CreateScope();
+//    var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
 
-    await foreach (var results in context.ArchivedPulseCheckResults)
-    {
-        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
-        {
-            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
-            {
-                Sqid = results.Sqid,
-                Day = pulses.Key
-            };
+//    await foreach (var results in context.ArchivedPulseCheckResults)
+//    {
+//        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
+//        {
+//            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
+//            {
+//                Sqid = results.Sqid,
+//                Day = pulses.Key
+//            };
 
-            foreach (var pulse in pulses)
-            {
-                heatmap.Increment(pulse.State);
-            }
+//            foreach (var pulse in pulses)
+//            {
+//                heatmap.Increment(pulse.State);
+//            }
 
-            maps.Add(heatmap);
-        }
-    }
+//            maps.Add(heatmap);
+//        }
+//    }
 
-    await foreach (var results in context.PulseCheckResults)
-    {
-        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
-        {
-            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
-            {
-                Sqid = results.Sqid,
-                Day = pulses.Key
-            };
+//    await foreach (var results in context.PulseCheckResults)
+//    {
+//        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
+//        {
+//            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
+//            {
+//                Sqid = results.Sqid,
+//                Day = pulses.Key
+//            };
 
-            foreach (var pulse in pulses)
-            {
-                heatmap.Increment(pulse.State);
-            }
+//            foreach (var pulse in pulses)
+//            {
+//                heatmap.Increment(pulse.State);
+//            }
 
-            maps.Add(heatmap);
-        }
-    }
+//            maps.Add(heatmap);
+//        }
+//    }
 
-    await context.Heatmaps.BulkUpsertAsync(maps, default);
-}
+//    await context.Heatmaps.BulkUpsertAsync(maps, default);
+//}
 
 app.Run();

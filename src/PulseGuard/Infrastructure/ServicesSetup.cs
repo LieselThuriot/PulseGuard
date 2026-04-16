@@ -29,8 +29,8 @@ internal static class ServicesSetup
         services.AddSingleton<OAuth2CredentialsService>();
         services.AddSingleton<AuthService>();
 
-        services.AddHostedService<Hosted.PulseHostedService>();
-        services.AddHostedService<Hosted.WebhookHostedService>();
-        services.AddHostedService<Hosted.AsyncPulseStoreHostedService>();
+        //services.AddHostedService<Hosted.PulseHostedService>();
+        //services.AddHostedService<Hosted.WebhookHostedService>();
+        //services.AddHostedService<Hosted.AsyncPulseStoreHostedService>();
     }
 }

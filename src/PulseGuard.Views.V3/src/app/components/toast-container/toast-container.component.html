@@ -1,0 +1,15 @@
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090">
+  @for (toast of notifications.toasts(); track toast.id) {
+    <ngb-toast
+      [autohide]="toast.autohide ?? true"
+      [delay]="toast.delay ?? 5000"
+      (hidden)="notifications.remove(toast.id)"
+      [class]="'toast-' + toast.type">
+      <ng-template ngbToastHeader>
+        <i [class]="'bi me-2 ' + getIcon(toast.type)"></i>
+        <strong class="me-auto">{{ getTitle(toast.type) }}</strong>
+      </ng-template>
+      {{ toast.message }}
+    </ngb-toast>
+  }
+</div>

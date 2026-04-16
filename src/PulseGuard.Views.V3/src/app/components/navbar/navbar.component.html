@@ -1,0 +1,32 @@
+<nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary">
+  <div class="container-fluid">
+    <a class="navbar-brand" routerLink="/">
+      <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
+      <span class="navbar-brand-title">PulseGuard</span>
+    </a>
+    <div class="d-flex flex-row align-items-center">
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" class="btn btn-outline-secondary me-2">
+          <i class="bi bi-list-ul"></i> Configurations
+        </a>
+      }
+
+      <div ngbDropdown class="ms-2">
+        <button class="btn btn-outline-secondary" ngbDropdownToggle>
+          <i [class]="'bi ' + theme.icon()"></i>
+        </button>
+        <div ngbDropdownMenu class="dropdown-menu-end">
+          <button ngbDropdownItem (click)="theme.setMode('dark')">
+            <i class="bi bi-moon-stars-fill"></i> Dark
+          </button>
+          <button ngbDropdownItem (click)="theme.setMode('light')">
+            <i class="bi bi-brightness-high-fill"></i> Light
+          </button>
+          <button ngbDropdownItem (click)="theme.setMode('auto')">
+            <i class="bi bi-circle-half"></i> Auto
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

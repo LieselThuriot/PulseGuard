@@ -1,0 +1,42 @@
+<div class="offcanvas offcanvas-start show" tabindex="-1">
+  <div class="offcanvas-header">
+    <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top" />
+    <span class="navbar-brand-title ms-2">PulseGuard</span>
+    <span class="mx-2">&ndash;</span>
+    <h5 class="offcanvas-title"><i class="bi bi-journal-text"></i> Log Entries</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="onClose()"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Duration</th>
+            <th>State</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of entries(); track $index) {
+            <tr>
+              <td>{{ entry.from ? (entry.from | date:'short') : '...' }}</td>
+              <td>{{ entry.to ? (entry.to | date:'short') : '...' }}</td>
+              <td>{{ formatDuration(entry.from, entry.to) }}</td>
+              <td><span class="badge" [class]="getBadgeClass(entry.state)">{{ entry.state }}</span></td>
+              <td class="text-truncate" style="max-width: 200px">{{ entry.message ?? '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (loading()) {
+      <app-loading-spinner />
+    }
+    @if (hasMore() && !loading()) {
+      <button class="btn btn-outline-primary w-100" (click)="loadMore()">Load More</button>
+    }
+  </div>
+</div>
+<div class="offcanvas-backdrop fade show" (click)="onClose()"></div>
