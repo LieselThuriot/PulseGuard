@@ -1,53 +1,102 @@
 <div class="card shadow-sm">
   <div class="card-header d-none d-lg-block">
-    <div class="d-flex flex-row justify-content-between">
-      <div><i class="bi bi-layers"></i> Overview</div>
-      <div>
-        <button class="btn btn-sm btn-outline-secondary py-0"
-                (click)="pulseService.toggleFilter()">
-          @if (pulseService.filterUnhealthy()) {
-            <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy
-          } @else {
-            <i class="bi bi-list-check me-1"></i>All
-          }
-        </button>
-      </div>
+    <div class="d-flex flex-row justify-content-between align-items-center">
+      <div><i class="bi bi-layers me-1"></i> Overview</div>
+      <button class="btn btn-sm btn-outline-secondary py-0"
+              (click)="pulseService.toggleFilter()">
+        @if (pulseService.filterUnhealthy()) {
+          <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy
+        } @else {
+          <i class="bi bi-list-check me-1"></i>All
+        }
+      </button>
     </div>
   </div>
 
-  <div class="card-body p-0" style="max-height: calc(100vh - 10rem); overflow: auto">
+  <div class="card-body p-0 pulse-tree-body">
     @if (pulseService.loading()) {
       <app-loading-spinner />
     } @else {
       <div class="list-group list-group-flush">
+        @if (pulseService.filterUnhealthy() && filteredGroups().length === 0) {
+          <div class="p-3 text-center text-success small">
+            <i class="bi bi-check-circle me-1"></i>All pulses are healthy
+          </div>
+        }
         @for (group of filteredGroups(); track group.group) {
-          <!-- Group header (if named group) -->
+
           @if (group.group) {
-            <a href="#" class="list-group-item list-group-item-action rounded d-flex flex-row overflow-hidden"
+            <!-- Named group header -->
+            <a href="#"
+               class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden fw-semibold"
                (click)="$event.preventDefault(); toggleGroup(group.group)">
+              <i class="bi bi-chevron-right chevron-icon me-1"
+                 [class.expanded]="isExpanded(group.group)"></i>
               <i class="bi bi-heart-pulse me-2"
-                 [class]="getStateIconClass(getGroupState(group))"></i>
-              <span class="flex-grow-1 text-truncate me-4 fw-semibold">{{ group.group }}</span>
+                 [ngClass]="getStateClass(getGroupState(group))"></i>
+              <span class="flex-grow-1 text-truncate me-3"
+                    [ngbTooltip]="group.group"
+                    triggers="hover"
+                    container="body">{{ group.group }}</span>
               <app-health-bar [items]="getAllPulseItems(group)" />
             </a>
-          }
 
-          <!-- Pulse items -->
-          @for (item of group.items; track item.id) {
-            <div [ngbCollapse]="group.group ? !isExpanded(group.group) : false">
-              <a href="#" class="list-group-item list-group-item-action rounded d-flex flex-row overflow-hidden"
+            <!-- Children — single collapse container per group -->
+            <div [ngbCollapse]="!isExpanded(group.group)">
+              @for (item of group.items; track item.id) {
+                <a href="#"
+                   class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden pulse-item-child"
+                   [class.active]="isSelected(item.id)"
+                   (click)="$event.preventDefault(); selectPulse(item)">
+                  <i class="bi bi-activity me-2"
+                     [ngClass]="getStateClass(getLastState(item))"></i>
+                  <app-uptime-badge class="me-2 d-none d-xl-inline-flex"
+                                    [percentage]="calculateUptime(item)" />
+                  <span class="flex-grow-1 text-truncate me-3"
+                        [ngbTooltip]="item.name"
+                        triggers="hover"
+                        container="body">{{ item.name }}</span>
+                  <button class="btn btn-link btn-sm p-0 me-2 d-none d-md-inline overlay-btn"
+                          [class.active]="isOverlay(item.id)"
+                          ngbTooltip="Toggle Overlay"
+                          triggers="hover"
+                          container="body"
+                          (click)="toggleOverlay(item.id, $event)">
+                    <i class="bi bi-stack"></i>
+                  </button>
+                  <app-health-bar [items]="item.items" />
+                </a>
+              }
+            </div>
+
+          } @else {
+            <!-- Ungrouped items — always visible, no indent -->
+            @for (item of group.items; track item.id) {
+              <a href="#"
+                 class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden"
                  [class.active]="isSelected(item.id)"
                  (click)="$event.preventDefault(); selectPulse(item)">
                 <i class="bi bi-activity me-2"
-                   [class]="getStateIconClass(getLastState(item))"
-                   [class.ms-4]="!!group.group"></i>
-                <app-uptime-badge class="m-auto me-2 d-none d-xl-inline-block"
+                   [ngClass]="getStateClass(getLastState(item))"></i>
+                <app-uptime-badge class="me-2 d-none d-xl-inline-flex"
                                   [percentage]="calculateUptime(item)" />
-                <span class="flex-grow-1 text-truncate me-4">{{ item.name }}</span>
+                <span class="flex-grow-1 text-truncate me-3"
+                      [ngbTooltip]="item.name"
+                      triggers="hover"
+                      container="body">{{ item.name }}</span>
+                <button class="btn btn-link btn-sm p-0 me-2 d-none d-md-inline overlay-btn"
+                        [class.active]="isOverlay(item.id)"
+                        ngbTooltip="Toggle Overlay"
+                        triggers="hover"
+                        container="body"
+                        (click)="toggleOverlay(item.id, $event)">
+                  <i class="bi bi-stack"></i>
+                </button>
                 <app-health-bar [items]="item.items" />
               </a>
-            </div>
+            }
           }
+
         }
       </div>
     }

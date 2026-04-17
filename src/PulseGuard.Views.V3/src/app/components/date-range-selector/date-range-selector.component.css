@@ -1,0 +1,3 @@
+[ngbDropdownToggle]::after {
+  display: none;
+}

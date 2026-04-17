@@ -68,6 +68,14 @@ export class AdminService {
     return this.deleteAgentConfig(id);
   }
 
+  toggleAgentConfig(id: string, subType: string, enabled: boolean): Observable<void> {
+    return this.http.put<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(subType)}/${enabled}`, null);
+  }
+
+  togglePulseEnabled(id: string, enabled: boolean): Observable<void> {
+    return this.http.put<void>(`api/1.0/admin/configurations/pulse/${encodeURIComponent(id)}/${enabled}`, null);
+  }
+
   renameConfig(id: string, body: { name?: string; group?: string }): Observable<void> {
     return this.http.put<void>(`api/1.0/admin/configurations/${encodeURIComponent(id)}/name`, body);
   }

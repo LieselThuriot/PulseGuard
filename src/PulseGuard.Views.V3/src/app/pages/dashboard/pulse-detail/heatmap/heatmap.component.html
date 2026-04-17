@@ -1,22 +1,18 @@
 <div class="card">
   <div class="card-header"><i class="bi bi-geo me-2"></i>Heatmap</div>
-  <div class="card-body">
-    <div class="heatmap-container d-flex overflow-x-auto gap-1">
-      @for (week of weeks(); track $index) {
-        <div class="heatmap-column d-flex flex-column gap-1">
-          @for (cell of week.cells; track $index) {
-            @if (cell) {
-              <div class="heatmap-cell rounded"
-                   [style.background-color]="cell.color"
-                   [ngbTooltip]="cell.tooltip"
-                   placement="top">
-                @if (cell.hasDeployment) {
-                  <div class="heatmap-deploy-indicator"></div>
-                }
-              </div>
-            } @else {
-              <div class="heatmap-cell"></div>
-            }
+  <div class="card-body p-2">
+    <div class="heatmap-wrapper">
+      <canvas #heatmapCanvas
+              (mousemove)="onMouseMove($event)"
+              (mouseleave)="onMouseLeave()"
+              (click)="onCanvasClick($event)">
+      </canvas>
+      @if (tooltipVisible()) {
+        <div class="heatmap-tooltip"
+             [style.left.px]="tooltipX()"
+             [style.top.px]="tooltipY()">
+          @for (line of tooltipLines(); track $index) {
+            <div [class.heatmap-tooltip-title]="$index === 0">{{ line }}</div>
           }
         </div>
       }

@@ -1,10 +1,17 @@
+import { Component } from '@angular/core';
 import { Routes } from '@angular/router';
 import { adminGuard } from './guards/admin.guard';
+
+@Component({ template: '', standalone: true })
+class DetailRouteComponent {}
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+    children: [
+      { path: 'details/:id', component: DetailRouteComponent },
+    ],
   },
   {
     path: 'admin',

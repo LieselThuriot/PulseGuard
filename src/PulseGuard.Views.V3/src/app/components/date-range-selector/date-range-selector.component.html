@@ -1,16 +1,27 @@
-<div class="btn-group btn-group-sm">
-  @for (preset of presets; track preset.label) {
-    <button class="btn"
-            [class.btn-primary]="activeLabel() === preset.label"
-            [class.btn-outline-secondary]="activeLabel() !== preset.label"
-            (click)="selectPreset(preset)">
-      {{ preset.label }}
+<div class="input-group input-group-sm">
+  <input type="datetime-local" class="form-control form-control-sm"
+         [value]="fromValue()"
+         (change)="onFromChange($any($event.target).value)" />
+
+  <div ngbDropdown container="body">
+    <button ngbDropdownToggle class="btn btn-outline-secondary rounded-0 border-start-0 border-end-0"
+            type="button">
+      <i class="bi bi-arrow-right text-secondary-emphasis"></i>
     </button>
-  }
-  <button class="btn"
-          [class.btn-primary]="activeLabel() === 'All'"
-          [class.btn-outline-secondary]="activeLabel() !== 'All'"
-          (click)="selectAll()">
-    All
-  </button>
+    <div ngbDropdownMenu>
+      @for (preset of presets; track preset.label) {
+        <button ngbDropdownItem [class.active]="activeLabel() === preset.label"
+                (click)="selectPreset(preset)">{{ preset.text }}</button>
+      }
+      <div class="dropdown-divider"></div>
+      <button ngbDropdownItem [class.active]="activeLabel() === 'today'"
+              (click)="selectToday()">Today</button>
+      <button ngbDropdownItem [class.active]="activeLabel() === 'All'"
+              (click)="selectAll()">All Pulses</button>
+    </div>
+  </div>
+
+  <input type="datetime-local" class="form-control form-control-sm"
+         [value]="toValue()"
+         (change)="onToChange($any($event.target).value)" />
 </div>

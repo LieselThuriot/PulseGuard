@@ -1,0 +1,36 @@
+.pulse-tree-body {
+  max-height: calc(100vh - 10rem);
+  overflow-y: auto;
+}
+
+/* Chevron rotates 90° when its group is expanded */
+.chevron-icon {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Child items are indented to align with group label text */
+.pulse-item-child {
+  padding-left: 2.25rem !important;
+}
+
+/* Overlay toggle button — muted until active */
+.overlay-btn {
+  color: var(--bs-secondary-color);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.list-group-item:hover .overlay-btn,
+.overlay-btn.active {
+  opacity: 1;
+}
+
+.overlay-btn.active {
+  color: var(--bs-primary);
+}

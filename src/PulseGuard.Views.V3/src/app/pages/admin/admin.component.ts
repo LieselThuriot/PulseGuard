@@ -1,17 +1,22 @@
 import { Component, ChangeDetectionStrategy, signal, OnInit, computed } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AdminService } from '../../services/admin.service';
-import { PulseConfiguration, PulseAgentConfiguration, WebhookEntry, UserEntry, CredentialOverview } from '../../models/admin.model';
+import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialOverview } from '../../models/admin.model';
 import { SearchInputComponent } from '../../components/search-input/search-input.component';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
+import { RenameDialogComponent } from '../../components/rename-dialog/rename-dialog.component';
 import { NotificationService } from '../../services/notification.service';
+
+type SortColumn = 'group' | 'name' | 'id';
+type SortDir = 'asc' | 'desc';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, SearchInputComponent, LoadingSpinnerComponent],
+  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgTemplateOutlet, DatePipe, SearchInputComponent, LoadingSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',
@@ -22,56 +27,94 @@ export class AdminComponent implements OnInit {
   readonly searchQuery = signal('');
   readonly showDisabledOnly = signal(false);
 
-  readonly pulseConfigs = signal<PulseConfiguration[]>([]);
-  readonly agentConfigs = signal<PulseAgentConfiguration[]>([]);
+  readonly sortCol = signal<SortColumn>('group');
+  readonly sortDir = signal<SortDir>('asc');
+
+  readonly pulseConfigs = signal<PulseEntry[]>([]);
+  readonly agentConfigs = signal<PulseEntry[]>([]);
   readonly webhooks = signal<WebhookEntry[]>([]);
   readonly users = signal<UserEntry[]>([]);
   readonly credentials = signal<CredentialOverview[]>([]);
 
+  private sortEntries(list: PulseEntry[]): PulseEntry[] {
+    const col = this.sortCol();
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+      const ag = (a.group ?? '').toLowerCase();
+      const bg = (b.group ?? '').toLowerCase();
+      const an = a.name.toLowerCase();
+      const bn = b.name.toLowerCase();
+      if (col === 'group') {
+        const c = ag.localeCompare(bg); return c !== 0 ? c * dir : an.localeCompare(bn);
+      }
+      const c = an.localeCompare(bn); return c !== 0 ? c * dir : ag.localeCompare(bg);
+    });
+  }
+
+  private sortWebhooks(list: WebhookEntry[]): WebhookEntry[] {
+    const col = this.sortCol();
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+      const ag = (a.group ?? '').toLowerCase();
+      const bg = (b.group ?? '').toLowerCase();
+      const an = a.name.toLowerCase();
+      const bn = b.name.toLowerCase();
+      if (col === 'group') {
+        const c = ag.localeCompare(bg); return c !== 0 ? c * dir : an.localeCompare(bn);
+      }
+      const c = an.localeCompare(bn); return c !== 0 ? c * dir : ag.localeCompare(bg);
+    });
+  }
+
   readonly filteredPulseConfigs = computed(() => {
     const q = this.searchQuery().toLowerCase();
     const disabledOnly = this.showDisabledOnly();
-    return this.pulseConfigs().filter((c) => {
-      if (disabledOnly && c.isEnabled) return false;
+    const list = this.pulseConfigs().filter((c) => {
+      if (disabledOnly && c.enabled) return false;
       if (!q) return true;
-      return c.group?.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
+      return (c.group ?? '').toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
     });
+    return this.sortEntries(list);
   });
 
   readonly filteredAgentConfigs = computed(() => {
     const q = this.searchQuery().toLowerCase();
     const disabledOnly = this.showDisabledOnly();
-    return this.agentConfigs().filter((c) => {
-      if (disabledOnly && c.isEnabled) return false;
+    const list = this.agentConfigs().filter((c) => {
+      if (disabledOnly && c.enabled) return false;
       if (!q) return true;
-      return c.group?.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
+      return (c.group ?? '').toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
     });
+    return this.sortEntries(list);
   });
 
   readonly filteredWebhooks = computed(() => {
     const q = this.searchQuery().toLowerCase();
     const disabledOnly = this.showDisabledOnly();
-    return this.webhooks().filter((w) => {
+    const list = this.webhooks().filter((w) => {
       if (disabledOnly && w.isEnabled) return false;
       if (!q) return true;
-      return w.group?.toLowerCase().includes(q) || w.name.toLowerCase().includes(q);
+      return (w.group ?? '').toLowerCase().includes(q) || w.name.toLowerCase().includes(q);
     });
+    return this.sortWebhooks(list);
   });
 
   readonly filteredUsers = computed(() => {
     const q = this.searchQuery().toLowerCase();
-    return this.users().filter((u) => {
+    const list = this.users().filter((u) => {
       if (!q) return true;
-      return u.name.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
+      return u.id.toLowerCase().includes(q) || (u.nickname ?? '').toLowerCase().includes(q);
     });
+    return [...list].sort((a, b) => a.id.localeCompare(b.id));
   });
 
   readonly filteredCredentials = computed(() => {
     const q = this.searchQuery().toLowerCase();
-    return this.credentials().filter((c) => {
+    const list = this.credentials().filter((c) => {
       if (!q) return true;
-      return c.name.toLowerCase().includes(q);
+      return c.id.toLowerCase().includes(q);
     });
+    return [...list].sort((a, b) => a.id.localeCompare(b.id));
   });
 
   constructor(
@@ -92,6 +135,86 @@ export class AdminComponent implements OnInit {
     this.showDisabledOnly.update((v) => !v);
   }
 
+  sort(col: SortColumn): void {
+    if (this.sortCol() === col) {
+      this.sortDir.update((d) => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortCol.set(col);
+      this.sortDir.set('asc');
+    }
+  }
+
+  sortIcon(col: SortColumn): string {
+    if (this.sortCol() !== col) return 'bi-chevron-expand';
+    return this.sortDir() === 'asc' ? 'bi-chevron-up' : 'bi-chevron-down';
+  }
+
+  // ── Enable toggles ──────────────────────────────────────────────────────────
+
+  togglePulse(config: PulseEntry, enabled: boolean): void {
+    this.adminService.togglePulseEnabled(config.id, enabled).subscribe({
+      next: () => this.pulseConfigs.update((list) => list.map((c) => c.id === config.id ? { ...c, enabled } : c)),
+      error: () => this.notifications.error('Failed to update pulse check.'),
+    });
+  }
+
+  toggleAgent(config: PulseEntry, enabled: boolean): void {
+    this.adminService.toggleAgentConfig(config.id, config.subType, enabled).subscribe({
+      next: () => this.agentConfigs.update((list) => list.map((c) => c.id === config.id ? { ...c, enabled } : c)),
+      error: () => this.notifications.error('Failed to update agent check.'),
+    });
+  }
+
+  toggleWebhook(webhook: WebhookEntry, enabled: boolean): void {
+    this.adminService.toggleWebhook(webhook.id, enabled).subscribe({
+      next: () => this.webhooks.update((list) => list.map((w) => w.id === webhook.id ? { ...w, isEnabled: enabled } : w)),
+      error: () => this.notifications.error('Failed to update webhook.'),
+    });
+  }
+
+  // ── Rename ──────────────────────────────────────────────────────────────────
+
+  renameConfig(config: PulseEntry): void {
+    const ref = this.modal.open(RenameDialogComponent);
+    ref.componentInstance.isConfig = true;
+    ref.componentInstance.label = config.type === PulseEntryType.Normal ? 'Pulse Check' : 'Agent Check';
+    ref.componentInstance.group.set(config.group ?? '');
+    ref.componentInstance.name.set(config.name);
+    ref.result.then((result) => {
+      this.adminService.renameConfig(config.id, result).subscribe({
+        next: () => {
+          const update = (list: PulseEntry[]) =>
+            list.map((c) => c.id === config.id ? { ...c, group: result.group ?? c.group, name: result.name } : c);
+          if (config.type === PulseEntryType.Normal) {
+            this.pulseConfigs.update(update);
+          } else {
+            this.agentConfigs.update(update);
+          }
+          this.notifications.success('Renamed successfully.');
+        },
+        error: () => this.notifications.error('Failed to rename.'),
+      });
+    }).catch(() => {});
+  }
+
+  renameUser(user: UserEntry): void {
+    const ref = this.modal.open(RenameDialogComponent);
+    ref.componentInstance.isConfig = false;
+    ref.componentInstance.label = 'User';
+    ref.componentInstance.name.set(user.nickname ?? '');
+    ref.result.then((result) => {
+      this.adminService.renameUser(user.id, result.name).subscribe({
+        next: () => {
+          this.users.update((list) => list.map((u) => u.id === user.id ? { ...u, nickname: result.name } : u));
+          this.notifications.success('User renamed successfully.');
+        },
+        error: () => this.notifications.error('Failed to rename user.'),
+      });
+    }).catch(() => {});
+  }
+
+  // ── Delete ──────────────────────────────────────────────────────────────────
+
   deletePulseConfig(id: string): void {
     const ref = this.modal.open(ConfirmDialogComponent);
     ref.result.then((confirmed) => {
@@ -107,13 +230,13 @@ export class AdminComponent implements OnInit {
     }).catch(() => {});
   }
 
-  deleteAgentConfig(id: string): void {
+  deleteAgentConfig(config: PulseEntry): void {
     const ref = this.modal.open(ConfirmDialogComponent);
     ref.result.then((confirmed) => {
       if (confirmed) {
-        this.adminService.deleteAgentConfiguration(id).subscribe({
+        this.adminService.deleteAgentConfig(config.id).subscribe({
           next: () => {
-            this.agentConfigs.update((list) => list.filter((c) => c.id !== id));
+            this.agentConfigs.update((list) => list.filter((c) => c.id !== config.id));
             this.notifications.success('Agent configuration deleted.');
           },
           error: () => this.notifications.error('Failed to delete agent configuration.'),
@@ -169,11 +292,11 @@ export class AdminComponent implements OnInit {
 
   private loadAll(): void {
     this.loading.set(true);
-    this.adminService.getPulseConfigurations().subscribe({
-      next: (data) => this.pulseConfigs.set(data),
-    });
-    this.adminService.getAgentConfigurations().subscribe({
-      next: (data) => this.agentConfigs.set(data),
+    this.adminService.getConfigurations().subscribe({
+      next: (data) => {
+        this.pulseConfigs.set(data.filter((c) => c.type === PulseEntryType.Normal));
+        this.agentConfigs.set(data.filter((c) => c.type === PulseEntryType.Agent));
+      },
     });
     this.adminService.getWebhooks().subscribe({
       next: (data) => this.webhooks.set(data),

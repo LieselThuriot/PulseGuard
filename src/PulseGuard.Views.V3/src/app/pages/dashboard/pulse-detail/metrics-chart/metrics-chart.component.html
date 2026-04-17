@@ -4,7 +4,7 @@
       <div class="card">
         <div class="card-header"><i class="bi bi-cpu"></i> CPU</div>
         <div class="card-body metric-chart-container">
-          <canvas baseChart type="line" [data]="cpuData()" [options]="chartOptions"></canvas>
+          <canvas baseChart type="line" [data]="cpuData()" [options]="cpuOptions"></canvas>
         </div>
       </div>
     </div>
@@ -14,7 +14,7 @@
       <div class="card">
         <div class="card-header"><i class="bi bi-memory"></i> Memory</div>
         <div class="card-body metric-chart-container">
-          <canvas baseChart type="line" [data]="memoryData()" [options]="chartOptions"></canvas>
+          <canvas baseChart type="line" [data]="memoryData()" [options]="memoryOptions"></canvas>
         </div>
       </div>
     </div>
@@ -24,7 +24,7 @@
       <div class="card">
         <div class="card-header"><i class="bi bi-router"></i> IO</div>
         <div class="card-body metric-chart-container">
-          <canvas baseChart type="line" [data]="ioData()" [options]="chartOptions"></canvas>
+          <canvas baseChart type="line" [data]="ioData()" [options]="ioOptions"></canvas>
         </div>
       </div>
     </div>

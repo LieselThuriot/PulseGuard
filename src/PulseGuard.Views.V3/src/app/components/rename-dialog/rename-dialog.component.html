@@ -1,0 +1,22 @@
+<div class="modal-header">
+  <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Rename {{ label }}</h5>
+  <button type="button" class="btn-close" (click)="modal.dismiss()"></button>
+</div>
+<div class="modal-body">
+  @if (isConfig) {
+    <div class="mb-3">
+      <label class="form-label">Group</label>
+      <input type="text" class="form-control" [value]="group()" (input)="group.set($any($event.target).value)" placeholder="Optional group" />
+    </div>
+  }
+  <div class="mb-3">
+    <label class="form-label">Name <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" [value]="name()" (input)="name.set($any($event.target).value)" (keydown.enter)="save()" required />
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">Cancel</button>
+  <button type="button" class="btn btn-primary" [disabled]="!name().trim()" (click)="save()">
+    <i class="bi bi-save"></i> Save Changes
+  </button>
+</div>

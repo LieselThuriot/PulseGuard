@@ -1,4 +1,5 @@
 .metric-chart-container {
   position: relative;
   min-height: 200px;
+  height: 100%;
 }

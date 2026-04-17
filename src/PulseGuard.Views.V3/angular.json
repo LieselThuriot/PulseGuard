@@ -53,7 +53,9 @@
               "src/styles.css"
             ],
             "allowedCommonJsDependencies": [
-              "protobufjs"
+              "protobufjs",
+              "chartjs-plugin-zoom",
+              "hammerjs"
             ]
           },
           "configurations": {

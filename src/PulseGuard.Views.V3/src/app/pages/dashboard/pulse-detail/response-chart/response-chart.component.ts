@@ -3,11 +3,14 @@ import {
   ViewChild, ElementRef, effect, OnDestroy
 } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import ZoomPlugin from 'chartjs-plugin-zoom';
 import { PulseCheckResultDetail } from '../../../../models/pulse-detail.model';
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
+
+Chart.register(ZoomPlugin);
 
 interface TimeBucket {
   timestamp: number;
@@ -39,6 +42,7 @@ export class ResponseChartComponent {
     const values: number[] = [];
     const pointColors: string[] = [];
     const segmentColors: string[] = [];
+    const worstStates: string[] = [];
 
     for (const bucket of buckets) {
       labels.push(bucket.timestamp);
@@ -49,6 +53,7 @@ export class ResponseChartComponent {
       const color = STATE_COLORS[worstState];
       pointColors.push(color);
       segmentColors.push(color);
+      worstStates.push(worstState);
     }
 
     return {
@@ -64,6 +69,7 @@ export class ResponseChartComponent {
           pointRadius: 1,
           tension: 0.1,
           fill: false,
+          worstStates,
           segment: {
             borderColor: (ctx: any) => {
               const idx = ctx.p0DataIndex;
@@ -115,10 +121,28 @@ export class ResponseChartComponent {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx: any) => `${ctx.parsed.y?.toFixed(0)} ms`,
+            label: (ctx: any) => {
+              const ms = ctx.parsed.y?.toFixed(0);
+              const state = (ctx.dataset as any).worstStates?.[ctx.dataIndex];
+              return state ? `${ms} ms — ${state}` : `${ms} ms`;
+            },
           },
         },
         annotation: { annotations } as any,
+        zoom: {
+          zoom: {
+            wheel: { enabled: true, modifierKey: 'ctrl' },
+            drag: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+          },
+          pan: {
+            enabled: true,
+            mode: 'x',
+            modifierKey: 'ctrl',
+          },
+          limits: { x: { min: 'original', max: 'original' } },
+        },
       } as any,
     };
   });

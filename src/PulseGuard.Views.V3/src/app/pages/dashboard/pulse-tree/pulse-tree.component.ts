@@ -1,41 +1,68 @@
-import { Component, ChangeDetectionStrategy, computed, signal } from '@angular/core';
-import { NgbCollapse } from '@ng-bootstrap/ng-bootstrap';
+import { Component, ChangeDetectionStrategy, computed, signal, inject, effect } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { NgbCollapse, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
+import { Router, ActivatedRoute } from '@angular/router';
 import { PulseService } from '../../../services/pulse.service';
 import { HealthBarComponent } from '../../../components/health-bar/health-bar.component';
 import { UptimeBadgeComponent } from '../../../components/uptime-badge/uptime-badge.component';
-import { PulseOverviewGroup, PulseOverviewGroupItem, PulseOverviewItem } from '../../../models/pulse-overview.model';
+import { PulseOverviewGroup, PulseOverviewGroupItem } from '../../../models/pulse-overview.model';
 import { PulseStates, STATE_TEXT_CLASSES } from '../../../models/pulse-states.enum';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
 
 @Component({
   selector: 'app-pulse-tree',
   standalone: true,
-  imports: [NgbCollapse, HealthBarComponent, UptimeBadgeComponent, LoadingSpinnerComponent],
+  imports: [NgClass, NgbCollapse, NgbTooltip, HealthBarComponent, UptimeBadgeComponent, LoadingSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pulse-tree.component.html',
+  styleUrl: './pulse-tree.component.css',
 })
 export class PulseTreeComponent {
-  private readonly collapsedGroups = signal<Set<string>>(new Set());
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  // Empty set = all groups collapsed by default; presence in set = expanded
+  private readonly expandedGroups = signal<Set<string>>(new Set());
+  private readonly overlayIds = signal<Set<string>>(new Set());
 
   protected readonly filteredGroups = computed(() => {
     const groups = this.pulseService.overview();
     if (!this.pulseService.filterUnhealthy()) return groups;
 
     return groups
-      .map((g) => ({
+      .map(g => ({
         ...g,
-        items: g.items.filter((item) => {
-          const lastState = this.getLastState(item);
-          return lastState !== PulseStates.Healthy;
-        }),
+        items: g.items.filter(item => this.getLastState(item) !== PulseStates.Healthy),
       }))
-      .filter((g) => g.items.length > 0 || g.group === '');
+      .filter(g => g.items.length > 0);
   });
 
-  constructor(protected readonly pulseService: PulseService) {}
+  constructor(protected readonly pulseService: PulseService) {
+    // Restore overlays from URL
+    const params = this.route.snapshot.queryParamMap;
+    const initial = new Set(params.getAll('overlay'));
+    if (initial.size) this.overlayIds.set(initial);
+
+    // Auto-expand the group that contains a pulse restored from the URL
+    effect(() => {
+      const overview = pulseService.overview();
+      const selectedId = pulseService.selectedPulseId();
+      if (!overview.length || !selectedId) return;
+
+      const groupEntry = overview.find(g => g.group && g.items.some(i => i.id === selectedId));
+      if (groupEntry) {
+        this.expandedGroups.update(set => {
+          if (set.has(groupEntry.group)) return set;
+          const next = new Set(set);
+          next.add(groupEntry.group);
+          return next;
+        });
+      }
+    });
+  }
 
   toggleGroup(groupId: string): void {
-    this.collapsedGroups.update((set) => {
+    this.expandedGroups.update(set => {
       const next = new Set(set);
       next.has(groupId) ? next.delete(groupId) : next.add(groupId);
       return next;
@@ -43,26 +70,29 @@ export class PulseTreeComponent {
   }
 
   isExpanded(groupId: string): boolean {
-    return !this.collapsedGroups().has(groupId);
+    return this.expandedGroups().has(groupId);
   }
 
   selectPulse(item: PulseOverviewGroupItem): void {
     this.pulseService.selectPulse(item.id);
   }
 
+  isSelected(id: string): boolean {
+    return this.pulseService.selectedPulseId() === id;
+  }
+
   getLastState(item: PulseOverviewGroupItem): PulseStates {
-    if (item.items?.length > 0) return item.items[0].state;
-    return PulseStates.Unknown;
+    return item.items?.length > 0 ? item.items[0].state : PulseStates.Unknown;
   }
 
   getGroupState(group: PulseOverviewGroup): PulseStates {
-    const states = new Set(group.items.map((i) => this.getLastState(i)));
+    if (group.items.length === 0) return PulseStates.Unknown;
+    const states = new Set(group.items.map(i => this.getLastState(i)));
     if (states.size === 1) return Array.from(states)[0];
-    if (states.size === 0) return PulseStates.Unknown;
     return PulseStates.Degraded;
   }
 
-  getStateIconClass(state: PulseStates): string {
+  getStateClass(state: PulseStates): string {
     return STATE_TEXT_CLASSES[state];
   }
 
@@ -72,7 +102,6 @@ export class PulseTreeComponent {
     const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
     let totalDuration = 0;
     let healthyDuration = 0;
-
     for (const pulse of pulses) {
       const from = Math.max(new Date(pulse.from!).getTime(), twelveHoursAgo);
       const to = new Date(pulse.to!).getTime();
@@ -84,15 +113,32 @@ export class PulseTreeComponent {
     return totalDuration > 0 ? (healthyDuration / totalDuration) * 100 : 0;
   }
 
-  getAllPulseItems(group: PulseOverviewGroup): PulseOverviewItem[] {
-    return group.items.flatMap((gi) => gi.items);
+  toggleOverlay(id: string, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.overlayIds.update(set => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+    // Update query params without changing the current path (which may be /details/:id)
+    const urlTree = this.router.parseUrl(this.router.url);
+    const overlays = [...this.overlayIds()];
+    if (overlays.length) {
+      urlTree.queryParams['overlay'] = overlays;
+    } else {
+      delete urlTree.queryParams['overlay'];
+    }
+    this.router.navigateByUrl(urlTree, { replaceUrl: true });
   }
 
-  isSelected(id: string): boolean {
-    return this.pulseService.selectedPulseId() === id;
+  isOverlay(id: string): boolean {
+    return this.overlayIds().has(id);
   }
 
-  isHealthy(item: PulseOverviewGroupItem): boolean {
-    return this.getLastState(item) === PulseStates.Healthy;
+  getAllPulseItems(group: PulseOverviewGroup) {
+    return group.items.flatMap(gi => gi.items);
   }
 }

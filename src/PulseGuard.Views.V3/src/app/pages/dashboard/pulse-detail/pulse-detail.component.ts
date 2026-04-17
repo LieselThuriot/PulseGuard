@@ -1,4 +1,6 @@
-import { Component, ChangeDetectionStrategy, input, signal, computed, effect, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, signal, computed, OnDestroy, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { forkJoin, of, Subject, switchMap, takeUntil, catchError } from 'rxjs';
 import { PulseDetailService } from '../../../services/pulse-detail.service';
 import { PulseCheckResultDetail, PulseDetailResultGroup, PulseMetricsResultGroup } from '../../../models/pulse-detail.model';
@@ -38,6 +40,9 @@ import { DateRangeSelectorComponent, DateRange } from '../../../components/date-
 export class PulseDetailComponent implements OnDestroy {
   readonly pulseId = input.required<string>();
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
   readonly loading = signal(true);
   readonly detailData = signal<PulseDetailResultGroup | null>(null);
   readonly metricsData = signal<PulseMetricsResultGroup | null>(null);
@@ -45,9 +50,9 @@ export class PulseDetailComponent implements OnDestroy {
   readonly deployments = signal<PulseDeployment[]>([]);
   readonly archivedMerged = signal(false);
 
-  readonly dateRange = signal<DateRange>({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date(), label: '24h' });
-  readonly decimation = signal(15);
-  readonly percentile = signal(99);
+  readonly dateRange = signal<DateRange>((() => { const f = new Date(); f.setUTCHours(0,0,0,0); const t = new Date(f); t.setHours(23,59,0,0); return { from: f, to: t, label: 'today' }; })());
+  readonly decimation = signal(+(this.route.snapshot.queryParamMap.get('decimation') ?? 15));
+  readonly percentile = signal(+(this.route.snapshot.queryParamMap.get('percentile') ?? 99));
   readonly showLogs = signal(false);
   readonly showLive = signal(false);
   readonly showForecast = signal(false);
@@ -110,10 +115,36 @@ export class PulseDetailComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   constructor(private readonly detailService: PulseDetailService) {
-    effect(() => {
-      const id = this.pulseId();
-      if (id) this.loadData(id);
-    });
+    toObservable(this.pulseId)
+      .pipe(
+        switchMap(id => {
+          this.loading.set(true);
+          this.detailData.set(null);
+          this.metricsData.set(null);
+          this.heatmapData.set(null);
+          this.deployments.set([]);
+          this.archivedMerged.set(false);
+          this.dateRange.set({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date(), label: '24h' });
+
+          return forkJoin({
+            details: this.detailService.getDetails(id).pipe(catchError(() => of(null))),
+            metrics: this.detailService.getMetrics(id).pipe(catchError(() => of(null))),
+            heatmap: this.detailService.getHeatmap(id).pipe(catchError(() => of(null))),
+            deployments: this.detailService.getDeployments(id).pipe(catchError(() => of({ id: '', items: [] }))),
+          });
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe({
+        next: (result) => {
+          this.detailData.set(result.details);
+          this.metricsData.set(result.metrics);
+          this.heatmapData.set(result.heatmap);
+          this.deployments.set(result.deployments?.items ?? []);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   ngOnDestroy(): void {
@@ -136,33 +167,28 @@ export class PulseDetailComponent implements OnDestroy {
 
   onDecimationChange(value: number): void {
     this.decimation.set(value);
+    this.syncParamToUrl('decimation', String(value), '15');
   }
 
   onPercentileChange(value: number): void {
     this.percentile.set(value);
+    this.syncParamToUrl('percentile', String(value), '99');
   }
 
-  private loadData(id: string): void {
-    this.loading.set(true);
-    this.archivedMerged.set(false);
+  private syncParamToUrl(key: string, value: string, defaultValue: string): void {
+    const urlTree = this.router.parseUrl(this.router.url);
+    if (value === defaultValue) {
+      delete urlTree.queryParams[key];
+    } else {
+      urlTree.queryParams[key] = value;
+    }
+    this.router.navigateByUrl(urlTree, { replaceUrl: true });
+  }
 
-    forkJoin({
-      details: this.detailService.getDetails(id).pipe(catchError(() => of(null))),
-      metrics: this.detailService.getMetrics(id).pipe(catchError(() => of(null))),
-      heatmap: this.detailService.getHeatmap(id).pipe(catchError(() => of(null))),
-      deployments: this.detailService.getDeployments(id).pipe(catchError(() => of({ id: '', items: [] }))),
-    })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (result) => {
-          this.detailData.set(result.details);
-          this.metricsData.set(result.metrics);
-          this.heatmapData.set(result.heatmap);
-          this.deployments.set(result.deployments?.items ?? []);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+  onHeatmapDayClicked(dayKey: string): void {
+    const from = new Date(dayKey + 'T00:00:00.000Z');
+    const to = new Date(dayKey + 'T23:59:59.999Z');
+    this.onDateRangeChange({ from, to, label: dayKey });
   }
 
   private loadArchivedData(id: string): void {

@@ -27,8 +27,7 @@ export class ProtobufService {
         case 1: group = reader.string(); break;
         case 2: name = reader.string(); break;
         case 3: {
-          // Group-delimited sub-message (DataFormat.Group)
-          const item = this.decodePulseCheckResultDetail(reader);
+          const item = this.decodePulseCheckResultDetail(reader, reader.uint32());
           items.push(item);
           break;
         }
@@ -38,19 +37,17 @@ export class ProtobufService {
     return { group, name, items };
   }
 
-  private decodePulseCheckResultDetail(reader: protobuf.Reader): PulseCheckResultDetail {
+  private decodePulseCheckResultDetail(reader: protobuf.Reader, length: number): PulseCheckResultDetail {
+    const end = reader.pos + length;
     let state = PulseStates.Unknown;
     let timestamp = 0;
     let elapsedMilliseconds: number | undefined;
 
-    // Read until end-group tag or end of reader
-    while (reader.pos < reader.len) {
+    while (reader.pos < end) {
       const tag = reader.uint32();
-      if ((tag & 7) === 4) break; // end group marker
-
       switch (tag >>> 3) {
         case 1: state = STATE_MAP[reader.int32()] ?? PulseStates.Unknown; break;
-        case 2: timestamp = Number(reader.int64()); break;
+        case 2: timestamp = Number(reader.int64()) * 1000; break;
         case 3: elapsedMilliseconds = Number(reader.int64()); break;
         default: reader.skipType(tag & 7); break;
       }
@@ -66,7 +63,7 @@ export class ProtobufService {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          const item = this.decodeMetricDetail(reader);
+          const item = this.decodeMetricDetail(reader, reader.uint32());
           items.push(item);
           break;
         }
@@ -76,18 +73,17 @@ export class ProtobufService {
     return { items };
   }
 
-  private decodeMetricDetail(reader: protobuf.Reader): PulseAgentCheckResultDetail {
+  private decodeMetricDetail(reader: protobuf.Reader, length: number): PulseAgentCheckResultDetail {
+    const end = reader.pos + length;
     let timestamp = 0;
     let cpu: number | undefined;
     let memory: number | undefined;
     let inputOutput: number | undefined;
 
-    while (reader.pos < reader.len) {
+    while (reader.pos < end) {
       const tag = reader.uint32();
-      if ((tag & 7) === 4) break;
-
       switch (tag >>> 3) {
-        case 1: timestamp = Number(reader.int64()); break;
+        case 1: timestamp = Number(reader.int64()) * 1000; break;
         case 2: cpu = reader.double(); break;
         case 3: memory = reader.double(); break;
         case 4: inputOutput = reader.double(); break;
