@@ -49,11 +49,11 @@ export interface PulseConfiguration {
   type: PulseCheckType;
   timeout: number;
   degrationTimeout?: number;
-  isEnabled: boolean;
+  enabled: boolean;
   ignoreSslErrors: boolean;
   sqid: string;
   comparisonValue?: string;
-  headers?: string;
+  headers?: Record<string, string>;
   authenticationId?: string;
 }
 
@@ -68,8 +68,8 @@ export interface PulseAgentConfiguration {
   subscriptionId?: string;
   buildDefinitionId?: number;
   stageName?: string;
-  isEnabled: boolean;
-  headers?: string;
+  enabled: boolean;
+  headers?: Record<string, string>;
   authenticationId?: string;
 }
 

@@ -5,11 +5,12 @@ import { AdminService } from '../../../services/admin.service';
 import { PulseConfiguration, PulseCheckType, CredentialOverview } from '../../../models/admin.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
+import { HeaderEditorComponent } from '../../../components/header-editor/header-editor.component';
 
 @Component({
   selector: 'app-pulse-editor',
   standalone: true,
-  imports: [FormsModule, RouterLink, LoadingSpinnerComponent],
+  imports: [FormsModule, RouterLink, LoadingSpinnerComponent, HeaderEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pulse-editor.component.html',
   styleUrl: './pulse-editor.component.css',
@@ -28,7 +29,7 @@ export class PulseEditorComponent implements OnInit {
     location: '',
     type: PulseCheckType.HealthApi,
     timeout: 30,
-    isEnabled: true,
+    enabled: true,
     ignoreSslErrors: false,
   });
 

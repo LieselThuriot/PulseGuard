@@ -51,15 +51,15 @@
             </div>
             <div class="col-12">
               <label for="comparisonValue" class="form-label">Comparison Value</label>
-              <input type="text" class="form-control" id="comparisonValue" [ngModel]="config().comparisonValue" (ngModelChange)="updateField('comparisonValue', $event)" name="comparisonValue" />
+              <textarea class="form-control" id="comparisonValue" rows="3" [ngModel]="config().comparisonValue" (ngModelChange)="updateField('comparisonValue', $event)" name="comparisonValue"></textarea>
             </div>
             <div class="col-12">
-              <label for="headers" class="form-label">Headers (JSON)</label>
-              <textarea class="form-control" id="headers" rows="3" [ngModel]="config().headers" (ngModelChange)="updateField('headers', $event)" name="headers"></textarea>
+              <label class="form-label">Headers</label>
+              <app-header-editor [value]="config().headers" (valueChange)="updateField('headers', $event)" />
             </div>
             <div class="col-md-6 d-flex align-items-center gap-3">
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="enabled" [ngModel]="config().isEnabled" (ngModelChange)="updateField('isEnabled', $event)" name="enabled" />
+                <input class="form-check-input" type="checkbox" id="enabled" [ngModel]="config().enabled" (ngModelChange)="updateField('enabled', $event)" name="enabled" />
                 <label class="form-check-label" for="enabled">Enabled</label>
               </div>
               <div class="form-check form-switch">

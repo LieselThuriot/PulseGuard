@@ -5,11 +5,12 @@ import { AdminService } from '../../../services/admin.service';
 import { PulseAgentConfiguration, AgentCheckType, CredentialOverview } from '../../../models/admin.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
+import { HeaderEditorComponent } from '../../../components/header-editor/header-editor.component';
 
 @Component({
   selector: 'app-agent-editor',
   standalone: true,
-  imports: [FormsModule, RouterLink, LoadingSpinnerComponent],
+  imports: [FormsModule, RouterLink, LoadingSpinnerComponent, HeaderEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './agent-editor.component.html',
   styleUrl: './agent-editor.component.css',
@@ -27,7 +28,7 @@ export class AgentEditorComponent implements OnInit {
     name: '',
     location: '',
     type: AgentCheckType.ApplicationInsights,
-    isEnabled: true,
+    enabled: true,
   });
 
   private configId = '';

@@ -1,0 +1,16 @@
+<div>
+  @for (row of rows(); track $index; let i = $index) {
+    <div class="input-group mb-2">
+      <input type="text" class="form-control" placeholder="Header name"
+             [ngModel]="row.key" (ngModelChange)="updateKey(i, $event)" [name]="'hk' + i" />
+      <input type="text" class="form-control" placeholder="Header value"
+             [ngModel]="row.value" (ngModelChange)="updateValue(i, $event)" [name]="'hv' + i" />
+      <button class="btn btn-outline-danger" type="button" (click)="remove(i)" title="Remove header">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+  <button class="btn btn-outline-secondary btn-sm" type="button" (click)="add()">
+    <i class="bi bi-plus-lg"></i> Add Header
+  </button>
+</div>
