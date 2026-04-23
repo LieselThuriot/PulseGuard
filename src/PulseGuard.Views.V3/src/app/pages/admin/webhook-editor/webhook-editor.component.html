@@ -34,16 +34,16 @@
               <label for="secret" class="form-label">Secret</label>
               <input type="password" class="form-control" id="secret" [ngModel]="webhook().secret" (ngModelChange)="updateField('secret', $event)" name="secret" />
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="authenticationId" class="form-label">Credential</label>
               <select class="form-select" id="authenticationId" [ngModel]="webhook().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
                 <option value="">None</option>
                 @for (cred of credentials(); track cred.id) {
-                  <option [value]="cred.id">{{ cred.name }} ({{ cred.type }})</option>
+                  <option [value]="cred.id">{{ cred.id }} ({{ cred.type }})</option>
                 }
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="enabled" [ngModel]="webhook().isEnabled" (ngModelChange)="updateField('isEnabled', $event)" name="enabled" />
                 <label class="form-check-label" for="enabled">Enabled</label>

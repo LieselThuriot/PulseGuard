@@ -46,20 +46,20 @@
               <label for="stageName" class="form-label">Stage Name</label>
               <input type="text" class="form-control" id="stageName" [ngModel]="config().stageName" (ngModelChange)="updateField('stageName', $event)" name="stageName" />
             </div>
-            <div class="col-md-4">
-              <label for="authenticationId" class="form-label">Credential</label>
-              <select class="form-select" id="authenticationId" [ngModel]="config().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
-                <option value="">None</option>
-                @for (cred of credentials(); track cred.id) {
-                  <option [value]="cred.id">{{ cred.name }} ({{ cred.type }})</option>
-                }
-              </select>
-            </div>
             <div class="col-12">
               <label class="form-label">Headers</label>
               <app-header-editor [value]="config().headers" (valueChange)="updateField('headers', $event)" />
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
+              <label for="authenticationId" class="form-label">Credential</label>
+              <select class="form-select" id="authenticationId" [ngModel]="config().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
+                <option value="">None</option>
+                @for (cred of credentials(); track cred.id) {
+                  <option [value]="cred.id">{{ cred.id }} ({{ cred.type }})</option>
+                }
+              </select>
+            </div>
+            <div class="col-12">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="enabled" [ngModel]="config().enabled" (ngModelChange)="updateField('enabled', $event)" name="enabled" />
                 <label class="form-check-label" for="enabled">Enabled</label>
