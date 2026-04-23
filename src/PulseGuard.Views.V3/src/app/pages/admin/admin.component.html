@@ -199,7 +199,10 @@
                             }
                           </div>
                         </td>
-                        <td>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</td>
+                        <td>
+                          <span>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</span>
+                          <span class="text-muted small">{{ user.daysAgo }}</span>
+                        </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
                             <a [routerLink]="['/admin/user-editor']" [queryParams]="{ id: user.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
