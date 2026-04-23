@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, OnInit, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -92,7 +92,7 @@ export class AdminComponent implements OnInit {
     const q = this.searchQuery().toLowerCase();
     const disabledOnly = this.showDisabledOnly();
     const list = this.webhooks().filter((w) => {
-      if (disabledOnly && w.isEnabled) return false;
+      if (disabledOnly && w.enabled) return false;
       if (!q) return true;
       return (w.group ?? '').toLowerCase().includes(q) || w.name.toLowerCase().includes(q);
     });
@@ -121,6 +121,7 @@ export class AdminComponent implements OnInit {
     private readonly adminService: AdminService,
     private readonly modal: NgbModal,
     private readonly notifications: NotificationService,
+    private readonly zone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -167,7 +168,7 @@ export class AdminComponent implements OnInit {
 
   toggleWebhook(webhook: WebhookEntry, enabled: boolean): void {
     this.adminService.toggleWebhook(webhook.id, enabled).subscribe({
-      next: () => this.webhooks.update((list) => list.map((w) => w.id === webhook.id ? { ...w, isEnabled: enabled } : w)),
+      next: () => this.webhooks.update((list) => list.map((w) => w.id === webhook.id ? { ...w, enabled } : w)),
       error: () => this.notifications.error('Failed to update webhook.'),
     });
   }
@@ -180,7 +181,7 @@ export class AdminComponent implements OnInit {
     ref.componentInstance.label = config.type === PulseEntryType.Normal ? 'Pulse Check' : 'Agent Check';
     ref.componentInstance.group.set(config.group ?? '');
     ref.componentInstance.name.set(config.name);
-    ref.result.then((result) => {
+    ref.result.then((result) => this.zone.run(() => {
       this.adminService.renameConfig(config.id, result).subscribe({
         next: () => {
           const update = (list: PulseEntry[]) =>
@@ -194,7 +195,7 @@ export class AdminComponent implements OnInit {
         },
         error: () => this.notifications.error('Failed to rename.'),
       });
-    }).catch(() => {});
+    })).catch(() => {});
   }
 
   renameUser(user: UserEntry): void {
@@ -202,7 +203,7 @@ export class AdminComponent implements OnInit {
     ref.componentInstance.isConfig = false;
     ref.componentInstance.label = 'User';
     ref.componentInstance.name.set(user.nickname ?? '');
-    ref.result.then((result) => {
+    ref.result.then((result) => this.zone.run(() => {
       this.adminService.renameUser(user.id, result.name).subscribe({
         next: () => {
           this.users.update((list) => list.map((u) => u.id === user.id ? { ...u, nickname: result.name } : u));
@@ -210,7 +211,7 @@ export class AdminComponent implements OnInit {
         },
         error: () => this.notifications.error('Failed to rename user.'),
       });
-    }).catch(() => {});
+    })).catch(() => {});
   }
 
   // ── Delete ──────────────────────────────────────────────────────────────────

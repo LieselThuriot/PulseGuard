@@ -4,7 +4,7 @@
       [autohide]="toast.autohide ?? true"
       [delay]="toast.delay ?? 5000"
       (hidden)="notifications.remove(toast.id)"
-      [class]="'toast-' + toast.type">
+      [class]="toast.type === 'success' ? 'text-bg-success' : 'text-bg-danger'">
       <ng-template ngbToastHeader>
         <i [class]="'bi me-2 ' + getIcon(toast.type)"></i>
         <strong class="me-auto">{{ getTitle(toast.type) }}</strong>

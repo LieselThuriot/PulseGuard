@@ -87,7 +87,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (config of filteredAgentConfigs(); track config.id) {
+                    @for (config of filteredAgentConfigs(); track config.id + '|' + config.subType) {
                       <tr>
                         <td>{{ config.group || '(no group)' }}</td>
                         <td>{{ config.name }}</td>
@@ -149,7 +149,7 @@
                         <td class="text-truncate" style="max-width: 300px">{{ webhook.location }}</td>
                         <td class="text-center">
                           <div class="form-check form-switch d-inline-block mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch" [checked]="webhook.isEnabled" (change)="toggleWebhook(webhook, $any($event.target).checked)" />
+                            <input class="form-check-input" type="checkbox" role="switch" [checked]="webhook.enabled" (change)="toggleWebhook(webhook, $any($event.target).checked)" />
                           </div>
                         </td>
                         <td class="text-center">

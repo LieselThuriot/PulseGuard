@@ -281,7 +281,7 @@ public static class AdminRoutes
                     return Results.NotFound();
                 }
 
-                user.Nickname = request.Name;
+                user.Nickname = request.Nickname;
 
                 try
                 {

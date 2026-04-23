@@ -79,7 +79,7 @@ export interface WebhookEntry {
   group: string;
   name: string;
   location: string;
-  isEnabled: boolean;
+  enabled: boolean;
   credential?: CredentialOverview;
 }
 

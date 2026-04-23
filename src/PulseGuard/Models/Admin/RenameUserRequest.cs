@@ -1,3 +1,3 @@
 ﻿namespace PulseGuard.Models.Admin;
 
-public sealed record RenameUserRequest(string Name);
+public sealed record RenameUserRequest(string Nickname);
