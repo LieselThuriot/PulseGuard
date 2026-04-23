@@ -89,7 +89,7 @@ export interface Webhook {
   group: string;
   name: string;
   location: string;
-  isEnabled: boolean;
+  enabled: boolean;
   type: WebhookType;
   authenticationId?: string;
 }

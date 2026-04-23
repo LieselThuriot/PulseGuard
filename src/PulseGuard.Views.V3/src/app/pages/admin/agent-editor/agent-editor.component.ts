@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
@@ -22,6 +22,31 @@ export class AgentEditorComponent implements OnInit {
   readonly backTab = signal('agents');
   readonly credentials = signal<CredentialOverview[]>([]);
   readonly agentCheckTypes = Object.values(AgentCheckType);
+
+  readonly locationLabel = computed(() => {
+    switch (this.config().type) {
+      case AgentCheckType.LogAnalyticsWorkspace: return 'Workspace ID';
+      case AgentCheckType.WebAppDeployment: return 'Resource Group';
+      case AgentCheckType.DevOpsDeployment:
+      case AgentCheckType.DevOpsRelease: return 'Project';
+      default: return 'Location';
+    }
+  });
+
+  readonly showApplicationName = computed(() =>
+    this.config().type !== AgentCheckType.ApplicationInsights
+  );
+  readonly showSubscriptionId = computed(() =>
+    this.config().type === AgentCheckType.WebAppDeployment ||
+    this.config().type === AgentCheckType.DevOpsDeployment ||
+    this.config().type === AgentCheckType.DevOpsRelease
+  );
+  readonly showBuildDefinitionId = computed(() =>
+    this.config().type === AgentCheckType.DevOpsDeployment
+  );
+  readonly showStageName = computed(() =>
+    this.config().type === AgentCheckType.DevOpsRelease
+  );
 
   readonly config = signal<Partial<PulseAgentConfiguration>>({
     group: '',
@@ -92,5 +117,15 @@ export class AgentEditorComponent implements OnInit {
 
   updateField(field: keyof PulseAgentConfiguration, value: any): void {
     this.config.update((c) => ({ ...c, [field]: value }));
+    if (field === 'type') {
+      // Clear fields that may not apply to the new type
+      this.config.update((c) => ({
+        ...c,
+        applicationName: undefined,
+        subscriptionId: undefined,
+        buildDefinitionId: undefined,
+        stageName: undefined,
+      }));
+    }
   }
 }

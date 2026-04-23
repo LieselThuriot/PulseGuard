@@ -27,7 +27,7 @@ export class WebhookEditorComponent implements OnInit {
     name: '',
     location: '',
     type: WebhookType.All,
-    isEnabled: true,
+    enabled: true,
   });
 
   private webhookId = '';

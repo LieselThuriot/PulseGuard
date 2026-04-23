@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
@@ -22,6 +22,9 @@ export class PulseEditorComponent implements OnInit {
   readonly backTab = signal('pulse');
   readonly credentials = signal<CredentialOverview[]>([]);
   readonly pulseCheckTypes = Object.values(PulseCheckType);
+  readonly showComparisonValue = computed(() =>
+    this.config().type === PulseCheckType.Json || this.config().type === PulseCheckType.Contains
+  );
 
   readonly config = signal<Partial<PulseConfiguration>>({
     group: '',
@@ -94,5 +97,8 @@ export class PulseEditorComponent implements OnInit {
 
   updateField(field: keyof PulseConfiguration, value: any): void {
     this.config.update((c) => ({ ...c, [field]: value }));
+    if (field === 'type' && value !== PulseCheckType.Json && value !== PulseCheckType.Contains) {
+      this.config.update((c) => ({ ...c, comparisonValue: undefined }));
+    }
   }
 }

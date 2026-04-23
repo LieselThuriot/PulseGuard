@@ -40,10 +40,12 @@
               <label for="degrationTimeout" class="form-label">Degradation Timeout (seconds)</label>
               <input type="number" class="form-control" id="degrationTimeout" [ngModel]="config().degrationTimeout" (ngModelChange)="updateField('degrationTimeout', $event)" name="degrationTimeout" />
             </div>
-            <div class="col-12">
-              <label for="comparisonValue" class="form-label">Comparison Value</label>
-              <textarea class="form-control" id="comparisonValue" rows="3" [ngModel]="config().comparisonValue" (ngModelChange)="updateField('comparisonValue', $event)" name="comparisonValue"></textarea>
-            </div>
+            @if (showComparisonValue()) {
+              <div class="col-12">
+                <label for="comparisonValue" class="form-label">Comparison Value</label>
+                <textarea class="form-control" id="comparisonValue" rows="3" [ngModel]="config().comparisonValue" (ngModelChange)="updateField('comparisonValue', $event)" name="comparisonValue" required></textarea>
+              </div>
+            }
             <div class="col-12">
               <label class="form-label">Headers</label>
               <app-header-editor [value]="config().headers" (valueChange)="updateField('headers', $event)" />
