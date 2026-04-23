@@ -38,11 +38,11 @@
               <label for="subscriptionId" class="form-label">Subscription ID</label>
               <input type="text" class="form-control" id="subscriptionId" [ngModel]="config().subscriptionId" (ngModelChange)="updateField('subscriptionId', $event)" name="subscriptionId" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label for="buildDefinitionId" class="form-label">Build Definition ID</label>
               <input type="number" class="form-control" id="buildDefinitionId" [ngModel]="config().buildDefinitionId" (ngModelChange)="updateField('buildDefinitionId', $event)" name="buildDefinitionId" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label for="stageName" class="form-label">Stage Name</label>
               <input type="text" class="form-control" id="stageName" [ngModel]="config().stageName" (ngModelChange)="updateField('stageName', $event)" name="stageName" />
             </div>

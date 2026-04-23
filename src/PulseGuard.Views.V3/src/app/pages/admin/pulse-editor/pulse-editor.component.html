@@ -32,11 +32,11 @@
               <label for="location" class="form-label">Location (URL)</label>
               <input type="url" class="form-control" id="location" [ngModel]="config().location" (ngModelChange)="updateField('location', $event)" name="location" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label for="timeout" class="form-label">Timeout (seconds)</label>
               <input type="number" class="form-control" id="timeout" [ngModel]="config().timeout" (ngModelChange)="updateField('timeout', $event)" name="timeout" min="1" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label for="degrationTimeout" class="form-label">Degradation Timeout (seconds)</label>
               <input type="number" class="form-control" id="degrationTimeout" [ngModel]="config().degrationTimeout" (ngModelChange)="updateField('degrationTimeout', $event)" name="degrationTimeout" />
             </div>

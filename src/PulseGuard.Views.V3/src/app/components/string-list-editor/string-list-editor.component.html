@@ -1,0 +1,14 @@
+<div>
+  @for (item of items(); track $index; let i = $index) {
+    <div class="input-group mb-2">
+      <input type="text" class="form-control" [placeholder]="placeholder"
+             [ngModel]="item" (ngModelChange)="update(i, $event)" [name]="'sl' + i" />
+      <button class="btn btn-outline-danger" type="button" (click)="remove(i)" title="Remove">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+  <button class="btn btn-outline-secondary btn-sm" type="button" (click)="add()">
+    <i class="bi bi-plus-lg"></i> {{ addLabel }}
+  </button>
+</div>

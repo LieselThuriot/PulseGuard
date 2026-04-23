@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
 import { NotificationService } from '../../../services/notification.service';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
+import { StringListEditorComponent } from '../../../components/string-list-editor/string-list-editor.component';
 
 @Component({
   selector: 'app-user-editor',
   standalone: true,
-  imports: [FormsModule, RouterLink, LoadingSpinnerComponent],
+  imports: [FormsModule, RouterLink, LoadingSpinnerComponent, StringListEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-editor.component.html',
   styleUrl: './user-editor.component.css',
@@ -22,8 +23,6 @@ export class UserEditorComponent implements OnInit {
   readonly userId = signal('');
   readonly nickname = signal('');
   readonly roles = signal<string[]>([]);
-
-  readonly availableRoles = ['Admin', 'Viewer'];
 
   private editId = '';
 
@@ -44,13 +43,15 @@ export class UserEditorComponent implements OnInit {
     } else {
       this.editId = id;
       this.userId.set(id);
-      // Users are loaded in bulk — just set the ID for editing
-      this.loading.set(false);
+      this.adminService.getUser(id).subscribe({
+        next: (user) => {
+          this.nickname.set(user.nickname ?? '');
+          this.roles.set(user.roles ?? []);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
     }
-  }
-
-  toggleRole(role: string): void {
-    this.roles.update((r) => r.includes(role) ? r.filter((x) => x !== role) : [...r, role]);
   }
 
   save(): void {

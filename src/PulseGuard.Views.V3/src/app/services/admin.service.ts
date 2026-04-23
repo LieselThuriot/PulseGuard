@@ -110,6 +110,10 @@ export class AdminService {
     return this.http.get<UserEntry[]>('api/1.0/admin/users');
   }
 
+  getUser(id: string): Observable<UserEntry> {
+    return this.http.get<UserEntry>(`api/1.0/admin/users/${encodeURIComponent(id)}`);
+  }
+
   createUser(id: string, user: { nickname?: string; roles: string[] }): Observable<void> {
     return this.http.post<void>(`api/1.0/admin/users/${encodeURIComponent(id)}`, user);
   }
