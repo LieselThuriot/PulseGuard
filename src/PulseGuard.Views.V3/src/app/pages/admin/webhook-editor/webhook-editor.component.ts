@@ -18,6 +18,7 @@ export class WebhookEditorComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly isCreate = signal(false);
+  readonly backTab = signal('webhooks');
   readonly credentials = signal<CredentialOverview[]>([]);
   readonly webhookTypes = Object.values(WebhookType);
 
@@ -39,6 +40,8 @@ export class WebhookEditorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab') ?? 'webhooks';
+    this.backTab.set(tab);
     this.adminService.getCredentialIds().subscribe({
       next: (creds) => this.credentials.set(creds),
     });
@@ -74,7 +77,7 @@ export class WebhookEditorComponent implements OnInit {
     op.subscribe({
       next: () => {
         this.notifications.success(this.isCreate() ? 'Webhook created.' : 'Webhook updated.');
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin', this.backTab()]);
       },
       error: () => {
         this.notifications.error('Failed to save webhook.');

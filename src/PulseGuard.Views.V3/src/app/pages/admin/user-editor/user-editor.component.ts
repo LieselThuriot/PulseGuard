@@ -17,6 +17,7 @@ export class UserEditorComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly isCreate = signal(false);
+  readonly backTab = signal('users');
 
   readonly userId = signal('');
   readonly nickname = signal('');
@@ -34,6 +35,8 @@ export class UserEditorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab') ?? 'users';
+    this.backTab.set(tab);
     const id = this.route.snapshot.queryParamMap.get('id');
     if (!id) {
       this.isCreate.set(true);
@@ -62,7 +65,7 @@ export class UserEditorComponent implements OnInit {
     op.subscribe({
       next: () => {
         this.notifications.success(this.isCreate() ? 'User created.' : 'User updated.');
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin', this.backTab()]);
       },
       error: () => {
         this.notifications.error('Failed to save user.');

@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, OnInit, signal, computed } from '@a
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
-import { CredentialType, OAuth2CredentialForm, BasicCredentialForm, ApiKeyCredentialForm } from '../../../models/admin.model';
+import { CredentialType, OAuth2CredentialForm, BasicCredentialForm, ApiKeyCredentialForm, CredentialEntry } from '../../../models/admin.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
 
@@ -18,6 +18,7 @@ export class CredentialEditorComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly isCreate = signal(false);
+  readonly backTab = signal('credentials');
   readonly credentialTypes = Object.values(CredentialType);
 
   readonly selectedType = signal<CredentialType>(CredentialType.OAuth2);
@@ -38,6 +39,8 @@ export class CredentialEditorComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.queryParamMap.get('id');
     const type = this.route.snapshot.queryParamMap.get('type') as CredentialType;
+    const tab = this.route.snapshot.queryParamMap.get('tab') ?? 'credentials';
+    this.backTab.set(tab);
 
     if (!id) {
       this.isCreate.set(true);
@@ -46,7 +49,30 @@ export class CredentialEditorComponent implements OnInit {
       this.editId = id;
       this.credId.set(id);
       if (type) this.selectedType.set(type);
-      this.loading.set(false);
+      this.adminService.getCredentials().subscribe({
+        next: (entries) => {
+          const entry = entries.find((e) => e.id === id);
+          if (entry) {
+            this.prefill(entry);
+          }
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
+    }
+  }
+
+  private prefill(entry: CredentialEntry): void {
+    switch (entry.$type) {
+      case 'OAuth2':
+        this.oauth2.set({ tokenEndpoint: entry.tokenEndpoint, clientId: entry.clientId, scopes: entry.scopes ?? '', clientSecret: '' });
+        break;
+      case 'Basic':
+        this.basic.set({ username: entry.username ?? '', password: '' });
+        break;
+      case 'ApiKey':
+        this.apiKey.set({ header: entry.header, apiKey: '' });
+        break;
     }
   }
 
@@ -74,7 +100,7 @@ export class CredentialEditorComponent implements OnInit {
     op.subscribe({
       next: () => {
         this.notifications.success(this.isCreate() ? 'Credential created.' : 'Credential updated.');
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin', this.backTab()]);
       },
       error: () => {
         this.notifications.error('Failed to save credential.');

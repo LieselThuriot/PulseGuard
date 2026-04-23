@@ -18,6 +18,7 @@ export class AgentEditorComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly isCreate = signal(false);
+  readonly backTab = signal('agents');
   readonly credentials = signal<CredentialOverview[]>([]);
   readonly agentCheckTypes = Object.values(AgentCheckType);
 
@@ -39,6 +40,8 @@ export class AgentEditorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab') ?? 'agents';
+    this.backTab.set(tab);
     this.adminService.getCredentialIds().subscribe({
       next: (creds) => this.credentials.set(creds),
     });
@@ -77,7 +80,7 @@ export class AgentEditorComponent implements OnInit {
     op.subscribe({
       next: () => {
         this.notifications.success(this.isCreate() ? 'Agent configuration created.' : 'Agent configuration updated.');
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin', this.backTab()]);
       },
       error: () => {
         this.notifications.error('Failed to save agent configuration.');

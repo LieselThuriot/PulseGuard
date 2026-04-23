@@ -18,10 +18,6 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     children: [
       {
-        path: '',
-        loadComponent: () => import('./pages/admin/admin.component').then((m) => m.AdminComponent),
-      },
-      {
         path: 'pulse-editor',
         loadComponent: () => import('./pages/admin/pulse-editor/pulse-editor.component').then((m) => m.PulseEditorComponent),
       },
@@ -41,6 +37,11 @@ export const routes: Routes = [
         path: 'credential-editor',
         loadComponent: () => import('./pages/admin/credential-editor/credential-editor.component').then((m) => m.CredentialEditorComponent),
       },
+      {
+        path: ':tab',
+        loadComponent: () => import('./pages/admin/admin.component').then((m) => m.AdminComponent),
+      },
+      { path: '', redirectTo: 'pulse', pathMatch: 'full' },
     ],
   },
   { path: '**', redirectTo: '' },

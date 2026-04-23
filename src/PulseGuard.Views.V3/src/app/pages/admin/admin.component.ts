@@ -1,17 +1,25 @@
-import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone, OnDestroy } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AdminService } from '../../services/admin.service';
-import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialOverview } from '../../models/admin.model';
+import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialEntry } from '../../models/admin.model';
 import { SearchInputComponent } from '../../components/search-input/search-input.component';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { RenameDialogComponent } from '../../components/rename-dialog/rename-dialog.component';
 import { NotificationService } from '../../services/notification.service';
+import { Subscription } from 'rxjs';
 
 type SortColumn = 'group' | 'name' | 'id';
 type SortDir = 'asc' | 'desc';
+
+const TAB_NAMES: Record<number, string> = { 1: 'pulse', 2: 'agents', 3: 'webhooks', 4: 'users', 5: 'credentials' };
+const TAB_IDS: Record<string, number> = { pulse: 1, agents: 2, webhooks: 3, users: 4, credentials: 5 };
+const EDITOR_PATHS: Record<number, string> = {
+  1: '/admin/pulse-editor', 2: '/admin/agent-editor', 3: '/admin/webhook-editor',
+  4: '/admin/user-editor', 5: '/admin/credential-editor',
+};
 
 @Component({
   selector: 'app-admin',
@@ -21,11 +29,17 @@ type SortDir = 'asc' | 'desc';
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly activeTab = signal(1);
   readonly searchQuery = signal('');
   readonly showDisabledOnly = signal(false);
+
+  readonly tabName = computed(() => TAB_NAMES[this.activeTab()] ?? 'pulse');
+  readonly createEditorPath = computed(() => EDITOR_PATHS[this.activeTab()] ?? '/admin/pulse-editor');
+  readonly createEditorParams = computed(() => ({ mode: 'create', tab: this.tabName() }));
+
+  private tabSub?: Subscription;
 
   readonly sortCol = signal<SortColumn>('group');
   readonly sortDir = signal<SortDir>('asc');
@@ -34,7 +48,7 @@ export class AdminComponent implements OnInit {
   readonly agentConfigs = signal<PulseEntry[]>([]);
   readonly webhooks = signal<WebhookEntry[]>([]);
   readonly users = signal<UserEntry[]>([]);
-  readonly credentials = signal<CredentialOverview[]>([]);
+  readonly credentials = signal<CredentialEntry[]>([]);
 
   private sortEntries(list: PulseEntry[]): PulseEntry[] {
     const col = this.sortCol();
@@ -122,10 +136,24 @@ export class AdminComponent implements OnInit {
     private readonly modal: NgbModal,
     private readonly notifications: NotificationService,
     private readonly zone: NgZone,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
+    this.tabSub = this.route.paramMap.subscribe((params) => {
+      const tab = params.get('tab') ?? 'pulse';
+      this.activeTab.set(TAB_IDS[tab] ?? 1);
+    });
     this.loadAll();
+  }
+
+  ngOnDestroy(): void {
+    this.tabSub?.unsubscribe();
+  }
+
+  onTabChange(id: number): void {
+    this.router.navigate(['/admin', TAB_NAMES[id] ?? 'pulse']);
   }
 
   onSearchChange(query: string): void {
@@ -282,7 +310,7 @@ export class AdminComponent implements OnInit {
       if (confirmed) {
         this.adminService.deleteCredential(id).subscribe({
           next: () => {
-            this.credentials.update((list) => list.filter((c) => c.id !== id));
+            this.credentials.update((list) => list.filter((c: CredentialEntry) => c.id !== id));
             this.notifications.success('Credential deleted.');
           },
           error: () => this.notifications.error('Failed to delete credential.'),
@@ -305,7 +333,7 @@ export class AdminComponent implements OnInit {
     this.adminService.getUsers().subscribe({
       next: (data) => this.users.set(data),
     });
-    this.adminService.getCredentialIds().subscribe({
+    this.adminService.getCredentials().subscribe({
       next: (data) => {
         this.credentials.set(data);
         this.loading.set(false);

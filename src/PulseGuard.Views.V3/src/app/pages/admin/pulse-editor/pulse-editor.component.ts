@@ -18,6 +18,7 @@ export class PulseEditorComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly isCreate = signal(false);
+  readonly backTab = signal('pulse');
   readonly credentials = signal<CredentialOverview[]>([]);
   readonly pulseCheckTypes = Object.values(PulseCheckType);
 
@@ -41,6 +42,8 @@ export class PulseEditorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab') ?? 'pulse';
+    this.backTab.set(tab);
     this.adminService.getCredentialIds().subscribe({
       next: (creds) => this.credentials.set(creds),
     });
@@ -79,7 +82,7 @@ export class PulseEditorComponent implements OnInit {
     op.subscribe({
       next: () => {
         this.notifications.success(this.isCreate() ? 'Configuration created.' : 'Configuration updated.');
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin', this.backTab()]);
       },
       error: () => {
         this.notifications.error('Failed to save configuration.');

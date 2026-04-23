@@ -3,7 +3,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <h2 class="h5 mb-0"><i class="bi bi-gear-fill"></i> Configuration Management</h2>
       <div class="d-flex align-items-center gap-2">
-        <a routerLink="/admin/pulse-editor" [queryParams]="{ mode: 'create' }" class="btn btn-sm btn-success">
+        <a [routerLink]="createEditorPath()" [queryParams]="createEditorParams()" class="btn btn-sm btn-success">
           <i class="bi bi-plus-circle"></i> Create New
         </a>
         <div class="form-check form-switch mb-0">
@@ -20,7 +20,7 @@
           <app-search-input (searchChange)="onSearchChange($event)" />
         </div>
 
-        <ul ngbNav #nav="ngbNav" [activeId]="activeTab()" (activeIdChange)="activeTab.set($event)" class="nav-tabs">
+        <ul ngbNav #nav="ngbNav" [activeId]="activeTab()" (activeIdChange)="onTabChange($event)" class="nav-tabs">
 
           <!-- Pulse Checks -->
           <li [ngbNavItem]="1">
@@ -55,7 +55,7 @@
                         </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/pulse-editor']" [queryParams]="{ id: config.id }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a [routerLink]="['/admin/pulse-editor']" [queryParams]="{ id: config.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                             <button class="btn btn-outline-secondary" title="Rename" (click)="renameConfig(config)"><i class="bi bi-pencil-square"></i></button>
                             <button class="btn btn-outline-danger" title="Delete" (click)="deletePulseConfig(config.id)"><i class="bi bi-trash"></i></button>
                           </div>
@@ -101,7 +101,7 @@
                         </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/agent-editor']" [queryParams]="{ id: config.id, agentType: config.subType }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a [routerLink]="['/admin/agent-editor']" [queryParams]="{ id: config.id, agentType: config.subType, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                             <button class="btn btn-outline-secondary" title="Rename" (click)="renameConfig(config)"><i class="bi bi-pencil-square"></i></button>
                             <button class="btn btn-outline-danger" title="Delete" (click)="deleteAgentConfig(config)"><i class="bi bi-trash"></i></button>
                           </div>
@@ -154,7 +154,7 @@
                         </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/webhook-editor']" [queryParams]="{ id: webhook.id }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a [routerLink]="['/admin/webhook-editor']" [queryParams]="{ id: webhook.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                             <button class="btn btn-outline-danger" title="Delete" (click)="deleteWebhook(webhook.id)"><i class="bi bi-trash"></i></button>
                           </div>
                         </td>
@@ -202,7 +202,7 @@
                         <td>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/user-editor']" [queryParams]="{ id: user.id }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a [routerLink]="['/admin/user-editor']" [queryParams]="{ id: user.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                             <button class="btn btn-outline-secondary" title="Rename" (click)="renameUser(user)"><i class="bi bi-pencil-square"></i></button>
                             <button class="btn btn-outline-danger" title="Delete" (click)="deleteUser(user.id)"><i class="bi bi-trash"></i></button>
                           </div>
@@ -228,6 +228,7 @@
                     <tr>
                       <th>Credential ID</th>
                       <th>Type</th>
+                      <th>Details</th>
                       <th class="text-center" style="width: 160px">Actions</th>
                     </tr>
                   </thead>
@@ -236,16 +237,31 @@
                       <tr>
                         <td>{{ cred.id }}</td>
                         <td>
-                          @switch (cred.type) {
+                          @switch (cred.$type) {
                             @case ('OAuth2') { <span class="badge bg-info text-dark"><i class="bi bi-shield-lock"></i> OAuth2</span> }
                             @case ('Basic') { <span class="badge bg-success"><i class="bi bi-person-lock"></i> Basic</span> }
                             @case ('ApiKey') { <span class="badge bg-warning text-dark"><i class="bi bi-key"></i> API Key</span> }
-                            @default { <span class="badge bg-secondary">{{ cred.type }}</span> }
+                          }
+                        </td>
+                        <td>
+                          @switch (cred.$type) {
+                            @case ('OAuth2') {
+                              <div class="small"><strong>Client ID: </strong>{{ cred.clientId }}</div>
+                              <div class="small"><strong>Endpoint: </strong>{{ cred.tokenEndpoint }}</div>
+                            }
+                            @case ('Basic') {
+                              <div class="small"><strong>Username: </strong><em>{{ cred.username || 'none' }}</em></div>
+                              <div class="small"><strong>Password: </strong>••••••••</div>
+                            }
+                            @case ('ApiKey') {
+                              <div class="small"><strong>Header: </strong>{{ cred.header }}</div>
+                              <div class="small"><strong>Key: </strong>••••••••</div>
+                            }
                           }
                         </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/credential-editor']" [queryParams]="{ id: cred.id, type: cred.type }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a [routerLink]="['/admin/credential-editor']" [queryParams]="{ id: cred.id, type: cred.$type, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                             <button class="btn btn-outline-danger" title="Delete" (click)="deleteCredential(cred.id)"><i class="bi bi-trash"></i></button>
                           </div>
                         </td>
