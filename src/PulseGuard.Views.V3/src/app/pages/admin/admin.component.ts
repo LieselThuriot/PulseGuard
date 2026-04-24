@@ -1,15 +1,16 @@
-import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AdminService } from '../../services/admin.service';
+import { AuthService } from '../../services/auth.service';
 import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialEntry } from '../../models/admin.model';
 import { SearchInputComponent } from '../../components/search-input/search-input.component';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { RenameDialogComponent } from '../../components/rename-dialog/rename-dialog.component';
 import { NotificationService } from '../../services/notification.service';
-import { Subscription } from 'rxjs';
 
 type SortColumn = 'group' | 'name' | 'id';
 type SortDir = 'asc' | 'desc';
@@ -29,7 +30,9 @@ const EDITOR_PATHS: Record<number, string> = {
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',
 })
-export class AdminComponent implements OnInit, OnDestroy {
+export class AdminComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly loading = signal(true);
   readonly activeTab = signal(1);
   readonly searchQuery = signal('');
@@ -38,8 +41,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   readonly tabName = computed(() => TAB_NAMES[this.activeTab()] ?? 'pulse');
   readonly createEditorPath = computed(() => EDITOR_PATHS[this.activeTab()] ?? '/admin/pulse-editor');
   readonly createEditorParams = computed(() => ({ mode: 'create', tab: this.tabName() }));
-
-  private tabSub?: Subscription;
 
   readonly sortCol = signal<SortColumn>('group');
   readonly sortDir = signal<SortDir>('asc');
@@ -50,7 +51,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   readonly users = signal<UserEntry[]>([]);
   readonly credentials = signal<CredentialEntry[]>([]);
 
-  private sortEntries(list: PulseEntry[]): PulseEntry[] {
+  private sortByGroupName<T extends { group?: string; name: string }>(list: T[]): T[] {
     const col = this.sortCol();
     const dir = this.sortDir() === 'asc' ? 1 : -1;
     return [...list].sort((a, b) => {
@@ -65,53 +66,21 @@ export class AdminComponent implements OnInit, OnDestroy {
     });
   }
 
-  private sortWebhooks(list: WebhookEntry[]): WebhookEntry[] {
-    const col = this.sortCol();
-    const dir = this.sortDir() === 'asc' ? 1 : -1;
-    return [...list].sort((a, b) => {
-      const ag = (a.group ?? '').toLowerCase();
-      const bg = (b.group ?? '').toLowerCase();
-      const an = a.name.toLowerCase();
-      const bn = b.name.toLowerCase();
-      if (col === 'group') {
-        const c = ag.localeCompare(bg); return c !== 0 ? c * dir : an.localeCompare(bn);
-      }
-      const c = an.localeCompare(bn); return c !== 0 ? c * dir : ag.localeCompare(bg);
+  private filterEnabled<T extends { group?: string; name: string; enabled?: boolean }>(list: T[]): T[] {
+    const q = this.searchQuery().toLowerCase();
+    const disabledOnly = this.showDisabledOnly();
+    return list.filter((c) => {
+      if (disabledOnly && c.enabled) return false;
+      if (!q) return true;
+      return (c.group ?? '').toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
     });
   }
 
-  readonly filteredPulseConfigs = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    const disabledOnly = this.showDisabledOnly();
-    const list = this.pulseConfigs().filter((c) => {
-      if (disabledOnly && c.enabled) return false;
-      if (!q) return true;
-      return (c.group ?? '').toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
-    });
-    return this.sortEntries(list);
-  });
+  readonly filteredPulseConfigs = computed(() => this.sortByGroupName(this.filterEnabled(this.pulseConfigs())));
 
-  readonly filteredAgentConfigs = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    const disabledOnly = this.showDisabledOnly();
-    const list = this.agentConfigs().filter((c) => {
-      if (disabledOnly && c.enabled) return false;
-      if (!q) return true;
-      return (c.group ?? '').toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
-    });
-    return this.sortEntries(list);
-  });
+  readonly filteredAgentConfigs = computed(() => this.sortByGroupName(this.filterEnabled(this.agentConfigs())));
 
-  readonly filteredWebhooks = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    const disabledOnly = this.showDisabledOnly();
-    const list = this.webhooks().filter((w) => {
-      if (disabledOnly && w.enabled) return false;
-      if (!q) return true;
-      return (w.group ?? '').toLowerCase().includes(q) || w.name.toLowerCase().includes(q);
-    });
-    return this.sortWebhooks(list);
-  });
+  readonly filteredWebhooks = computed(() => this.sortByGroupName(this.filterEnabled(this.webhooks())));
 
   readonly filteredUsers = computed(() => {
     const q = this.searchQuery().toLowerCase();
@@ -133,6 +102,9 @@ export class AdminComponent implements OnInit, OnDestroy {
     return [...list].sort((a, b) => a.id.localeCompare(b.id));
   });
 
+  private readonly authService = inject(AuthService);
+  readonly hasCredentials = this.authService.hasCredentials;
+
   constructor(
     private readonly adminService: AdminService,
     private readonly modal: NgbModal,
@@ -143,15 +115,11 @@ export class AdminComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.tabSub = this.route.paramMap.subscribe((params) => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const tab = params.get('tab') ?? 'pulse';
       this.activeTab.set(TAB_IDS[tab] ?? 1);
     });
     this.loadAll();
-  }
-
-  ngOnDestroy(): void {
-    this.tabSub?.unsubscribe();
   }
 
   onTabChange(id: number): void {
@@ -342,14 +310,19 @@ export class AdminComponent implements OnInit, OnDestroy {
       next: (data) => this.webhooks.set(data),
     });
     this.adminService.getUsers().subscribe({
-      next: (data) => this.users.set(data),
-    });
-    this.adminService.getCredentials().subscribe({
       next: (data) => {
-        this.credentials.set(data);
-        this.loading.set(false);
+        this.users.set(data);
+        if (!this.hasCredentials()) this.loading.set(false);
       },
-      error: () => this.loading.set(false),
     });
+    if (this.hasCredentials()) {
+      this.adminService.getCredentials().subscribe({
+        next: (data) => {
+          this.credentials.set(data);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
+    }
   }
 }

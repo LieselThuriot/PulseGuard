@@ -3,6 +3,7 @@
     <div class="d-flex flex-row justify-content-between align-items-center">
       <div><i class="bi bi-layers me-1"></i> Overview</div>
       <button class="btn btn-sm btn-outline-secondary py-0"
+              aria-label="Toggle unhealthy filter"
               (click)="pulseService.toggleFilter()">
         @if (pulseService.filterUnhealthy()) {
           <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy

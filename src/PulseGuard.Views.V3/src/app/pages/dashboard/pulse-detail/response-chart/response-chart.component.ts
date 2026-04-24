@@ -39,6 +39,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
   private readonly injector = inject(Injector);
   private resizeObserver: ResizeObserver | null = null;
+  private renderFrameId: number | null = null;
 
   readonly chartPoints = computed<ChartPoint[]>(() => {
     const items = this.items();
@@ -61,15 +62,24 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       // Subscribe to signals to trigger re-render
       this.chartPoints();
       this.deployments();
-      this.render();
+      this.scheduleRender();
     }, { injector: this.injector });
 
-    this.resizeObserver = new ResizeObserver(() => this.render());
+    this.resizeObserver = new ResizeObserver(() => this.scheduleRender());
     this.resizeObserver.observe(this.chartRef.nativeElement.parentElement!);
   }
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    if (this.renderFrameId !== null) cancelAnimationFrame(this.renderFrameId);
+  }
+
+  private scheduleRender(): void {
+    if (this.renderFrameId !== null) cancelAnimationFrame(this.renderFrameId);
+    this.renderFrameId = requestAnimationFrame(() => {
+      this.renderFrameId = null;
+      this.render();
+    });
   }
 
   private render(): void {

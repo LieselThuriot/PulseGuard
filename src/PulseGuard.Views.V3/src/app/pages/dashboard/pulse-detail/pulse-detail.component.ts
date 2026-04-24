@@ -17,6 +17,7 @@ import { HealthBarComponent } from '../../../components/health-bar/health-bar.co
 import { StatusBadgeComponent } from '../../../components/status-badge/status-badge.component';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
 import { DateRangeSelectorComponent, DateRange } from '../../../components/date-range-selector/date-range-selector.component';
+import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE } from '../../../constants';
 
 @Component({
   selector: 'app-pulse-detail',
@@ -51,10 +52,10 @@ export class PulseDetailComponent implements OnDestroy {
   readonly archivedMerged = signal(false);
   readonly archivedLoading = signal(false);
 
-  readonly dateRange = signal<DateRange>((() => { const f = new Date(); f.setUTCHours(0,0,0,0); const t = new Date(f); t.setHours(23,59,0,0); return { from: f, to: t }; })());
+  readonly dateRange = signal<DateRange>((() => { const f = new Date(); f.setUTCHours(0,0,0,0); const t = new Date(f); t.setUTCHours(23,59,59,999); return { from: f, to: t }; })());
   readonly externalDateRange = signal<DateRange | null>(null);
-  readonly decimation = signal(+(this.route.snapshot.queryParamMap.get('decimation') ?? 15));
-  readonly percentile = signal(+(this.route.snapshot.queryParamMap.get('percentile') ?? 99));
+  readonly decimation = signal(+(this.route.snapshot.queryParamMap.get('decimation') ?? DEFAULT_DECIMATION));
+  readonly percentile = signal(+(this.route.snapshot.queryParamMap.get('percentile') ?? DEFAULT_PERCENTILE));
   readonly showLogs = signal(false);
   readonly showLive = signal(false);
   readonly showForecast = signal(false);
@@ -172,12 +173,12 @@ export class PulseDetailComponent implements OnDestroy {
 
   onDecimationChange(value: number): void {
     this.decimation.set(value);
-    this.syncParamToUrl('decimation', String(value), '15');
+    this.syncParamToUrl('decimation', String(value), String(DEFAULT_DECIMATION));
   }
 
   onPercentileChange(value: number): void {
     this.percentile.set(value);
-    this.syncParamToUrl('percentile', String(value), '99');
+    this.syncParamToUrl('percentile', String(value), String(DEFAULT_PERCENTILE));
   }
 
   private syncParamToUrl(key: string, value: string, defaultValue: string): void {

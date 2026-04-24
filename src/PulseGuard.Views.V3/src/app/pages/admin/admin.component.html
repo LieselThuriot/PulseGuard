@@ -219,6 +219,7 @@
           </li>
 
           <!-- Credentials -->
+          @if (hasCredentials()) {
           <li [ngbNavItem]="5">
             <button ngbNavLink>
               <i class="bi bi-key-fill"></i> Credentials
@@ -275,6 +276,7 @@
               </div>
             </ng-template>
           </li>
+          }
         </ul>
 
         <div [ngbNavOutlet]="nav" class="mt-2"></div>

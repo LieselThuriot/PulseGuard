@@ -1,5 +1,6 @@
 import { Injectable, signal, NgZone } from '@angular/core';
 import { PulseEventInfo } from '../models/pulse-event.model';
+import { MAX_EVENT_BUFFER } from '../constants';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
@@ -21,7 +22,10 @@ export class EventService {
       this.eventSource.onmessage = (event) => {
         const data: PulseEventInfo = JSON.parse(event.data);
         this.zone.run(() => {
-          this.events.update((list) => [...list, data]);
+          this.events.update((list) => {
+            const updated = [...list, data];
+            return updated.length > MAX_EVENT_BUFFER ? updated.slice(-MAX_EVENT_BUFFER) : updated;
+          });
         });
       };
       this.eventSource.onerror = () => {

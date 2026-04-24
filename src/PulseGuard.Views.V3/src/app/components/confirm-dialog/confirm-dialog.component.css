@@ -1,0 +1,7 @@
+.admin-delete-warning {
+  padding: 1rem;
+  background-color: rgba(var(--bs-warning-rgb), 0.1);
+  border-left: 4px solid var(--bs-warning);
+  border-radius: 0.25rem;
+  margin: 1rem 0;
+}

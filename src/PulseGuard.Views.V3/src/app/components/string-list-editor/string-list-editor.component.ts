@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, Input, Output, EventEmitter, OnChanges, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -8,16 +8,19 @@ import { FormsModule } from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './string-list-editor.component.html',
 })
-export class StringListEditorComponent implements OnChanges {
-  @Input() value: string[] = [];
-  @Input() placeholder = 'Value';
-  @Input() addLabel = 'Add';
-  @Output() valueChange = new EventEmitter<string[]>();
+export class StringListEditorComponent {
+  readonly value = input<string[]>([]);
+  readonly placeholder = input('Value');
+  readonly addLabel = input('Add');
+  readonly valueChange = output<string[]>();
 
   readonly items = signal<string[]>([]);
 
-  ngOnChanges(): void {
-    this.items.set(Array.isArray(this.value) ? [...this.value] : []);
+  constructor() {
+    effect(() => {
+      const v = this.value();
+      this.items.set(Array.isArray(v) ? [...v] : []);
+    });
   }
 
   add(): void {

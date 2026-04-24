@@ -5,6 +5,7 @@ import {
 import * as d3 from 'd3';
 import { EventService } from '../../../../services/event.service';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
+import { LIVE_PULSE_MAX_POINTS } from '../../../../constants';
 
 interface LivePoint {
   timestamp: number;
@@ -31,6 +32,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly injector = inject(Injector);
   private _interval: ReturnType<typeof setInterval> | null = null;
+  private _renderFrameId: number | null = null;
 
   constructor(private readonly eventService: EventService) {}
 
@@ -49,7 +51,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
           };
           this.points.update((pts) => {
             const updated = [...pts, point];
-            if (updated.length > 100) updated.shift();
+            if (updated.length > LIVE_PULSE_MAX_POINTS) updated.shift();
             return updated;
           });
         }
@@ -61,13 +63,22 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     effect(() => {
       this.points();
-      this.render();
+      this.scheduleRender();
     }, { injector: this.injector });
   }
 
   ngOnDestroy(): void {
     this.eventService.disconnect();
     if (this._interval) clearInterval(this._interval);
+    if (this._renderFrameId !== null) cancelAnimationFrame(this._renderFrameId);
+  }
+
+  private scheduleRender(): void {
+    if (this._renderFrameId !== null) cancelAnimationFrame(this._renderFrameId);
+    this._renderFrameId = requestAnimationFrame(() => {
+      this._renderFrameId = null;
+      this.render();
+    });
   }
 
   onClose(): void {

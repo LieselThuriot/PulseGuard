@@ -3,6 +3,7 @@ import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { PulseOverviewItem } from '../../models/pulse-overview.model';
 import { PulseCheckResultDetail } from '../../models/pulse-detail.model';
 import { PulseStates, STATE_CSS_CLASSES } from '../../models/pulse-states.enum';
+import { HEALTH_BAR_OVERVIEW_BUCKETS, HEALTH_BAR_DETAIL_BUCKETS, HEALTH_BAR_OVERVIEW_HOURS } from '../../constants';
 
 interface HealthBucket {
   start: Date;
@@ -36,8 +37,8 @@ export class HealthBarComponent {
   });
 
   private buildOverviewBuckets(pulses: PulseOverviewItem[]): HealthBucket[] {
-    const totalHours = 12;
-    const bucketCount = 10;
+    const totalHours = HEALTH_BAR_OVERVIEW_HOURS;
+    const bucketCount = HEALTH_BAR_OVERVIEW_BUCKETS;
     const bucketSize = totalHours / bucketCount;
     const now = Date.now() + 60000;
 
@@ -70,7 +71,7 @@ export class HealthBarComponent {
   private buildDetailBuckets(items: PulseCheckResultDetail[]): HealthBucket[] {
     if (!items.length) return [];
 
-    const bucketCount = 144;
+    const bucketCount = HEALTH_BAR_DETAIL_BUCKETS;
     const healthStates: PulseStates[] = [
       PulseStates.Healthy,
       PulseStates.Degraded,

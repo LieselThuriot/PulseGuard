@@ -3,6 +3,7 @@
   <div class="card-body p-2">
     <div class="heatmap-wrapper">
       <canvas #heatmapCanvas
+              role="img" aria-label="Health heatmap showing daily status over the past year"
               (mousemove)="onMouseMove($event)"
               (mouseleave)="onMouseLeave()"
               (click)="onCanvasClick($event)">

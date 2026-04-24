@@ -1,9 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { retry, timer } from 'rxjs';
 import { PulseOverviewGroup } from '../models/pulse-overview.model';
 
 @Injectable({ providedIn: 'root' })
 export class PulseService {
+  private readonly retryConfig = { count: 1, delay: (_err: unknown, retryCount: number) => timer(retryCount * 1000) } as const;
+
   readonly overview = signal<PulseOverviewGroup[]>([]);
   readonly selectedPulseId = signal<string | null>(null);
   readonly filterUnhealthy = signal(false);
@@ -13,7 +16,7 @@ export class PulseService {
 
   loadOverview(): void {
     this.loading.set(true);
-    this.http.get<PulseOverviewGroup[]>('api/1.0/pulses').subscribe({
+    this.http.get<PulseOverviewGroup[]>('api/1.0/pulses').pipe(retry(this.retryConfig)).subscribe({
       next: (data) => {
         data.sort((a, b) => {
           if (a.group === '') return 1;

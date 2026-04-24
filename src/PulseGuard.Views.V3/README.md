@@ -1,59 +1,58 @@
-# PulseGuardViewsV3
+# PulseGuard Views V3
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.7.
+Angular 21 frontend for PulseGuard — a health-check monitoring dashboard with real-time streaming, forecasting, and admin configuration management.
 
-## Development server
+## Prerequisites
 
-To start a local development server, run:
+- Node.js 22+
+- npm 11+
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Getting Started
 
 ```bash
-ng generate component component-name
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+The dev server starts at `http://localhost:4200/` with hot reload. The app expects the PulseGuard backend API at the same origin (proxied through the .NET SPA middleware in development).
 
-```bash
-ng generate --help
+## Project Structure
+
 ```
+src/app/
+├── components/     # Reusable UI components (health-bar, navbar, toast, etc.)
+├── constants.ts    # Shared magic-number constants
+├── guards/         # Route guards (admin access)
+├── interceptors/   # HTTP error interceptor
+├── models/         # TypeScript interfaces and enums
+├── pages/
+│   ├── admin/      # Configuration editors (pulse, agent, webhook, user, credential)
+│   └── dashboard/  # Main dashboard with pulse tree, detail view, and charts
+└── services/       # API communication, auth, SSE events, protobuf decoding, theme
+```
+
+## Key Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `@ng-bootstrap/ng-bootstrap` | Bootstrap 5 Angular components |
+| `d3` | Interactive SVG/Canvas charts |
+| `@protobuf-ts/runtime` | Binary protobuf response decoding |
+| `mathjs` | Forecast statistical calculations |
 
 ## Building
 
-To build the project run:
-
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Output goes to `dist/pulseguard.client/browser/`. Production builds include hashing for cache-busting.
 
-## Running unit tests
+## Architecture Notes
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- **Standalone components** — no NgModules; each component declares its own imports.
+- **Signal-based state** — Angular signals for reactive state management; no external store library.
+- **Lazy loading** — Admin pages and dashboard are lazy-loaded via the router.
+- **OnPush change detection** — all components use `ChangeDetectionStrategy.OnPush`.
+- **Protobuf binary** — detail, metric, and heatmap endpoints return protobuf; decoded client-side.
+- **SSE** — real-time pulse events via `EventSource` for the live dashboard view.

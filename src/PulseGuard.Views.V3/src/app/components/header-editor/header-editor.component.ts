@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, Input, Output, EventEmitter, OnChanges, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 interface HeaderRow { key: string; value: string; }
@@ -10,18 +10,21 @@ interface HeaderRow { key: string; value: string; }
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './header-editor.component.html',
 })
-export class HeaderEditorComponent implements OnChanges {
-  @Input() value: Record<string, string> | undefined;
-  @Output() valueChange = new EventEmitter<Record<string, string> | undefined>();
+export class HeaderEditorComponent {
+  readonly value = input<Record<string, string> | undefined>();
+  readonly valueChange = output<Record<string, string> | undefined>();
 
   readonly rows = signal<HeaderRow[]>([]);
 
-  ngOnChanges(): void {
-    if (this.value && typeof this.value === 'object') {
-      this.rows.set(Object.entries(this.value).map(([key, value]) => ({ key, value: String(value) })));
-    } else {
-      this.rows.set([]);
-    }
+  constructor() {
+    effect(() => {
+      const v = this.value();
+      if (v && typeof v === 'object') {
+        this.rows.set(Object.entries(v).map(([key, value]) => ({ key, value: String(value) })));
+      } else {
+        this.rows.set([]);
+      }
+    });
   }
 
   add(): void {

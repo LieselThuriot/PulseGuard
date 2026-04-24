@@ -34,24 +34,6 @@
 }
 
 /* ============================================
-   Health bars
-   ============================================ */
-
-.healthbar > div {
-  width: 0.6em;
-  height: 2rem;
-}
-
-.healthbar-tiny > div {
-  width: 0.33em;
-  height: 1rem;
-}
-
-.healthbar-container {
-  min-height: 2.6rem;
-}
-
-/* ============================================
    Offcanvas
    ============================================ */
 
@@ -63,26 +45,6 @@
   .offcanvas {
     --bs-offcanvas-width: 100%;
   }
-}
-
-/* ============================================
-   Toasts
-   ============================================ */
-
-.toast-success {
-  --bs-toast-header-bg: RGBA(var(--bs-success-rgb), 0.5);
-}
-
-.toast-danger {
-  --bs-toast-header-bg: RGBA(var(--bs-danger-rgb), 0.5);
-}
-
-.toast-warning {
-  --bs-toast-header-bg: RGBA(var(--bs-warning-rgb), 0.5);
-}
-
-.toast-info {
-  --bs-toast-header-bg: RGBA(var(--bs-info-rgb), 0.5);
 }
 
 /* ============================================
@@ -100,42 +62,5 @@
   to {
     text-shadow: 0 0 0.5rem currentColor;
   }
-}
-
-/* ============================================
-   Dashboard
-   ============================================ */
-
-.pulse-selection {
-  overflow: auto;
-}
-
-.pulse-selection a {
-  min-height: 2.7rem;
-}
-
-/* ============================================
-   Admin
-   ============================================ */
-
-.admin-search-input {
-  max-width: 400px;
-}
-
-.admin-delete-warning {
-  padding: 1rem;
-  background-color: rgba(var(--bs-warning-rgb), 0.1);
-  border-left: 4px solid var(--bs-warning);
-  border-radius: 0.25rem;
-  margin: 1rem 0;
-}
-
-.admin-table tbody tr {
-  vertical-align: middle;
-}
-
-.admin-table .badge {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
 }
 

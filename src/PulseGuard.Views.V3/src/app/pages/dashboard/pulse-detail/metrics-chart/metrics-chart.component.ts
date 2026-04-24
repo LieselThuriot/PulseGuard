@@ -34,6 +34,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
   private readonly injector = inject(Injector);
   private resizeObserver: ResizeObserver | null = null;
+  private renderFrameId: number | null = null;
 
   readonly filteredItems = computed<PulseAgentCheckResultDetail[]>(() => {
     const items = this.metrics().items;
@@ -51,10 +52,10 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     effect(() => {
       this.filteredItems();
-      this.renderAll();
+      this.scheduleRender();
     }, { injector: this.injector });
 
-    this.resizeObserver = new ResizeObserver(() => this.renderAll());
+    this.resizeObserver = new ResizeObserver(() => this.scheduleRender());
     if (this.cpuRef?.nativeElement.parentElement) {
       this.resizeObserver.observe(this.cpuRef.nativeElement.parentElement!);
     }
@@ -62,6 +63,15 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    if (this.renderFrameId !== null) cancelAnimationFrame(this.renderFrameId);
+  }
+
+  private scheduleRender(): void {
+    if (this.renderFrameId !== null) cancelAnimationFrame(this.renderFrameId);
+    this.renderFrameId = requestAnimationFrame(() => {
+      this.renderFrameId = null;
+      this.renderAll();
+    });
   }
 
   private renderAll(): void {

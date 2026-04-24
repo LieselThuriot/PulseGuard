@@ -8,6 +8,7 @@ import { UptimeBadgeComponent } from '../../../components/uptime-badge/uptime-ba
 import { PulseOverviewGroup, PulseOverviewGroupItem } from '../../../models/pulse-overview.model';
 import { PulseStates, STATE_TEXT_CLASSES } from '../../../models/pulse-states.enum';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
+import { TWELVE_HOURS_MS } from '../../../constants';
 
 @Component({
   selector: 'app-pulse-tree',
@@ -99,7 +100,7 @@ export class PulseTreeComponent {
   calculateUptime(item: PulseOverviewGroupItem): number {
     const pulses = item.items;
     if (!pulses?.length) return 0;
-    const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+    const twelveHoursAgo = Date.now() - TWELVE_HOURS_MS;
     let totalDuration = 0;
     let healthyDuration = 0;
     for (const pulse of pulses) {
