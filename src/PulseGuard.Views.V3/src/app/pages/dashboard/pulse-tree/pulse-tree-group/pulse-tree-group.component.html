@@ -1,0 +1,27 @@
+<!-- Named group header -->
+<a href="#"
+   class="list-group-item list-group-item-action d-flex flex-row align-items-center fw-semibold"
+   (click)="$event.preventDefault(); toggle()">
+  <i class="bi bi-chevron-right chevron-icon me-1"
+     [class.expanded]="expanded()"></i>
+  <i class="bi bi-heart-pulse me-2"
+     [ngClass]="groupStateClass()"></i>
+  <span class="flex-grow-1 text-truncate me-3"
+        [ngbTooltip]="group().group"
+        triggers="hover"
+        container="body">{{ group().group }}</span>
+  <app-health-bar [items]="allPulseItems()" />
+</a>
+
+<!-- Children — single collapse container per group -->
+<div [ngbCollapse]="!expanded()">
+  @for (item of group().items; track item.id) {
+    <app-pulse-tree-item
+      [item]="item"
+      [selected]="selectedId() === item.id"
+      [overlay]="overlayIds().has(item.id)"
+      [indent]="true"
+      (itemSelected)="itemSelected.emit($event)"
+      (overlayToggled)="overlayToggled.emit($event)" />
+  }
+</div>

@@ -1,8 +1,8 @@
-import { HttpInterceptorFn, HttpRequest, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpInterceptorFn, HttpRequest, HttpErrorResponse, provideHttpClient, withInterceptors, HttpContext } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpClient } from '@angular/common/http';
-import { errorInterceptor } from './error.interceptor';
+import { errorInterceptor, SUPPRESS_NOT_FOUND } from './error.interceptor';
 import { NotificationService } from '../services/notification.service';
 
 describe('errorInterceptor', () => {
@@ -74,6 +74,16 @@ describe('errorInterceptor', () => {
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 404 });
 
     expect(spy).toHaveBeenCalledWith('Request failed (404). Please check your input and try again.');
+  });
+
+  it('should not show a toast for 404 when SUPPRESS_NOT_FOUND is set', () => {
+    const spy = jest.spyOn(notifications, 'error');
+    const ctx = new HttpContext().set(SUPPRESS_NOT_FOUND, true);
+    httpClient.get('/test', { context: ctx }).subscribe({ error: () => {} });
+
+    httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 404 });
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should show session expired on repeated 401 within guard window', () => {

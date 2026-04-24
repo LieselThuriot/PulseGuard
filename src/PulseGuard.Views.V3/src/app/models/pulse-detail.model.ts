@@ -22,3 +22,8 @@ export interface PulseAgentCheckResultDetail {
 export interface PulseMetricsResultGroup {
   items: PulseAgentCheckResultDetail[];
 }
+
+export interface OverlayData {
+  label: string;
+  items: PulseCheckResultDetail[];
+}

@@ -1,0 +1,10 @@
+/* Chevron rotates 90° when its group is expanded */
+.chevron-icon {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.expanded {
+  transform: rotate(90deg);
+}

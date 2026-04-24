@@ -1,9 +1,9 @@
 import { Component, ChangeDetectionStrategy, input, signal, computed, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { forkJoin, of, Subject, switchMap, takeUntil, catchError } from 'rxjs';
+import { combineLatest, forkJoin, of, Subject, switchMap, takeUntil, catchError, distinctUntilChanged, map } from 'rxjs';
 import { PulseDetailService } from '../../../services/pulse-detail.service';
-import { PulseCheckResultDetail, PulseDetailResultGroup, PulseMetricsResultGroup } from '../../../models/pulse-detail.model';
+import { PulseCheckResultDetail, PulseDetailResultGroup, PulseMetricsResultGroup, OverlayData } from '../../../models/pulse-detail.model';
 import { PulseHeatmaps } from '../../../models/pulse-heatmap.model';
 import { PulseDeployment } from '../../../models/pulse-overview.model';
 import { PulseStates, STATE_CSS_CLASSES } from '../../../models/pulse-states.enum';
@@ -49,6 +49,7 @@ export class PulseDetailComponent implements OnDestroy {
   readonly metricsData = signal<PulseMetricsResultGroup | null>(null);
   readonly heatmapData = signal<PulseHeatmaps | null>(null);
   readonly deployments = signal<PulseDeployment[]>([]);
+  readonly overlayData = signal<OverlayData[]>([]);
   readonly archivedMerged = signal(false);
   readonly archivedLoading = signal(false);
 
@@ -118,24 +119,37 @@ export class PulseDetailComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   constructor(private readonly detailService: PulseDetailService) {
-    toObservable(this.pulseId)
+    combineLatest([
+      toObservable(this.pulseId),
+      this.route.queryParamMap.pipe(
+        map(p => p.getAll('overlay').sort().join(',')),
+        distinctUntilChanged(),
+      ),
+    ])
       .pipe(
-        switchMap(id => {
+        switchMap(([id, _overlayKey]) => {
           this.loading.set(true);
           this.detailData.set(null);
           this.metricsData.set(null);
           this.heatmapData.set(null);
           this.deployments.set([]);
+          this.overlayData.set([]);
           this.archivedMerged.set(false);
           this.archivedLoading.set(false);
           this.externalDateRange.set(null);
           this.dateRange.set({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date() });
+
+          const overlayIds = [...new Set(this.route.snapshot.queryParamMap.getAll('overlay'))].filter(o => o !== id);
+          const overlayObs = overlayIds.length > 0
+            ? forkJoin(overlayIds.map(oid => this.detailService.getDetails(oid).pipe(catchError(() => of(null)))))
+            : of([] as (PulseDetailResultGroup | null)[]);
 
           return forkJoin({
             details: this.detailService.getDetails(id).pipe(catchError(() => of(null))),
             metrics: this.detailService.getMetrics(id).pipe(catchError(() => of(null))),
             heatmap: this.detailService.getHeatmap(id).pipe(catchError(() => of(null))),
             deployments: this.detailService.getDeployments(id).pipe(catchError(() => of({ id: '', items: [] }))),
+            overlayDetails: overlayObs,
           });
         }),
         takeUntil(this.destroy$),
@@ -146,6 +160,11 @@ export class PulseDetailComponent implements OnDestroy {
           this.metricsData.set(result.metrics);
           this.heatmapData.set(result.heatmap);
           this.deployments.set(result.deployments?.items ?? []);
+          this.overlayData.set(
+            (result.overlayDetails ?? [])
+              .filter((d): d is PulseDetailResultGroup => d !== null)
+              .map(d => ({ label: d.group ? `${d.group} > ${d.name}` : d.name, items: d.items }))
+          );
           this.loading.set(false);
         },
         error: () => this.loading.set(false),

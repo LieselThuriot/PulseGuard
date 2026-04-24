@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy, signal, OnInit, computed, NgZone, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AdminService } from '../../services/admin.service';
@@ -11,6 +10,11 @@ import { LoadingSpinnerComponent } from '../../components/loading-spinner/loadin
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
 import { RenameDialogComponent } from '../../components/rename-dialog/rename-dialog.component';
 import { NotificationService } from '../../services/notification.service';
+import { PulseListComponent } from './components/pulse-list/pulse-list.component';
+import { AgentListComponent } from './components/agent-list/agent-list.component';
+import { WebhookListComponent } from './components/webhook-list/webhook-list.component';
+import { UserListComponent } from './components/user-list/user-list.component';
+import { CredentialListComponent } from './components/credential-list/credential-list.component';
 
 type SortColumn = 'group' | 'name' | 'id';
 type SortDir = 'asc' | 'desc';
@@ -25,7 +29,7 @@ const EDITOR_PATHS: Record<number, string> = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgTemplateOutlet, DatePipe, SearchInputComponent, LoadingSpinnerComponent],
+  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, SearchInputComponent, LoadingSpinnerComponent, PulseListComponent, AgentListComponent, WebhookListComponent, UserListComponent, CredentialListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',

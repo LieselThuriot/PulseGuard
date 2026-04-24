@@ -2,15 +2,25 @@
   <div class="card-header d-none d-lg-block">
     <div class="d-flex flex-row justify-content-between align-items-center">
       <div><i class="bi bi-layers me-1"></i> Overview</div>
-      <button class="btn btn-sm btn-outline-secondary py-0"
-              aria-label="Toggle unhealthy filter"
-              (click)="pulseService.toggleFilter()">
-        @if (pulseService.filterUnhealthy()) {
-          <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy
-        } @else {
-          <i class="bi bi-list-check me-1"></i>All
+      <div class="d-flex gap-2">
+        @if (overlayCount() > 0) {
+          <button class="btn btn-sm btn-outline-warning py-0"
+                  aria-label="Clear all overlays"
+                  ngbTooltip="Clear all overlays"
+                  (click)="clearOverlays()">
+            <i class="bi bi-stack me-1"></i>{{ overlayCount() }} ×
+          </button>
         }
-      </button>
+        <button class="btn btn-sm btn-outline-secondary py-0"
+                aria-label="Toggle unhealthy filter"
+                (click)="pulseService.toggleFilter()">
+          @if (pulseService.filterUnhealthy()) {
+            <i class="bi bi-exclamation-diamond me-1"></i>Unhealthy
+          } @else {
+            <i class="bi bi-list-check me-1"></i>All
+          }
+        </button>
+      </div>
     </div>
   </div>
 
@@ -25,79 +35,25 @@
           </div>
         }
         @for (group of filteredGroups(); track group.group) {
-
           @if (group.group) {
-            <!-- Named group header -->
-            <a href="#"
-               class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden fw-semibold"
-               (click)="$event.preventDefault(); toggleGroup(group.group)">
-              <i class="bi bi-chevron-right chevron-icon me-1"
-                 [class.expanded]="isExpanded(group.group)"></i>
-              <i class="bi bi-heart-pulse me-2"
-                 [ngClass]="getStateClass(getGroupState(group))"></i>
-              <span class="flex-grow-1 text-truncate me-3"
-                    [ngbTooltip]="group.group"
-                    triggers="hover"
-                    container="body">{{ group.group }}</span>
-              <app-health-bar [items]="getAllPulseItems(group)" />
-            </a>
-
-            <!-- Children — single collapse container per group -->
-            <div [ngbCollapse]="!isExpanded(group.group)">
-              @for (item of group.items; track item.id) {
-                <a href="#"
-                   class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden pulse-item-child"
-                   [class.active]="isSelected(item.id)"
-                   (click)="$event.preventDefault(); selectPulse(item)">
-                  <i class="bi bi-activity me-2"
-                     [ngClass]="getStateClass(getLastState(item))"></i>
-                  <app-uptime-badge class="me-2 d-none d-xl-inline-flex"
-                                    [percentage]="calculateUptime(item)" />
-                  <span class="flex-grow-1 text-truncate me-3"
-                        [ngbTooltip]="item.name"
-                        triggers="hover"
-                        container="body">{{ item.name }}</span>
-                  <button class="btn btn-link btn-sm p-0 me-2 d-none d-md-inline overlay-btn"
-                          [class.active]="isOverlay(item.id)"
-                          ngbTooltip="Toggle Overlay"
-                          triggers="hover"
-                          container="body"
-                          (click)="toggleOverlay(item.id, $event)">
-                    <i class="bi bi-stack"></i>
-                  </button>
-                  <app-health-bar [items]="item.items" />
-                </a>
-              }
-            </div>
-
+            <app-pulse-tree-group
+              [group]="group"
+              [expanded]="isExpanded(group.group)"
+              [selectedId]="pulseService.selectedPulseId()"
+              [overlayIds]="overlayIds()"
+              (groupToggled)="toggleGroup($event)"
+              (itemSelected)="selectPulse($event)"
+              (overlayToggled)="toggleOverlay($event)" />
           } @else {
-            <!-- Ungrouped items — always visible, no indent -->
             @for (item of group.items; track item.id) {
-              <a href="#"
-                 class="list-group-item list-group-item-action d-flex flex-row align-items-center overflow-hidden"
-                 [class.active]="isSelected(item.id)"
-                 (click)="$event.preventDefault(); selectPulse(item)">
-                <i class="bi bi-activity me-2"
-                   [ngClass]="getStateClass(getLastState(item))"></i>
-                <app-uptime-badge class="me-2 d-none d-xl-inline-flex"
-                                  [percentage]="calculateUptime(item)" />
-                <span class="flex-grow-1 text-truncate me-3"
-                      [ngbTooltip]="item.name"
-                      triggers="hover"
-                      container="body">{{ item.name }}</span>
-                <button class="btn btn-link btn-sm p-0 me-2 d-none d-md-inline overlay-btn"
-                        [class.active]="isOverlay(item.id)"
-                        ngbTooltip="Toggle Overlay"
-                        triggers="hover"
-                        container="body"
-                        (click)="toggleOverlay(item.id, $event)">
-                  <i class="bi bi-stack"></i>
-                </button>
-                <app-health-bar [items]="item.items" />
-              </a>
+              <app-pulse-tree-item
+                [item]="item"
+                [selected]="pulseService.selectedPulseId() === item.id"
+                [overlay]="overlayIds().has(item.id)"
+                (itemSelected)="selectPulse($event)"
+                (overlayToggled)="toggleOverlay($event)" />
             }
           }
-
         }
       </div>
     }

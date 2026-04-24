@@ -29,42 +29,16 @@
               <span class="badge bg-primary ms-1">{{ filteredPulseConfigs().length }}</span>
             </button>
             <ng-template ngbNavContent>
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('group')">Group <i class="bi {{ sortIcon('group') }}"></i></a></th>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('name')">Name <i class="bi {{ sortIcon('name') }}"></i></a></th>
-                      <th>SubType</th>
-                      <th class="text-center" style="width: 120px">Enabled</th>
-                      <th class="text-center" style="width: 220px">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (config of filteredPulseConfigs(); track config.id) {
-                      <tr>
-                        <td>{{ config.group || '(no group)' }}</td>
-                        <td>{{ config.name }}</td>
-                        <td>
-                          <ng-container [ngTemplateOutlet]="subTypeBadge" [ngTemplateOutletContext]="{ $implicit: config.subType }"></ng-container>
-                        </td>
-                        <td class="text-center">
-                          <div class="form-check form-switch d-inline-block mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch" [checked]="config.enabled" (change)="togglePulse(config, $any($event.target).checked)" />
-                          </div>
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/pulse-editor']" [queryParams]="{ id: config.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <button class="btn btn-outline-secondary" title="Rename" (click)="renameConfig(config)"><i class="bi bi-pencil-square"></i></button>
-                            <button class="btn btn-outline-danger" title="Delete" (click)="deletePulseConfig(config.id)"><i class="bi bi-trash"></i></button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+              <app-pulse-list
+                [configs]="filteredPulseConfigs()"
+                [sortCol]="sortCol()"
+                [sortDir]="sortDir()"
+                [tabName]="tabName()"
+                (sortChange)="sort($event)"
+                (toggleChange)="togglePulse($event.config, $event.enabled)"
+                (renameItem)="renameConfig($event)"
+                (deleteItem)="deletePulseConfig($event)"
+              />
             </ng-template>
           </li>
 
@@ -75,42 +49,16 @@
               <span class="badge bg-info ms-1">{{ filteredAgentConfigs().length }}</span>
             </button>
             <ng-template ngbNavContent>
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('group')">Group <i class="bi {{ sortIcon('group') }}"></i></a></th>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('name')">Name <i class="bi {{ sortIcon('name') }}"></i></a></th>
-                      <th>SubType</th>
-                      <th class="text-center" style="width: 120px">Enabled</th>
-                      <th class="text-center" style="width: 220px">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (config of filteredAgentConfigs(); track config.id + '|' + config.subType) {
-                      <tr>
-                        <td>{{ config.group || '(no group)' }}</td>
-                        <td>{{ config.name }}</td>
-                        <td>
-                          <ng-container [ngTemplateOutlet]="subTypeBadge" [ngTemplateOutletContext]="{ $implicit: config.subType }"></ng-container>
-                        </td>
-                        <td class="text-center">
-                          <div class="form-check form-switch d-inline-block mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch" [checked]="config.enabled" (change)="toggleAgent(config, $any($event.target).checked)" />
-                          </div>
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/agent-editor']" [queryParams]="{ id: config.id, agentType: config.subType, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <button class="btn btn-outline-secondary" title="Rename" (click)="renameConfig(config)"><i class="bi bi-pencil-square"></i></button>
-                            <button class="btn btn-outline-danger" title="Delete" (click)="deleteAgentConfig(config)"><i class="bi bi-trash"></i></button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+              <app-agent-list
+                [configs]="filteredAgentConfigs()"
+                [sortCol]="sortCol()"
+                [sortDir]="sortDir()"
+                [tabName]="tabName()"
+                (sortChange)="sort($event)"
+                (toggleChange)="toggleAgent($event.config, $event.enabled)"
+                (renameItem)="renameConfig($event)"
+                (deleteItem)="deleteAgentConfig($event)"
+              />
             </ng-template>
           </li>
 
@@ -121,48 +69,15 @@
               <span class="badge bg-success ms-1">{{ filteredWebhooks().length }}</span>
             </button>
             <ng-template ngbNavContent>
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('group')">Group <i class="bi {{ sortIcon('group') }}"></i></a></th>
-                      <th><a href="#" class="text-decoration-none text-body" (click)="$event.preventDefault(); sort('name')">Name <i class="bi {{ sortIcon('name') }}"></i></a></th>
-                      <th>Type</th>
-                      <th>Location</th>
-                      <th class="text-center" style="width: 120px">Enabled</th>
-                      <th class="text-center" style="width: 160px">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (webhook of filteredWebhooks(); track webhook.id) {
-                      <tr>
-                        <td>{{ webhook.group === '*' ? '(all)' : (webhook.group || '(no group)') }}</td>
-                        <td>{{ webhook.name === '*' ? '(all)' : (webhook.name || '(no name)') }}</td>
-                        <td>
-                          @switch (webhook.type) {
-                            @case ('All') { <span class="badge bg-primary"><i class="bi bi-broadcast"></i> All</span> }
-                            @case ('StateChange') { <span class="badge bg-warning text-dark"><i class="bi bi-arrow-left-right"></i> StateChange</span> }
-                            @case ('ThresholdBreach') { <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> ThresholdBreach</span> }
-                            @default { <span class="badge bg-secondary">{{ webhook.type }}</span> }
-                          }
-                        </td>
-                        <td class="text-truncate" style="max-width: 300px">{{ webhook.location }}</td>
-                        <td class="text-center">
-                          <div class="form-check form-switch d-inline-block mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch" [checked]="webhook.enabled" (change)="toggleWebhook(webhook, $any($event.target).checked)" />
-                          </div>
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/webhook-editor']" [queryParams]="{ id: webhook.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <button class="btn btn-outline-danger" title="Delete" (click)="deleteWebhook(webhook.id)"><i class="bi bi-trash"></i></button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+              <app-webhook-list
+                [webhooks]="filteredWebhooks()"
+                [sortCol]="sortCol()"
+                [sortDir]="sortDir()"
+                [tabName]="tabName()"
+                (sortChange)="sort($event)"
+                (toggleChange)="toggleWebhook($event.webhook, $event.enabled)"
+                (deleteItem)="deleteWebhook($event)"
+              />
             </ng-template>
           </li>
 
@@ -173,48 +88,12 @@
               <span class="badge bg-warning ms-1">{{ filteredUsers().length }}</span>
             </button>
             <ng-template ngbNavContent>
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th>User ID</th>
-                      <th>Name</th>
-                      <th>Roles</th>
-                      <th>Last Visited</th>
-                      <th class="text-center" style="width: 220px">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (user of filteredUsers(); track user.id) {
-                      <tr>
-                        <td>{{ user.id }}</td>
-                        <td>{{ user.nickname || '-' }}</td>
-                        <td>
-                          <div class="d-flex flex-wrap gap-1">
-                            @for (role of user.roles; track role) {
-                              <span class="badge bg-secondary">{{ role }}</span>
-                            }
-                            @if (!user.roles || user.roles.length === 0) {
-                              <span class="text-muted">No roles</span>
-                            }
-                          </div>
-                        </td>
-                        <td>
-                          <span>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</span>
-                          <span class="text-muted small">{{ user.daysAgo }}</span>
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/user-editor']" [queryParams]="{ id: user.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <button class="btn btn-outline-secondary" title="Rename" (click)="renameUser(user)"><i class="bi bi-pencil-square"></i></button>
-                            <button class="btn btn-outline-danger" title="Delete" (click)="deleteUser(user.id)"><i class="bi bi-trash"></i></button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+              <app-user-list
+                [users]="filteredUsers()"
+                [tabName]="tabName()"
+                (renameItem)="renameUser($event)"
+                (deleteItem)="deleteUser($event)"
+              />
             </ng-template>
           </li>
 
@@ -226,54 +105,11 @@
               <span class="badge bg-secondary ms-1">{{ filteredCredentials().length }}</span>
             </button>
             <ng-template ngbNavContent>
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th>Credential ID</th>
-                      <th>Type</th>
-                      <th>Details</th>
-                      <th class="text-center" style="width: 160px">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (cred of filteredCredentials(); track cred.id) {
-                      <tr>
-                        <td>{{ cred.id }}</td>
-                        <td>
-                          @switch (cred.$type) {
-                            @case ('OAuth2') { <span class="badge bg-info text-dark"><i class="bi bi-shield-lock"></i> OAuth2</span> }
-                            @case ('Basic') { <span class="badge bg-success"><i class="bi bi-person-lock"></i> Basic</span> }
-                            @case ('ApiKey') { <span class="badge bg-warning text-dark"><i class="bi bi-key"></i> API Key</span> }
-                          }
-                        </td>
-                        <td>
-                          @switch (cred.$type) {
-                            @case ('OAuth2') {
-                              <div class="small"><strong>Client ID: </strong>{{ cred.clientId }}</div>
-                              <div class="small"><strong>Endpoint: </strong>{{ cred.tokenEndpoint }}</div>
-                            }
-                            @case ('Basic') {
-                              <div class="small"><strong>Username: </strong><em>{{ cred.username || 'none' }}</em></div>
-                              <div class="small"><strong>Password: </strong>••••••••</div>
-                            }
-                            @case ('ApiKey') {
-                              <div class="small"><strong>Header: </strong>{{ cred.header }}</div>
-                              <div class="small"><strong>Key: </strong>••••••••</div>
-                            }
-                          }
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm">
-                            <a [routerLink]="['/admin/credential-editor']" [queryParams]="{ id: cred.id, type: cred.$type, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <button class="btn btn-outline-danger" title="Delete" (click)="deleteCredential(cred.id)"><i class="bi bi-trash"></i></button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+              <app-credential-list
+                [credentials]="filteredCredentials()"
+                [tabName]="tabName()"
+                (deleteItem)="deleteCredential($event)"
+              />
             </ng-template>
           </li>
           }
@@ -285,20 +121,3 @@
   </div>
 </div>
 
-<!-- SubType badge template -->
-<ng-template #subTypeBadge let-subType>
-  @switch (subType) {
-    @case ('HealthApi')    { <span class="badge bg-success"><i class="bi bi-heart-pulse"></i> {{ subType }}</span> }
-    @case ('HealthCheck')  { <span class="badge bg-success"><i class="bi bi-heart-pulse"></i> {{ subType }}</span> }
-    @case ('StatusCode')   { <span class="badge bg-info text-dark"><i class="bi bi-check-circle"></i> {{ subType }}</span> }
-    @case ('StatusApi')    { <span class="badge bg-info text-dark"><i class="bi bi-check-circle"></i> {{ subType }}</span> }
-    @case ('Json')         { <span class="badge bg-warning text-dark"><i class="bi bi-braces"></i> {{ subType }}</span> }
-    @case ('Contains')     { <span class="badge bg-warning text-dark"><i class="bi bi-search"></i> {{ subType }}</span> }
-    @case ('ApplicationInsights')   { <span class="badge bg-info text-dark"><i class="bi bi-graph-up"></i> {{ subType }}</span> }
-    @case ('LogAnalyticsWorkspace') { <span class="badge bg-primary"><i class="bi bi-journal-text"></i> {{ subType }}</span> }
-    @case ('WebAppDeployment')      { <span class="badge bg-success"><i class="bi bi-cloud-upload"></i> {{ subType }}</span> }
-    @case ('DevOpsDeployment')      { <span class="badge bg-warning text-dark"><i class="bi bi-git"></i> {{ subType }}</span> }
-    @case ('DevOpsRelease')         { <span class="badge bg-secondary"><i class="bi bi-rocket"></i> {{ subType }}</span> }
-    @default { <span class="badge bg-secondary">{{ subType }}</span> }
-  }
-</ng-template>

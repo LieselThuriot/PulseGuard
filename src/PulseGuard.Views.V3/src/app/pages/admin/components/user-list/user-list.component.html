@@ -1,0 +1,42 @@
+<div class="table-responsive">
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Name</th>
+        <th>Roles</th>
+        <th>Last Visited</th>
+        <th class="text-center" style="width: 220px">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (user of users(); track user.id) {
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.nickname || '-' }}</td>
+          <td>
+            <div class="d-flex flex-wrap gap-1">
+              @for (role of user.roles; track role) {
+                <span class="badge bg-secondary">{{ role }}</span>
+              }
+              @if (!user.roles || user.roles.length === 0) {
+                <span class="text-muted">No roles</span>
+              }
+            </div>
+          </td>
+          <td>
+            <span>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</span>
+            <span class="text-muted small">{{ user.daysAgo }}</span>
+          </td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm">
+              <a [routerLink]="['/admin/user-editor']" [queryParams]="{ id: user.id, tab: tabName() }" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+              <button class="btn btn-outline-secondary" title="Rename" (click)="renameItem.emit(user)"><i class="bi bi-pencil-square"></i></button>
+              <button class="btn btn-outline-danger" title="Delete" (click)="deleteItem.emit(user.id)"><i class="bi bi-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

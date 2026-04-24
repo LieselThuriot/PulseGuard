@@ -3,9 +3,16 @@ import {
   ViewChild, ElementRef, effect, OnDestroy, Injector, inject, AfterViewInit,
 } from '@angular/core';
 import * as d3 from 'd3';
-import { PulseCheckResultDetail } from '../../../../models/pulse-detail.model';
+import { PulseCheckResultDetail, OverlayData } from '../../../../models/pulse-detail.model';
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
+
+const OVERLAY_COLORS = ['#6366f1', '#06b6d4', '#f97316', '#a855f7', '#14b8a6'];
+
+interface OverlayPoint {
+  x: number;
+  y: number;
+}
 
 interface TimeBucket {
   timestamp: number;
@@ -33,6 +40,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
   readonly decimation = input(15);
   readonly percentile = input(99);
   readonly deployments = input<PulseDeployment[]>([]);
+  readonly overlays = input<OverlayData[]>([]);
 
   @ViewChild('chart') chartRef!: ElementRef<SVGSVGElement>;
   @ViewChild('tooltip') tooltipRef!: ElementRef<HTMLDivElement>;
@@ -57,10 +65,24 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     });
   });
 
+  readonly overlayChartSeries = computed<{ label: string; color: string; points: OverlayPoint[] }[]>(() => {
+    const dec = this.decimation();
+    const pct = this.percentile();
+    return this.overlays().map((overlay, i) => ({
+      label: overlay.label,
+      color: OVERLAY_COLORS[i % OVERLAY_COLORS.length],
+      points: this.createBuckets(overlay.items, dec).map((bucket) => ({
+        x: bucket.timestamp,
+        y: this.calculatePercentile(bucket.values, pct),
+      })),
+    }));
+  });
+
   ngAfterViewInit(): void {
     effect(() => {
       // Subscribe to signals to trigger re-render
       this.chartPoints();
+      this.overlayChartSeries();
       this.deployments();
       this.scheduleRender();
     }, { injector: this.injector });
@@ -88,14 +110,17 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
     const points = this.chartPoints();
     const deploys = this.deployments();
+    const overlaySeries = this.overlayChartSeries();
 
     const container = svgEl.parentElement!;
     const totalWidth = container.clientWidth || 600;
-    const totalHeight = 300;
+    // +1 for the main "Response times" row, +12 for top separator + bottom padding
+    const legendHeight = overlaySeries.length > 0 ? 12 + (overlaySeries.length + 1) * 18 : 0;
+    const totalHeight = 300 + legendHeight;
 
     const margin = { top: 10, right: 20, bottom: 44, left: 50 };
     const width = totalWidth - margin.left - margin.right;
-    const height = totalHeight - margin.top - margin.bottom;
+    const height = 300 - margin.top - margin.bottom;
 
     const svg = d3.select(svgEl);
     svg.attr('width', totalWidth).attr('height', totalHeight);
@@ -109,9 +134,20 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
     if (!points.length) return;
 
-    const xExtent = d3.extent(points, (p) => p.x) as [number, number];
+    // Compute x domain across main series + all overlays
+    const allXValues = [
+      ...points.map(p => p.x),
+      ...overlaySeries.flatMap(s => s.points.map(p => p.x)),
+    ];
+    const xExtent = d3.extent(allXValues) as [number, number];
     const xScale = d3.scaleTime().domain(xExtent).range([0, width]);
-    const yMax = d3.max(points, (p) => p.y) ?? 0;
+
+    // Compute y domain across main series + all overlays
+    const allYValues = [
+      ...points.map(p => p.y),
+      ...overlaySeries.flatMap(s => s.points.map(p => p.y)),
+    ];
+    const yMax = d3.max(allYValues) ?? 0;
     const yScale = d3.scaleLinear().domain([0, yMax * 1.1]).range([height, 0]).nice();
 
     const spanMs = xExtent[1] - xExtent[0];
@@ -193,6 +229,28 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     };
     drawDeployments(xScale);
 
+    // Overlay line drawing helper
+    const drawOverlays = (xSc: d3.ScaleTime<number, number>) => {
+      plotG.selectAll('.overlay-path').remove();
+      for (const series of overlaySeries) {
+        if (series.points.length < 2) continue;
+        const lineGen = d3.line<OverlayPoint>()
+          .x((p) => xSc(p.x))
+          .y((p) => yScale(p.y))
+          .curve(d3.curveCatmullRom.alpha(0.1));
+        plotG.append('path')
+          .datum(series.points)
+          .attr('class', 'overlay-path')
+          .attr('fill', 'none')
+          .attr('stroke', series.color)
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '5,3')
+          .attr('opacity', 0.85)
+          .attr('d', lineGen);
+      }
+    };
+    drawOverlays(xScale);
+
     // Draw line segments grouped by consecutive color
     const segments = this.groupByColor(points);
     for (const seg of segments) {
@@ -224,6 +282,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       drawDeployments(xSc);
       plotG.selectAll('path').remove();
       plotG.selectAll('circle').remove();
+      drawOverlays(xSc);
       for (const seg of segments) {
         const lineGen = d3.line<ChartPoint>()
           .x((p) => xSc(p.x)).y((p) => yScale(p.y))
@@ -268,6 +327,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
     // Unified tooltip via brush overlay (sits on top, captures all pointer events)
     const bisect = d3.bisector<ChartPoint, Date>((p) => p.x).center;
+    const bisectOverlay = d3.bisector<OverlayPoint, Date>((p) => p.x).center;
 
     const vline = plotG.append('line')
       .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
@@ -296,10 +356,20 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
           const p = points[idx];
           vline.attr('x1', currentXScale(p.x)).attr('x2', currentXScale(p.x)).style('opacity', 1);
           const ts = new Date(p.x).toLocaleString();
+          let html = `<div class="tt-date">${ts}</div>`;
+          html += `<div class="tt-row"><span class="tt-swatch" style="background:${p.color}"></span><span class="tt-label">Response times (ms):</span> <span class="tt-value">${p.y.toFixed(0)}</span></div>`;
+          html += `<div class="tt-row"><span class="tt-label">State:</span> <span class="tt-value">${p.state}</span></div>`;
+          for (const series of overlaySeries) {
+            const oi = bisectOverlay(series.points, currentXScale.invert(mx));
+            if (oi >= 0 && oi < series.points.length) {
+              const op = series.points[oi];
+              html += `<div class="tt-row"><span class="tt-swatch" style="background:${series.color}"></span><span class="tt-label">${series.label}:</span> <span class="tt-value">${op.y.toFixed(0)}</span></div>`;
+            }
+          }
           tooltip.style('opacity', '1')
             .style('left', `${event.offsetX + 12}px`)
             .style('top', `${event.offsetY - 10}px`)
-            .html(`<div class="tt-date">${ts}</div><div class="tt-row"><span class="tt-swatch" style="background:${p.color}"></span><span class="tt-label">Response times (ms):</span> <span class="tt-value">${p.y.toFixed(0)}</span></div><div class="tt-row"><span class="tt-label">State:</span> <span class="tt-value">${p.state}</span></div>`);
+            .html(html);
           return;
         }
         vline.style('opacity', 0);
@@ -330,6 +400,38 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       redraw(currentXScale);
       svg.call(zoom.transform, d3.zoomIdentity);
     });
+
+    // Legend (rendered below chart when overlays are present)
+    if (overlaySeries.length > 0) {
+      const legendG = svg.append('g')
+        .attr('transform', `translate(${margin.left}, ${300 + 4})`);
+      legendG.append('line')
+        .attr('x1', 0).attr('x2', width)
+        .attr('stroke', '#ccc').attr('stroke-width', 0.5);
+      // Main series entry
+      const mainLegendY = 14;
+      legendG.append('line')
+        .attr('x1', 0).attr('y1', mainLegendY).attr('x2', 18).attr('y2', mainLegendY)
+        .attr('stroke', '#6c757d').attr('stroke-width', 2);
+      legendG.append('text')
+        .attr('x', 22).attr('y', mainLegendY + 4)
+        .attr('font-size', '11px')
+        .text('Response times (ms)');
+      // Overlay entries
+      for (let i = 0; i < overlaySeries.length; i++) {
+        const y = 14 + (i + 1) * 18;
+        const series = overlaySeries[i];
+        legendG.append('line')
+          .attr('x1', 0).attr('y1', y).attr('x2', 18).attr('y2', y)
+          .attr('stroke', series.color).attr('stroke-width', 2)
+          .attr('stroke-dasharray', '5,3');
+        legendG.append('text')
+          .attr('x', 22).attr('y', y + 4)
+          .attr('font-size', '11px')
+          .attr('fill', series.color)
+          .text(series.label);
+      }
+    }
   }
 
   /** Split an array of points into consecutive runs of the same color */

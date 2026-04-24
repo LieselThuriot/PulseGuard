@@ -1,10 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable, map, retry, timer } from 'rxjs';
 import { PulseDetailResultGroup, PulseMetricsResultGroup } from '../models/pulse-detail.model';
 import { PulseHeatmaps } from '../models/pulse-heatmap.model';
 import { PulseDeployments, PulseDetailGroupItem } from '../models/pulse-overview.model';
 import { ProtobufService } from './protobuf.service';
+import { SUPPRESS_NOT_FOUND } from '../interceptors/error.interceptor';
+
+const suppressNotFound = () => new HttpContext().set(SUPPRESS_NOT_FOUND, true);
 
 @Injectable({ providedIn: 'root' })
 export class PulseDetailService {
@@ -23,30 +26,31 @@ export class PulseDetailService {
 
   getArchivedDetails(id: string): Observable<PulseDetailResultGroup> {
     return this.http
-      .get(`api/1.0/pulses/details/${encodeURIComponent(id)}/archived`, { responseType: 'arraybuffer' })
+      .get(`api/1.0/pulses/details/${encodeURIComponent(id)}/archived`, { responseType: 'arraybuffer', context: suppressNotFound() })
       .pipe(retry(this.retryConfig), map((buf) => this.proto.decodePulseDetails(buf)));
   }
 
   getMetrics(id: string): Observable<PulseMetricsResultGroup> {
     return this.http
-      .get(`api/1.0/metrics/${encodeURIComponent(id)}`, { responseType: 'arraybuffer' })
+      .get(`api/1.0/metrics/${encodeURIComponent(id)}`, { responseType: 'arraybuffer', context: suppressNotFound() })
       .pipe(retry(this.retryConfig), map((buf) => this.proto.decodeMetrics(buf)));
   }
 
   getArchivedMetrics(id: string): Observable<PulseMetricsResultGroup> {
     return this.http
-      .get(`api/1.0/metrics/${encodeURIComponent(id)}/archived`, { responseType: 'arraybuffer' })
+      .get(`api/1.0/metrics/${encodeURIComponent(id)}/archived`, { responseType: 'arraybuffer', context: suppressNotFound() })
       .pipe(retry(this.retryConfig), map((buf) => this.proto.decodeMetrics(buf)));
   }
 
   getHeatmap(id: string): Observable<PulseHeatmaps> {
     return this.http
-      .get(`api/1.0/pulses/heatmap/${encodeURIComponent(id)}`, { responseType: 'arraybuffer' })
+      .get(`api/1.0/pulses/heatmap/${encodeURIComponent(id)}`, { responseType: 'arraybuffer', context: suppressNotFound() })
       .pipe(retry(this.retryConfig), map((buf) => this.proto.decodeHeatmaps(buf)));
   }
 
   getDeployments(id: string): Observable<PulseDeployments> {
-    return this.http.get<PulseDeployments>(`api/1.0/pulses/application/${encodeURIComponent(id)}/deployments`)
+    return this.http
+      .get<PulseDeployments>(`api/1.0/pulses/application/${encodeURIComponent(id)}/deployments`, { context: suppressNotFound() })
       .pipe(retry(this.retryConfig));
   }
 
@@ -55,6 +59,6 @@ export class PulseDetailService {
     if (continuationToken) {
       url += `&continuationToken=${encodeURIComponent(continuationToken)}`;
     }
-    return this.http.get<PulseDetailGroupItem>(url).pipe(retry(this.retryConfig));
+    return this.http.get<PulseDetailGroupItem>(url, { context: suppressNotFound() }).pipe(retry(this.retryConfig));
   }
 }
