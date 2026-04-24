@@ -3,6 +3,21 @@
   height: 400px;
 }
 
+.forecast-chart-container ::ng-deep .tick text,
+.forecast-chart-container ::ng-deep svg text {
+  fill: var(--bs-secondary-color);
+}
+
+.forecast-chart-container ::ng-deep .domain,
+.forecast-chart-container ::ng-deep .tick line {
+  stroke: var(--bs-secondary-color);
+}
+
+/* Hide brush resize handles — drag-to-zoom only */
+.forecast-chart-container ::ng-deep .brush .handle {
+  display: none;
+}
+
 .forecast-log {
   max-height: 150px;
   overflow-y: auto;

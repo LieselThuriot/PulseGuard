@@ -49,8 +49,10 @@ export class PulseDetailComponent implements OnDestroy {
   readonly heatmapData = signal<PulseHeatmaps | null>(null);
   readonly deployments = signal<PulseDeployment[]>([]);
   readonly archivedMerged = signal(false);
+  readonly archivedLoading = signal(false);
 
-  readonly dateRange = signal<DateRange>((() => { const f = new Date(); f.setUTCHours(0,0,0,0); const t = new Date(f); t.setHours(23,59,0,0); return { from: f, to: t, label: 'today' }; })());
+  readonly dateRange = signal<DateRange>((() => { const f = new Date(); f.setUTCHours(0,0,0,0); const t = new Date(f); t.setHours(23,59,0,0); return { from: f, to: t }; })());
+  readonly externalDateRange = signal<DateRange | null>(null);
   readonly decimation = signal(+(this.route.snapshot.queryParamMap.get('decimation') ?? 15));
   readonly percentile = signal(+(this.route.snapshot.queryParamMap.get('percentile') ?? 99));
   readonly showLogs = signal(false);
@@ -76,7 +78,7 @@ export class PulseDetailComponent implements OnDestroy {
     const range = this.dateRange();
     const from = range.from.getTime();
     const to = range.to.getTime();
-    if (range.label === 'All') return data.items;
+    if (range.from.getTime() === 0) return data.items;
     return data.items.filter((i) => i.timestamp >= from && i.timestamp <= to);
   });
 
@@ -124,7 +126,9 @@ export class PulseDetailComponent implements OnDestroy {
           this.heatmapData.set(null);
           this.deployments.set([]);
           this.archivedMerged.set(false);
-          this.dateRange.set({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date(), label: '24h' });
+          this.archivedLoading.set(false);
+          this.externalDateRange.set(null);
+          this.dateRange.set({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date() });
 
           return forkJoin({
             details: this.detailService.getDetails(id).pipe(catchError(() => of(null))),
@@ -159,7 +163,8 @@ export class PulseDetailComponent implements OnDestroy {
     if (!this.archivedMerged()) {
       const midnight = new Date();
       midnight.setUTCHours(0, 0, 0, 0);
-      if (range.from.getTime() < midnight.getTime() || range.label === 'All') {
+      if (range.from.getTime() < midnight.getTime() || range.from.getTime() === 0) {
+        this.archivedLoading.set(true);
         this.loadArchivedData(this.pulseId());
       }
     }
@@ -188,7 +193,9 @@ export class PulseDetailComponent implements OnDestroy {
   onHeatmapDayClicked(dayKey: string): void {
     const from = new Date(dayKey + 'T00:00:00.000Z');
     const to = new Date(dayKey + 'T23:59:59.999Z');
-    this.onDateRangeChange({ from, to, label: dayKey });
+    const range: DateRange = { from, to };
+    this.externalDateRange.set(range);
+    this.onDateRangeChange(range);
   }
 
   private loadArchivedData(id: string): void {
@@ -215,7 +222,9 @@ export class PulseDetailComponent implements OnDestroy {
           }
 
           this.archivedMerged.set(true);
+          this.archivedLoading.set(false);
         },
+        error: () => this.archivedLoading.set(false),
       });
   }
 }

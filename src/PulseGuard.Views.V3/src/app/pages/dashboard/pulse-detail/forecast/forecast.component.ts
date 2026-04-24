@@ -1,8 +1,9 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed } from '@angular/core';
+import {
+  Component, ChangeDetectionStrategy, input, output, signal,
+  ViewChild, ElementRef, effect, Injector, inject, AfterViewInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BaseChartDirective } from 'ng2-charts';
-import { ChartData, ChartConfiguration } from 'chart.js';
-import 'chartjs-adapter-date-fns';
+import * as d3 from 'd3';
 import { PulseCheckResultDetail } from '../../../../models/pulse-detail.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
 
@@ -19,15 +20,21 @@ interface HourlyProb {
   states: Record<string, number>;
 }
 
+interface ForecastSeries {
+  label: string;
+  color: string;
+  points: { x: number; y: number }[];
+}
+
 @Component({
   selector: 'app-forecast',
   standalone: true,
-  imports: [FormsModule, BaseChartDirective],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './forecast.component.html',
   styleUrl: './forecast.component.css',
 })
-export class ForecastComponent {
+export class ForecastComponent implements AfterViewInit {
   readonly items = input.required<PulseCheckResultDetail[]>();
   readonly close = output<void>();
 
@@ -39,26 +46,122 @@ export class ForecastComponent {
     patternStrength: 0.5,
   });
 
+  @ViewChild('forecastChart') chartRef!: ElementRef<SVGSVGElement>;
+
+  private readonly injector = inject(Injector);
+
   readonly generating = signal(false);
   readonly error = signal<string | null>(null);
   readonly logMessages = signal<string[]>([]);
   readonly showResults = signal(false);
-
-  readonly chartData = signal<ChartData<'line'>>({ labels: [], datasets: [] });
-  readonly chartOptions: ChartConfiguration<'line'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    scales: {
-      x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM d' } } },
-      y: { beginAtZero: true, max: 100, title: { display: true, text: '%' } },
-    },
-    plugins: {
-      legend: { display: true, position: 'top' as const },
-    },
-  };
-
+  readonly chartSeries = signal<ForecastSeries[]>([]);
   readonly forecastStats = signal<{ state: string; histStd: string; forecastStd: string; change: string }[]>([]);
+
+  ngAfterViewInit(): void {
+    effect(() => {
+      if (this.showResults()) {
+        this.chartSeries();
+        // Defer one tick so @if block has mounted the SVG
+        Promise.resolve().then(() => this.renderChart());
+      }
+    }, { injector: this.injector });
+  }
+
+  private renderChart(): void {
+    const svgEl = this.chartRef?.nativeElement;
+    if (!svgEl) return;
+    const series = this.chartSeries();
+    if (!series.length) return;
+
+    const container = svgEl.parentElement!;
+    const totalWidth = container.clientWidth || 600;
+    const totalHeight = 400;
+    const margin = { top: 10, right: 20, bottom: 30, left: 45 };
+    const width = totalWidth - margin.left - margin.right;
+    const height = totalHeight - margin.top - margin.bottom;
+
+    const svg = d3.select(svgEl);
+    svg.attr('width', totalWidth).attr('height', totalHeight);
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const allPoints = series.flatMap((s) => s.points);
+    const xExtent = d3.extent(allPoints, (p) => p.x) as [number, number];
+    const xScale = d3.scaleTime().domain(xExtent).range([0, width]);
+    const yScale = d3.scaleLinear().domain([0, 100]).range([height, 0]);
+
+    svg.append('defs').append('clipPath').attr('id', 'forecast-clip')
+      .append('rect').attr('width', width).attr('height', height);
+
+    const xAxisG = g.append('g').attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat('%b %d') as any));
+    g.append('g')
+      .call(d3.axisLeft(yScale).ticks(5).tickFormat((v) => `${v}%`));
+
+    g.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('y', -38).attr('x', -height / 2)
+      .attr('text-anchor', 'middle').attr('font-size', '10px')
+      .text('%');
+
+    const plotG = g.append('g').attr('clip-path', 'url(#forecast-clip)');
+
+    const drawLines = (xSc: d3.ScaleTime<number, number>) => {
+      const lg = d3.line<{ x: number; y: number }>()
+        .x((p) => xSc(p.x)).y((p) => yScale(p.y))
+        .curve(d3.curveCatmullRom.alpha(0.1));
+      plotG.selectAll('path').remove();
+      for (const s of series) {
+        plotG.append('path').datum(s.points)
+          .attr('fill', 'none').attr('stroke', s.color).attr('stroke-width', 1.5).attr('d', lg);
+      }
+    };
+
+    drawLines(xScale);
+
+    let currentXScale = xScale;
+
+    const brushG = plotG.append('g').attr('class', 'brush');
+    const brush = d3.brushX()
+      .extent([[0, 0], [width, height]])
+      .on('end', (event) => {
+        if (!event.selection) return;
+        const [x0, x1] = event.selection as [number, number];
+        if (Math.abs(x1 - x0) < 4) { brushG.call(brush.move, null); return; }
+        const newDomain: [Date, Date] = [currentXScale.invert(x0), currentXScale.invert(x1)];
+        currentXScale = xScale.copy().domain(newDomain);
+        brushG.call(brush.move, null);
+        xAxisG.call(d3.axisBottom(currentXScale).ticks(8).tickFormat(d3.timeFormat('%b %d') as any));
+        drawLines(currentXScale);
+      });
+
+    brushG.call(brush);
+    brushG.select('.selection')
+      .attr('fill', 'rgba(13,110,253,0.15)')
+      .attr('stroke', 'rgba(13,110,253,0.5)')
+      .attr('stroke-width', 1);
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 200])
+      .translateExtent([[0, 0], [width, height]])
+      .extent([[0, 0], [width, height]])
+      .filter((event) => event.type === 'wheel' && event.ctrlKey)
+      .on('zoom', (event) => {
+        currentXScale = event.transform.rescaleX(xScale);
+        xAxisG.call(d3.axisBottom(currentXScale).ticks(8).tickFormat(d3.timeFormat('%b %d') as any));
+        drawLines(currentXScale);
+      });
+
+    svg.call(zoom);
+    svg.on('dblclick.zoom', null);
+    svg.on('dblclick', () => {
+      currentXScale = xScale;
+      xAxisG.call(d3.axisBottom(currentXScale).ticks(8).tickFormat(d3.timeFormat('%b %d') as any));
+      drawLines(currentXScale);
+      svg.call(zoom.transform, d3.zoomIdentity);
+    });
+  }
 
   onClose(): void {
     this.close.emit();
@@ -81,13 +184,13 @@ export class ForecastComponent {
       this.log('Starting forecast generation...');
 
       const records = data
-        .map((item) => ({ timestamp: item.timestamp * 1000, state: item.state }))
+        .map((item) => ({ timestamp: item.timestamp, state: item.state }))
         .filter((r) => !isNaN(r.timestamp) && r.timestamp > 0);
 
       this.log(`Processed ${records.length} valid records`);
       if (records.length === 0) throw new Error('No valid data records found');
 
-      const maxTime = Math.max(...records.map((r) => r.timestamp));
+      const maxTime = records.reduce((max, r) => r.timestamp > max ? r.timestamp : max, records[0].timestamp);
       const cutoff = maxTime - p.historicalDays * 24 * 60 * 60 * 1000;
       const recent = records.filter((r) => r.timestamp >= cutoff);
 
@@ -262,29 +365,13 @@ export class ForecastComponent {
   }
 
   private buildChart(historical: HourlyProb[], forecast: number[][], states: string[], lastTimestamp: number): void {
-    const histLabels = historical.map((h) => h.timestamp);
-    const forecastLabels = forecast.map((_, i) => lastTimestamp + (i + 1) * 3600000);
-    const allLabels = [...histLabels, ...forecastLabels];
-
-    const datasets = states.map((state, idx) => {
-      const histData = historical.map((h) => h.states[state] || 0);
-      const forecastData = forecast.map((f) => f[idx]);
+    const series: ForecastSeries[] = states.map((state, idx) => {
       const color = (STATE_COLORS as Record<string, string>)[state] ?? '#6c757d';
-
-      return {
-        label: state,
-        data: [...histData, ...forecastData],
-        borderColor: color,
-        backgroundColor: color + '33',
-        borderWidth: 1.5,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.3,
-        borderDash: [...new Array(histData.length).fill(undefined), ...new Array(forecastData.length).fill(undefined)],
-      };
+      const histPoints = historical.map((h) => ({ x: h.timestamp, y: h.states[state] || 0 }));
+      const forePoints = forecast.map((f, i) => ({ x: lastTimestamp + (i + 1) * 3600000, y: f[idx] }));
+      return { label: state, color, points: [...histPoints, ...forePoints] };
     });
-
-    this.chartData.set({ labels: allLabels, datasets });
+    this.chartSeries.set(series);
   }
 
   private buildStats(historical: HourlyProb[], forecast: number[][], states: string[]): void {

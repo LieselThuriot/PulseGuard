@@ -2,3 +2,13 @@
   position: relative;
   height: 400px;
 }
+
+.live-chart-container ::ng-deep .tick text,
+.live-chart-container ::ng-deep svg text {
+  fill: var(--bs-secondary-color);
+}
+
+.live-chart-container ::ng-deep .domain,
+.live-chart-container ::ng-deep .tick line {
+  stroke: var(--bs-secondary-color);
+}

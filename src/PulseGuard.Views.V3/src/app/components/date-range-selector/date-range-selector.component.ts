@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, output, signal, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, output, input, signal, effect, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
@@ -6,7 +6,6 @@ import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 export interface DateRange {
   from: Date;
   to: Date;
-  label: string;
 }
 
 const PRESETS: { label: string; text: string; hours: number }[] = [
@@ -34,11 +33,23 @@ function toLocalInputValue(d: Date): string {
 })
 export class DateRangeSelectorComponent implements OnInit {
   readonly rangeChange = output<DateRange>();
+  readonly setRange = input<DateRange | null>(null);
 
   readonly presets = PRESETS;
   readonly activeLabel = signal('today');
   readonly fromValue = signal('');
   readonly toValue = signal('');
+
+  constructor() {
+    effect(() => {
+      const range = this.setRange();
+      if (range) {
+        this.fromValue.set(toLocalInputValue(range.from));
+        this.toValue.set(toLocalInputValue(range.to));
+        this.activeLabel.set('custom');
+      }
+    });
+  }
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -47,26 +58,20 @@ export class DateRangeSelectorComponent implements OnInit {
     const params = this.route.snapshot.queryParamMap;
     const fromParam = params.get('from');
     const toParam = params.get('to');
-    const labelParam = params.get('range');
 
     if (fromParam && toParam) {
       const from = new Date(fromParam);
       const to = new Date(toParam);
       if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-        this.activeLabel.set(labelParam ?? 'custom');
+        this.activeLabel.set('custom');
         this.fromValue.set(toLocalInputValue(from));
         this.toValue.set(toLocalInputValue(to));
-        this.rangeChange.emit({ from, to, label: labelParam ?? 'custom' });
+        this.rangeChange.emit({ from, to });
         return;
       }
     }
 
-    // Default: today
-    if (labelParam && PRESETS.find(p => p.label === labelParam)) {
-      this.applyPreset(PRESETS.find(p => p.label === labelParam)!);
-    } else {
-      this.selectToday();
-    }
+    this.selectToday();
   }
 
   selectPreset(preset: { label: string; text: string; hours: number }): void {
@@ -81,7 +86,7 @@ export class DateRangeSelectorComponent implements OnInit {
     this.activeLabel.set('today');
     this.fromValue.set(toLocalInputValue(from));
     this.toValue.set(toLocalInputValue(to));
-    this.emit(from, to, 'today');
+    this.emit(from, to);
   }
 
   selectAll(): void {
@@ -91,7 +96,7 @@ export class DateRangeSelectorComponent implements OnInit {
     this.activeLabel.set('All');
     this.fromValue.set(toLocalInputValue(from));
     this.toValue.set(toLocalInputValue(to));
-    this.emit(from, to, 'All');
+    this.emit(from, to);
   }
 
   onFromChange(value: string): void {
@@ -100,7 +105,7 @@ export class DateRangeSelectorComponent implements OnInit {
     const from = new Date(value);
     const to = new Date(this.toValue());
     if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-      this.emit(from, to, 'custom');
+      this.emit(from, to);
     }
   }
 
@@ -110,32 +115,30 @@ export class DateRangeSelectorComponent implements OnInit {
     const from = new Date(this.fromValue());
     const to = new Date(value);
     if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-      this.emit(from, to, 'custom');
+      this.emit(from, to);
     }
   }
 
   private applyPreset(preset: { label: string; hours: number }): void {
     const to = new Date();
-    to.setHours(23, 59, 0, 0);
     const from = new Date(to.getTime() - preset.hours * 60 * 60 * 1000);
+    to.setHours(23, 59, 0, 0);
     this.activeLabel.set(preset.label);
     this.fromValue.set(toLocalInputValue(from));
     this.toValue.set(toLocalInputValue(to));
-    this.emit(from, to, preset.label);
+    this.emit(from, to);
   }
 
-  private emit(from: Date, to: Date, label: string): void {
+  private emit(from: Date, to: Date): void {
     const urlTree = this.router.parseUrl(this.router.url);
-    if (label === 'today') {
+    if (this.activeLabel() === 'today') {
       delete urlTree.queryParams['from'];
       delete urlTree.queryParams['to'];
-      delete urlTree.queryParams['range'];
     } else {
       urlTree.queryParams['from'] = from.toISOString();
       urlTree.queryParams['to'] = to.toISOString();
-      urlTree.queryParams['range'] = label;
     }
     this.router.navigateByUrl(urlTree, { replaceUrl: true });
-    this.rangeChange.emit({ from, to, label });
+    this.rangeChange.emit({ from, to });
   }
 }

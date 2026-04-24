@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, OnInit, OnDestroy } from '@angular/core';
-import { BaseChartDirective } from 'ng2-charts';
-import { ChartData, ChartConfiguration } from 'chart.js';
-import 'chartjs-adapter-date-fns';
+import {
+  Component, ChangeDetectionStrategy, input, output, signal,
+  OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, Injector, inject, effect,
+} from '@angular/core';
+import * as d3 from 'd3';
 import { EventService } from '../../../../services/event.service';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
 
@@ -14,41 +15,29 @@ interface LivePoint {
 @Component({
   selector: 'app-live-pulse',
   standalone: true,
-  imports: [BaseChartDirective],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './live-pulse.component.html',
   styleUrl: './live-pulse.component.css',
 })
-export class LivePulseComponent implements OnInit, OnDestroy {
+export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly pulseId = input.required<string>();
   readonly close = output<void>();
+
+  @ViewChild('chart') chartRef!: ElementRef<SVGSVGElement>;
 
   readonly points = signal<LivePoint[]>([]);
   readonly connected = signal(false);
 
-  readonly chartData = signal<ChartData<'line'>>({ labels: [], datasets: [] });
-
-  readonly chartOptions: ChartConfiguration<'line'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 300 },
-    scales: {
-      x: {
-        type: 'time',
-        time: { unit: 'minute', displayFormats: { minute: 'HH:mm:ss' } },
-      },
-      y: { beginAtZero: true, title: { display: true, text: 'ms' } },
-    },
-    plugins: { legend: { display: false } },
-  };
+  private readonly injector = inject(Injector);
+  private _interval: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly eventService: EventService) {}
 
   ngOnInit(): void {
     this.eventService.connectApplication(this.pulseId());
 
-    // Poll EventService signals for new events
-    const checkEvents = setInterval(() => {
+    this._interval = setInterval(() => {
       const evts = this.eventService.events();
       if (evts.length > this.points().length) {
         for (let i = this.points().length; i < evts.length; i++) {
@@ -64,15 +53,17 @@ export class LivePulseComponent implements OnInit, OnDestroy {
             return updated;
           });
         }
-        this.updateChart();
         this.connected.set(true);
       }
     }, 500);
-
-    this._interval = checkEvents;
   }
 
-  private _interval: ReturnType<typeof setInterval> | null = null;
+  ngAfterViewInit(): void {
+    effect(() => {
+      this.points();
+      this.render();
+    }, { injector: this.injector });
+  }
 
   ngOnDestroy(): void {
     this.eventService.disconnect();
@@ -83,27 +74,82 @@ export class LivePulseComponent implements OnInit, OnDestroy {
     this.close.emit();
   }
 
-  private updateChart(): void {
-    const pts = this.points();
-    const labels = pts.map((p) => p.timestamp);
-    const data = pts.map((p) => p.elapsedMs);
-    const colors = pts.map((p) => STATE_COLORS[p.state]);
+  private render(): void {
+    const svgEl = this.chartRef?.nativeElement;
+    if (!svgEl) return;
 
-    this.chartData.set({
-      labels,
-      datasets: [{
-        label: 'Response time (ms)',
-        data,
-        borderColor: colors,
-        pointBackgroundColor: colors,
-        borderWidth: 2,
-        pointRadius: 3,
-        tension: 0.2,
-        fill: false,
-        segment: {
-          borderColor: (ctx: any) => colors[ctx.p0DataIndex] ?? STATE_COLORS[PulseStates.Unknown],
-        },
-      }],
-    });
+    const pts = this.points();
+    const container = svgEl.parentElement!;
+    const totalWidth = container.clientWidth || 500;
+    const totalHeight = 400;
+
+    const margin = { top: 10, right: 16, bottom: 30, left: 50 };
+    const width = totalWidth - margin.left - margin.right;
+    const height = totalHeight - margin.top - margin.bottom;
+
+    const svg = d3.select(svgEl);
+    svg.attr('width', totalWidth).attr('height', totalHeight);
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    g.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('y', -42).attr('x', -height / 2)
+      .attr('text-anchor', 'middle').attr('font-size', '11px')
+      .text('ms');
+
+    if (!pts.length) {
+      g.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(d3.scaleTime()).ticks(0));
+      g.append('g').call(d3.axisLeft(d3.scaleLinear()).ticks(0));
+      return;
+    }
+
+    const xScale = d3.scaleTime()
+      .domain(d3.extent(pts, (p) => p.timestamp) as [number, number])
+      .range([0, width]);
+    const yMax = (d3.max(pts, (p) => p.elapsedMs) ?? 0) * 1.1;
+    const yScale = d3.scaleLinear().domain([0, yMax]).range([height, 0]).nice();
+
+    g.append('g').attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.timeFormat('%H:%M:%S') as any));
+    g.append('g').call(d3.axisLeft(yScale).ticks(5));
+
+    // Group into consecutive color segments for per-point coloring
+    const segments: LivePoint[][] = [];
+    let cur: LivePoint[] = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      cur.push(pts[i]);
+      if (pts[i].state !== pts[i - 1].state || i === pts.length - 1) {
+        segments.push(cur);
+        cur = [pts[i]];
+      }
+    }
+    if (cur.length > 1) segments.push(cur);
+
+    for (const seg of segments) {
+      const lineGen = d3.line<LivePoint>()
+        .x((p) => xScale(p.timestamp))
+        .y((p) => yScale(p.elapsedMs))
+        .curve(d3.curveCatmullRom.alpha(0.1));
+
+      g.append('path').datum(seg)
+        .attr('fill', 'none')
+        .attr('stroke', STATE_COLORS[seg[0].state])
+        .attr('stroke-width', 2)
+        .attr('d', lineGen)
+        .style('opacity', 0)
+        .transition().duration(300)
+        .style('opacity', 1);
+    }
+
+    // Dots
+    g.selectAll<SVGCircleElement, LivePoint>('circle')
+      .data(pts)
+      .join('circle')
+      .attr('cx', (p) => xScale(p.timestamp))
+      .attr('cy', (p) => yScale(p.elapsedMs))
+      .attr('r', 3)
+      .attr('fill', (p) => STATE_COLORS[p.state]);
   }
 }
