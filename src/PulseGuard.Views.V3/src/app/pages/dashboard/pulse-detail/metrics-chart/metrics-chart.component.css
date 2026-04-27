@@ -3,6 +3,10 @@
   min-height: 200px;
 }
 
+.metric-chart-container svg {
+  overflow: visible;
+}
+
 .metric-chart-container ::ng-deep .tick text,
 .metric-chart-container ::ng-deep svg text {
   fill: var(--bs-secondary-color);

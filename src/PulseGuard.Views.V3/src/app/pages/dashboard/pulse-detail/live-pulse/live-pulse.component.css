@@ -1,6 +1,6 @@
 .live-chart-container {
   position: relative;
-  height: 400px;
+  height: calc(100vh - 120px);
 }
 
 .live-chart-container ::ng-deep .tick text,
@@ -11,4 +11,59 @@
 .live-chart-container ::ng-deep .domain,
 .live-chart-container ::ng-deep .tick line {
   stroke: var(--bs-secondary-color);
+}
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s;
+  transform: translateY(-100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  line-height: 1.6;
+}
+
+.chart-tooltip ::ng-deep .tt-date {
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+  margin-bottom: 4px;
+}
+
+.chart-tooltip ::ng-deep .tt-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chart-tooltip ::ng-deep .tt-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.chart-tooltip ::ng-deep .tt-label {
+  color: var(--bs-secondary-color);
+}
+
+.chart-tooltip ::ng-deep .tt-value {
+  font-weight: 600;
+}
+
+.chart-tooltip ::ng-deep .tt-section {
+  padding-top: 4px;
+}
+
+.chart-tooltip ::ng-deep .tt-section-divider {
+  border-bottom: 1px solid var(--bs-border-color, rgba(255,255,255,0.15));
+  padding-bottom: 4px;
+  margin-bottom: 2px;
 }

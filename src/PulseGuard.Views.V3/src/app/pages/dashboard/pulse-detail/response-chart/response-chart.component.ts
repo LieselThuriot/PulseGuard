@@ -118,7 +118,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     const legendHeight = overlaySeries.length > 0 ? 12 + (overlaySeries.length + 1) * 18 : 0;
     const totalHeight = 300 + legendHeight;
 
-    const margin = { top: 10, right: 20, bottom: 44, left: 50 };
+    const margin = { top: 10, right: 35, bottom: 44, left: 50 };
     const width = totalWidth - margin.left - margin.right;
     const height = 300 - margin.top - margin.bottom;
 
@@ -140,7 +140,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       ...overlaySeries.flatMap(s => s.points.map(p => p.x)),
     ];
     const xExtent = d3.extent(allXValues) as [number, number];
-    const xScale = d3.scaleTime().domain(xExtent).range([0, width]);
+    const xScale = d3.scaleTime().domain([xExtent[0], xExtent[1]]).range([0, width]);
 
     // Compute y domain across main series + all overlays
     const allYValues = [
@@ -333,6 +333,29 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
       .attr('y1', 0).attr('y2', height).style('opacity', 0);
 
+    // Show tooltip with boundary-aware positioning.
+    // CSS uses translateY(-100%) so `top` is the tooltip's bottom edge.
+    const showTooltip = (event: MouseEvent, html: string) => {
+      const tooltipEl = this.tooltipRef.nativeElement;
+      const containerW = tooltipEl.parentElement!.clientWidth;
+      const containerH = tooltipEl.parentElement!.clientHeight;
+      tooltip.html(html).style('opacity', '1');
+      const ttW = tooltipEl.offsetWidth;
+      const ttH = tooltipEl.offsetHeight;
+      const ox = event.offsetX;
+      const oy = event.offsetY;
+      // Horizontal: default right of cursor, flip left if it would overflow
+      let left = ox + 12;
+      if (left + ttW > containerW) left = ox - ttW - 12;
+      left = Math.max(0, left);
+      // Vertical: default above cursor (translateY(-100%) means top = bottom edge)
+      // Visual top = oy - 10 - ttH; flip below if that would be negative
+      let top = oy - 10;
+      if (top - ttH < 0) top = oy + 10 + ttH;
+      top = Math.min(top, containerH);
+      tooltip.style('left', `${left}px`).style('top', `${top}px`);
+    };
+
     brushG.select<SVGRectElement>('.overlay')
       .on('mousemove', (event) => {
         const [mx] = d3.pointer(event);
@@ -344,10 +367,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
         });
         if (dep) {
           vline.style('opacity', 0);
-          tooltip.style('opacity', '1')
-            .style('left', `${event.offsetX + 12}px`)
-            .style('top', `${event.offsetY - 10}px`)
-            .html(buildDeployLabel(dep));
+          showTooltip(event, buildDeployLabel(dep));
           return;
         }
         // Find nearest data point — snap crosshair and show tooltip at mouse
@@ -366,10 +386,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
               html += `<div class="tt-row"><span class="tt-swatch" style="background:${series.color}"></span><span class="tt-label">${series.label}:</span> <span class="tt-value">${op.y.toFixed(0)}</span></div>`;
             }
           }
-          tooltip.style('opacity', '1')
-            .style('left', `${event.offsetX + 12}px`)
-            .style('top', `${event.offsetY - 10}px`)
-            .html(html);
+          showTooltip(event, html);
           return;
         }
         vline.style('opacity', 0);

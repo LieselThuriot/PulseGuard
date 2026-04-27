@@ -36,6 +36,7 @@ interface ForecastSeries {
 })
 export class ForecastComponent implements AfterViewInit {
   readonly items = input.required<PulseCheckResultDetail[]>();
+  readonly archivedLoading = input(false);
   readonly close = output<void>();
 
   readonly params = signal<ForecastParams>({

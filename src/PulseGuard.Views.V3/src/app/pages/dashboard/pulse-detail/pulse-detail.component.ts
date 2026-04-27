@@ -50,6 +50,7 @@ export class PulseDetailComponent implements OnDestroy {
   readonly heatmapData = signal<PulseHeatmaps | null>(null);
   readonly deployments = signal<PulseDeployment[]>([]);
   readonly overlayData = signal<OverlayData[]>([]);
+  readonly overlayIds = signal<string[]>([]);
   readonly archivedMerged = signal(false);
   readonly archivedLoading = signal(false);
 
@@ -72,6 +73,18 @@ export class PulseDetailComponent implements OnDestroy {
     if (!data?.items?.length) return PulseStates.Unknown;
     const last = data.items[data.items.length - 1];
     return last.state;
+  });
+
+  readonly filteredOverlayData = computed<OverlayData[]>(() => {
+    const overlays = this.overlayData();
+    const range = this.dateRange();
+    const from = range.from.getTime();
+    const to = range.to.getTime();
+    if (from === 0) return overlays;
+    return overlays.map(overlay => ({
+      ...overlay,
+      items: overlay.items.filter(i => i.timestamp >= from && i.timestamp <= to),
+    }));
   });
 
   readonly filteredItems = computed<PulseCheckResultDetail[]>(() => {
@@ -134,12 +147,14 @@ export class PulseDetailComponent implements OnDestroy {
           this.heatmapData.set(null);
           this.deployments.set([]);
           this.overlayData.set([]);
+          this.overlayIds.set([]);
           this.archivedMerged.set(false);
           this.archivedLoading.set(false);
           this.externalDateRange.set(null);
           this.dateRange.set({ from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date() });
 
           const overlayIds = [...new Set(this.route.snapshot.queryParamMap.getAll('overlay'))].filter(o => o !== id);
+          this.overlayIds.set(overlayIds);
           const overlayObs = overlayIds.length > 0
             ? forkJoin(overlayIds.map(oid => this.detailService.getDetails(oid).pipe(catchError(() => of(null)))))
             : of([] as (PulseDetailResultGroup | null)[]);
@@ -218,10 +233,24 @@ export class PulseDetailComponent implements OnDestroy {
     this.onDateRangeChange(range);
   }
 
+  openForecast(): void {
+    if (!this.archivedMerged() && !this.archivedLoading()) {
+      this.archivedLoading.set(true);
+      this.loadArchivedData(this.pulseId());
+    }
+    this.showForecast.set(true);
+  }
+
   private loadArchivedData(id: string): void {
+    const overlayIds = this.overlayIds();
+    const overlayArchivedObs = overlayIds.length > 0
+      ? forkJoin(overlayIds.map(oid => this.detailService.getArchivedDetails(oid).pipe(catchError(() => of(null)))))
+      : of([] as (PulseDetailResultGroup | null)[]);
+
     forkJoin({
       archivedDetails: this.detailService.getArchivedDetails(id).pipe(catchError(() => of(null))),
       archivedMetrics: this.detailService.getArchivedMetrics(id).pipe(catchError(() => of(null))),
+      archivedOverlays: overlayArchivedObs,
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -239,6 +268,17 @@ export class PulseDetailComponent implements OnDestroy {
             this.metricsData.set({
               items: [...archived.archivedMetrics.items, ...currentMetrics.items],
             });
+          }
+
+          const currentOverlays = this.overlayData();
+          if (archived.archivedOverlays.length) {
+            this.overlayData.set(
+              currentOverlays.map((overlay, i) => {
+                const archivedOverlay = archived.archivedOverlays[i];
+                if (!archivedOverlay) return overlay;
+                return { ...overlay, items: [...archivedOverlay.items, ...overlay.items] };
+              })
+            );
           }
 
           this.archivedMerged.set(true);

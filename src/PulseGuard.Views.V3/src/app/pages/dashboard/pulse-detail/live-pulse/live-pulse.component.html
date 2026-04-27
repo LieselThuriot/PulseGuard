@@ -11,6 +11,7 @@
   <div class="offcanvas-body">
     <div class="live-chart-container">
       <svg #chart role="img" aria-label="Live pulse response time chart" style="display:block;width:100%;"></svg>
+      <div #tooltip class="chart-tooltip"></div>
     </div>
     @if (!connected()) {
       <div class="text-center text-muted mt-3">

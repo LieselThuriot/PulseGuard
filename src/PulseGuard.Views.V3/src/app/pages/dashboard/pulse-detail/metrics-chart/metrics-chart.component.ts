@@ -104,7 +104,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     const totalWidth = container.clientWidth || 400;
     const totalHeight = 200;
 
-    const margin = { top: 8, right: 16, bottom: 42, left: 50 };
+    const margin = { top: 8, right: 35, bottom: 42, left: 50 };
     const width = totalWidth - margin.left - margin.right;
     const height = totalHeight - margin.top - margin.bottom;
 
@@ -121,7 +121,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     if (!data.length) return;
 
     const xExtent = d3.extent(data, (d) => d.timestamp) as [number, number];
-    const xScale = d3.scaleTime().domain(xExtent).range([0, width]);
+    const xScale = d3.scaleTime().domain([xExtent[0], xExtent[1]]).range([0, width]);
     const yMax = yLabel === '%' ? 100 : (d3.max(data, (d) => d.value) ?? 0) * 1.1;
     const yScale = d3.scaleLinear().domain([0, yMax]).range([height, 0]).nice();
 
@@ -225,6 +225,23 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
         .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
         .attr('y1', 0).attr('y2', height).style('opacity', 0);
 
+      const showTooltip = (event: MouseEvent, html: string) => {
+        const containerW = tooltipEl.parentElement!.clientWidth;
+        const containerH = tooltipEl.parentElement!.clientHeight;
+        tooltip.html(html).style('opacity', '1');
+        const ttW = tooltipEl.offsetWidth;
+        const ttH = tooltipEl.offsetHeight;
+        const ox = event.offsetX;
+        const oy = event.offsetY;
+        let left = ox + 12;
+        if (left + ttW > containerW) left = ox - ttW - 12;
+        left = Math.max(0, left);
+        let top = oy - 10;
+        if (top - ttH < 0) top = oy + 10 + ttH;
+        top = Math.min(top, containerH);
+        tooltip.style('left', `${left}px`).style('top', `${top}px`);
+      };
+
       brushG.select<SVGRectElement>('.overlay')
         .on('mousemove', (event) => {
           const [mx] = d3.pointer(event);
@@ -234,11 +251,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
           vline.attr('x1', currentXScale(pt.timestamp)).attr('x2', currentXScale(pt.timestamp)).style('opacity', 1);
           const val = yLabel === 'MB/s' ? `${pt.value.toFixed(2)} MB/s` : `${pt.value.toFixed(1)}%`;
           const ts = new Date(pt.timestamp).toLocaleString();
-          tooltip
-            .style('opacity', '1')
-            .style('left', `${event.offsetX + 12}px`)
-            .style('top', `${event.offsetY - 10}px`)
-            .html(`<div class="tt-date">${ts}</div><div class="tt-row"><span class="tt-swatch" style="background:${color}"></span><span class="tt-label">${seriesName}:</span> <span class="tt-value">${val}</span></div>`);
+          showTooltip(event, `<div class="tt-date">${ts}</div><div class="tt-row"><span class="tt-swatch" style="background:${color}"></span><span class="tt-label">${seriesName}:</span> <span class="tt-value">${val}</span></div>`);
         })
         .on('mouseout', () => {
           vline.style('opacity', 0);

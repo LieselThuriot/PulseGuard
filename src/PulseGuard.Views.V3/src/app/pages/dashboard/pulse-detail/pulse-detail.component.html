@@ -12,7 +12,7 @@
         <button class="btn btn-outline-secondary btn-sm ms-2" aria-label="Live Pulse View" title="Live Pulse View" (click)="showLive.set(true)">
           <i class="bi bi-broadcast-pin text-success bi-glow"></i>
         </button>
-        <button class="btn btn-outline-secondary btn-sm ms-2" aria-label="State Forecast" title="State Forecast" (click)="showForecast.set(true)">
+        <button class="btn btn-outline-secondary btn-sm ms-2" aria-label="State Forecast" title="State Forecast" (click)="openForecast()">
           <i class="bi bi-graph-up-arrow text-info"></i>
         </button>
       </div>
@@ -117,7 +117,7 @@
               [decimation]="decimation()"
               [percentile]="percentile()"
               [deployments]="deployments()"
-              [overlays]="overlayData()" />
+              [overlays]="filteredOverlayData()" />
           </div>
         </div>
 
@@ -139,9 +139,9 @@
     <app-log-entries [pulseId]="pulseId()" (close)="showLogs.set(false)" />
   }
   @if (showLive()) {
-    <app-live-pulse [pulseId]="pulseId()" (close)="showLive.set(false)" />
+    <app-live-pulse [pulseId]="pulseId()" [overlayIds]="overlayIds()" (close)="showLive.set(false)" />
   }
   @if (showForecast()) {
-    <app-forecast [items]="detailData()!.items" (close)="showForecast.set(false)" />
+    <app-forecast [items]="detailData()!.items" [archivedLoading]="archivedLoading()" (close)="showForecast.set(false)" />
   }
 }
