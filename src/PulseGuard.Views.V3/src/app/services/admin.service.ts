@@ -48,16 +48,16 @@ export class AdminService {
     return this.http.put<void>(`api/1.0/admin/configurations/pulse/${encodeURIComponent(id)}`, { enabled });
   }
 
-  getAgentConfig(id: string): Observable<PulseAgentConfiguration> {
-    return this.http.get<PulseAgentConfiguration>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}`);
+  getAgentConfig(id: string, type: string): Observable<PulseAgentConfiguration> {
+    return this.http.get<PulseAgentConfiguration>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`);
   }
 
   createAgentConfig(id: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
     return this.http.post<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}`, config);
   }
 
-  updateAgentConfig(id: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
-    return this.http.put<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}`, config);
+  updateAgentConfig(id: string, type: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
+    return this.http.put<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`, config);
   }
 
   deleteAgentConfig(id: string): Observable<void> {

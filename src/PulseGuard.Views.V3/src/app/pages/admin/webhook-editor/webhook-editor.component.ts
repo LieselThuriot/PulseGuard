@@ -89,4 +89,9 @@ export class WebhookEditorComponent implements OnInit {
   updateField(field: keyof Webhook, value: any): void {
     this.webhook.update((w) => ({ ...w, [field]: value }));
   }
+
+  selectCredential(id: string): void {
+    const cred = id ? this.credentials().find(c => c.id === id) : undefined;
+    this.webhook.update(w => ({ ...w, credential: cred }));
+  }
 }

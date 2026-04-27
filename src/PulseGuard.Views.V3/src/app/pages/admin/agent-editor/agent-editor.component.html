@@ -10,22 +10,34 @@
       } @else {
         <form (ngSubmit)="save()">
           <div class="row g-3">
-            <div class="col-md-6">
-              <label for="group" class="form-label">Group</label>
-              <input type="text" class="form-control" id="group" [ngModel]="config().group" (ngModelChange)="updateField('group', $event)" name="group" />
-            </div>
-            <div class="col-md-6">
-              <label for="name" class="form-label">Name</label>
-              <input type="text" class="form-control" id="name" [ngModel]="config().name" (ngModelChange)="updateField('name', $event)" name="name" required />
-            </div>
-            <div class="col-md-6">
-              <label for="type" class="form-label">Type</label>
-              <select class="form-select" id="type" [ngModel]="config().type" (ngModelChange)="updateField('type', $event)" name="type">
-                @for (t of agentCheckTypes; track t) {
-                  <option [value]="t">{{ t }}</option>
-                }
-              </select>
-            </div>
+            @if (isCreate()) {
+              <div class="col-md-6">
+                <label for="pulseCheck" class="form-label">Pulse Check</label>
+                <select class="form-select" id="pulseCheck" [ngModel]="selectedCheckId()" (ngModelChange)="selectedCheckId.set($event)" name="pulseCheck" required>
+                  <option value="">-- Select a pulse check --</option>
+                  @for (check of normalPulseChecks(); track check.id) {
+                    <option [value]="check.id">{{ check.group ? check.group + ' / ' : '' }}{{ check.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="type" class="form-label">Type</label>
+                <select class="form-select" id="type" [ngModel]="config().type" (ngModelChange)="updateField('type', $event)" name="type" required>
+                  @for (t of agentCheckTypes; track t) {
+                    <option [value]="t">{{ t }}</option>
+                  }
+                </select>
+              </div>
+            } @else {
+              <div class="col-md-6">
+                <label class="form-label">Pulse Check</label>
+                <input type="text" class="form-control" [value]="editPulseCheckLabel()" readonly />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Type</label>
+                <input type="text" class="form-control" [value]="config().type" readonly />
+              </div>
+            }
             <div class="col-md-6">
               <label for="location" class="form-label">{{ locationLabel() }}</label>
               <input type="text" class="form-control" id="location" [ngModel]="config().location" (ngModelChange)="updateField('location', $event)" name="location" />
@@ -60,7 +72,7 @@
             </div>
             <div class="col-12">
               <label for="authenticationId" class="form-label">Credential</label>
-              <select class="form-select" id="authenticationId" [ngModel]="config().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
+              <select class="form-select" id="authenticationId" [ngModel]="config().credential?.id ?? ''" (ngModelChange)="selectCredential($event)" name="authenticationId">
                 <option value="">None</option>
                 @for (cred of credentials(); track cred.id) {
                   <option [value]="cred.id">{{ cred.id }} ({{ cred.type }})</option>

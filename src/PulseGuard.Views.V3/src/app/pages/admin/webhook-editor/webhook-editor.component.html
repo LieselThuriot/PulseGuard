@@ -38,7 +38,7 @@
             }
             <div class="col-12">
               <label for="authenticationId" class="form-label">Credential</label>
-              <select class="form-select" id="authenticationId" [ngModel]="webhook().authenticationId" (ngModelChange)="updateField('authenticationId', $event)" name="authenticationId">
+              <select class="form-select" id="authenticationId" [ngModel]="webhook().credential?.id ?? ''" (ngModelChange)="selectCredential($event)" name="authenticationId">
                 <option value="">None</option>
                 @for (cred of credentials(); track cred.id) {
                   <option [value]="cred.id">{{ cred.id }} ({{ cred.type }})</option>

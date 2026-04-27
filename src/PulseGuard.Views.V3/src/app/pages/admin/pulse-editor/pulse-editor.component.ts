@@ -101,4 +101,9 @@ export class PulseEditorComponent implements OnInit {
       this.config.update((c) => ({ ...c, comparisonValue: undefined }));
     }
   }
+
+  selectCredential(id: string): void {
+    const cred = id ? this.credentials().find(c => c.id === id) : undefined;
+    this.config.update(c => ({ ...c, credential: cred }));
+  }
 }

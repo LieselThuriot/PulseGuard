@@ -54,7 +54,7 @@ export interface PulseConfiguration {
   sqid: string;
   comparisonValue?: string;
   headers?: Record<string, string>;
-  authenticationId?: string;
+  credential?: CredentialOverview;
 }
 
 export interface PulseAgentConfiguration {
@@ -70,7 +70,7 @@ export interface PulseAgentConfiguration {
   stageName?: string;
   enabled: boolean;
   headers?: Record<string, string>;
-  authenticationId?: string;
+  credential?: CredentialOverview;
 }
 
 export interface WebhookEntry {
@@ -91,7 +91,7 @@ export interface Webhook {
   location: string;
   enabled: boolean;
   type: WebhookType;
-  authenticationId?: string;
+  credential?: CredentialOverview;
 }
 
 export interface UserEntry {

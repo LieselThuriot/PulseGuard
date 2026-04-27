@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, OnInit, signal, computed } from '@a
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../services/admin.service';
-import { PulseAgentConfiguration, AgentCheckType, CredentialOverview } from '../../../models/admin.model';
+import { PulseAgentConfiguration, AgentCheckType, CredentialOverview, PulseEntry, PulseEntryType } from '../../../models/admin.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LoadingSpinnerComponent } from '../../../components/loading-spinner/loading-spinner.component';
 import { HeaderEditorComponent } from '../../../components/header-editor/header-editor.component';
@@ -21,7 +21,26 @@ export class AgentEditorComponent implements OnInit {
   readonly isCreate = signal(false);
   readonly backTab = signal('agents');
   readonly credentials = signal<CredentialOverview[]>([]);
+  readonly pulseChecks = signal<PulseEntry[]>([]);
+  readonly normalPulseChecks = computed(() =>
+    this.pulseChecks()
+      .filter(c => c.type === PulseEntryType.Normal)
+      .sort((a, b) => {
+        const aLabel = (a.group ? a.group + ' / ' : '') + a.name;
+        const bLabel = (b.group ? b.group + ' / ' : '') + b.name;
+        return aLabel.localeCompare(bLabel);
+      })
+  );
+  readonly selectedCheckId = signal('');
   readonly agentCheckTypes = Object.values(AgentCheckType);
+
+  private readonly routeId = signal('');
+
+  readonly editPulseCheckLabel = computed(() => {
+    const check = this.pulseChecks().find(c => c.id === this.routeId());
+    if (!check) return this.routeId();
+    return check.group ? `${check.group} / ${check.name}` : check.name;
+  });
 
   readonly locationLabel = computed(() => {
     switch (this.config().type) {
@@ -71,18 +90,23 @@ export class AgentEditorComponent implements OnInit {
     this.adminService.getCredentialIds().subscribe({
       next: (creds) => this.credentials.set(creds),
     });
+    this.adminService.getConfigurations().subscribe({
+      next: (checks) => this.pulseChecks.set(checks),
+    });
 
     const id = this.route.snapshot.queryParamMap.get('id');
     const mode = this.route.snapshot.queryParamMap.get('mode');
+    const agentType = this.route.snapshot.queryParamMap.get('agentType') ?? '';
 
     if (mode === 'create' || !id) {
       this.isCreate.set(true);
       this.loading.set(false);
     } else {
+      this.routeId.set(id);
       this.configId = id;
-      this.adminService.getAgentConfig(id).subscribe({
+      this.adminService.getAgentConfig(id, agentType).subscribe({
         next: (data) => {
-          this.config.set(data);
+          this.config.set({ ...data, type: agentType as AgentCheckType });
           this.configId = data.sqid ?? id;
           this.loading.set(false);
         },
@@ -97,11 +121,11 @@ export class AgentEditorComponent implements OnInit {
   save(): void {
     this.saving.set(true);
     const data = this.config();
-    const id = this.isCreate() ? (data.name ?? '') : this.configId;
+    const id = this.isCreate() ? this.selectedCheckId() : this.configId;
 
     const op = this.isCreate()
       ? this.adminService.createAgentConfig(id, data)
-      : this.adminService.updateAgentConfig(id, data);
+      : this.adminService.updateAgentConfig(id, data.type ?? '', data);
 
     op.subscribe({
       next: () => {
@@ -127,5 +151,10 @@ export class AgentEditorComponent implements OnInit {
         stageName: undefined,
       }));
     }
+  }
+
+  selectCredential(id: string): void {
+    const cred = id ? this.credentials().find(c => c.id === id) : undefined;
+    this.config.update(c => ({ ...c, credential: cred }));
   }
 }
