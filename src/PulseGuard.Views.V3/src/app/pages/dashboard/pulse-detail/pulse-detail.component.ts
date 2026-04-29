@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, signal, computed, OnDestroy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { combineLatest, forkJoin, of, Subject, switchMap, takeUntil, catchError, distinctUntilChanged, map } from 'rxjs';
@@ -40,6 +40,7 @@ import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE } from '../../../constants';
 })
 export class PulseDetailComponent implements OnDestroy {
   readonly pulseId = input.required<string>();
+  readonly deselect = output<void>();
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

@@ -1,6 +1,6 @@
 .forecast-chart-container {
   position: relative;
-  height: 400px;
+  height: clamp(200px, 40vh, 400px);
 }
 
 .forecast-chart-container ::ng-deep .tick text,

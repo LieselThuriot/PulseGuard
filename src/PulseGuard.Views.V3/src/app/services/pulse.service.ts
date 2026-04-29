@@ -35,6 +35,10 @@ export class PulseService {
     this.selectedPulseId.set(id);
   }
 
+  deselectPulse(): void {
+    this.selectedPulseId.set(null);
+  }
+
   toggleFilter(): void {
     this.filterUnhealthy.update((v) => !v);
   }

@@ -1,6 +1,6 @@
 <div class="container-fluid my-3">
   <div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h2 class="h5 mb-0"><i class="bi bi-gear-fill"></i> Configuration Management</h2>
       <div class="d-flex align-items-center gap-2">
         <a [routerLink]="createEditorPath()" [queryParams]="createEditorParams()" class="btn btn-sm btn-success">
@@ -25,7 +25,7 @@
           <!-- Pulse Checks -->
           <li [ngbNavItem]="1">
             <button ngbNavLink>
-              <i class="bi bi-activity"></i> Pulse Checks
+              <i class="bi bi-activity"></i><span class="d-none d-sm-inline"> Pulse Checks</span>
               <span class="badge bg-primary ms-1">{{ filteredPulseConfigs().length }}</span>
             </button>
             <ng-template ngbNavContent>
@@ -45,7 +45,7 @@
           <!-- Agent Checks -->
           <li [ngbNavItem]="2">
             <button ngbNavLink>
-              <i class="bi bi-robot"></i> Agent Checks
+              <i class="bi bi-robot"></i><span class="d-none d-sm-inline"> Agent Checks</span>
               <span class="badge bg-info ms-1">{{ filteredAgentConfigs().length }}</span>
             </button>
             <ng-template ngbNavContent>
@@ -65,7 +65,7 @@
           <!-- Webhooks -->
           <li [ngbNavItem]="3">
             <button ngbNavLink>
-              <i class="bi bi-send-exclamation-fill"></i> Webhooks
+              <i class="bi bi-send-exclamation-fill"></i><span class="d-none d-sm-inline"> Webhooks</span>
               <span class="badge bg-success ms-1">{{ filteredWebhooks().length }}</span>
             </button>
             <ng-template ngbNavContent>
@@ -84,7 +84,7 @@
           <!-- Users -->
           <li [ngbNavItem]="4">
             <button ngbNavLink>
-              <i class="bi bi-people-fill"></i> Users
+              <i class="bi bi-people-fill"></i><span class="d-none d-sm-inline"> Users</span>
               <span class="badge bg-warning ms-1">{{ filteredUsers().length }}</span>
             </button>
             <ng-template ngbNavContent>
@@ -101,7 +101,7 @@
           @if (hasCredentials()) {
           <li [ngbNavItem]="5">
             <button ngbNavLink>
-              <i class="bi bi-key-fill"></i> Credentials
+              <i class="bi bi-key-fill"></i><span class="d-none d-sm-inline"> Credentials</span>
               <span class="badge bg-secondary ms-1">{{ filteredCredentials().length }}</span>
             </button>
             <ng-template ngbNavContent>

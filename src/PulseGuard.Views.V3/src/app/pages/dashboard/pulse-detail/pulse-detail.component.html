@@ -3,7 +3,12 @@
 } @else if (detailData()) {
   <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between">
-      <span>{{ headerText() }}</span>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary d-lg-none" aria-label="Back to list" (click)="deselect.emit()">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <span>{{ headerText() }}</span>
+      </div>
       <div class="d-flex flex-nowrap my-auto">
         <app-status-badge [state]="currentState()" class="my-auto mx-2" />
         <button class="btn btn-outline-secondary btn-sm" aria-label="Open Log" title="Open Log" (click)="showLogs.set(true)">
@@ -63,38 +68,38 @@
       </div>
 
       <!-- Stats cards -->
-      <div class="row mb-2">
-        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+      <div class="row g-2 mb-2">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-play-fill me-2"></i>Since</div>
             <div class="card-body"><p class="card-text">{{ stats().since }}</p></div>
           </div>
         </div>
-        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-stopwatch me-2"></i>Average</div>
             <div class="card-body"><p class="card-text">{{ stats().average }}</p></div>
           </div>
         </div>
-        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-check-all me-2"></i>Uptime</div>
             <div class="card-body"><p class="card-text">{{ stats().uptime }}</p></div>
           </div>
         </div>
-        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-bug me-2"></i>Error Rate</div>
             <div class="card-body"><p class="card-text">{{ stats().errorRate }}</p></div>
           </div>
         </div>
-        <div class="col-12 col-lg-2 mb-2 mb-lg-0">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-clock-history me-2"></i>Time-out Rate</div>
             <div class="card-body"><p class="card-text">{{ stats().timeoutRate }}</p></div>
           </div>
         </div>
-        <div class="col-12 col-lg-2 mb-0">
+        <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-arrow-down-up me-2"></i>Volatility</div>
             <div class="card-body"><p class="card-text">{{ stats().volatility }}</p></div>

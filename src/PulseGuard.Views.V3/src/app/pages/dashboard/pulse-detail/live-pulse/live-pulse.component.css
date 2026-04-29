@@ -1,6 +1,7 @@
 .live-chart-container {
   position: relative;
-  height: calc(100vh - 120px);
+  height: calc(100dvh - 60px);
+  min-height: 300px;
 }
 
 .live-chart-container ::ng-deep .tick text,
