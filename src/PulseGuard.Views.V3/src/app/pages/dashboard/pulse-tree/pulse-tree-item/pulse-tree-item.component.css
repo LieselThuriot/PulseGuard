@@ -18,3 +18,9 @@
 .overlay-btn.active {
   color: var(--bs-primary);
 }
+
+.list-group-item.active {
+  --bs-list-group-active-bg: var(--bs-secondary-bg);
+  --bs-list-group-active-border-color: var(--bs-secondary-bg);
+  --bs-list-group-active-color: var(--bs-body-color);
+}

@@ -17,10 +17,10 @@ export const LIVE_PULSE_MAX_POINTS = 100;
 export const LOG_PAGE_SIZE = 50;
 
 /** Default decimation value (minutes) */
-export const DEFAULT_DECIMATION = 15;
+export const DEFAULT_DECIMATION = 5;
 
 /** Default percentile */
-export const DEFAULT_PERCENTILE = 99;
+export const DEFAULT_PERCENTILE = 90;
 
 /** Maximum events held in the SSE buffer */
 export const MAX_EVENT_BUFFER = 1000;
