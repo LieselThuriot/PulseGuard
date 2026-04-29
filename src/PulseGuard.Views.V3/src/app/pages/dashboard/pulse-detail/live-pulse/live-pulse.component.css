@@ -1,6 +1,11 @@
+.offcanvas-body {
+  display: flex;
+  flex-direction: column;
+}
+
 .live-chart-container {
   position: relative;
-  height: calc(100dvh - 60px);
+  flex: 1 1 0;
   min-height: 300px;
 }
 

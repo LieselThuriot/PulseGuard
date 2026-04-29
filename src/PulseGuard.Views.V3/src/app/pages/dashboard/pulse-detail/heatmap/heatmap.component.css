@@ -18,16 +18,101 @@ canvas {
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: 0.375rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.65rem;
   font-size: 0.78rem;
   line-height: 1.5;
-  pointer-events: none;
   white-space: nowrap;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  min-width: 160px;
 }
 
-.heatmap-tooltip-title {
+.heatmap-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.heatmap-tooltip-date {
   font-weight: 600;
-  margin-bottom: 2px;
+}
+
+.heatmap-tooltip-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1em 0.45em;
+  border-radius: 0.25rem;
+}
+.heatmap-tooltip-badge[data-state="Healthy"]   { background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); }
+.heatmap-tooltip-badge[data-state="Degraded"]  { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.heatmap-tooltip-badge[data-state="Unhealthy"] { background: var(--bs-danger-bg-subtle);  color: var(--bs-danger-text-emphasis); }
+.heatmap-tooltip-badge[data-state="TimedOut"]  { background: var(--bs-pink-bg-subtle, #f8d7e3); color: var(--bs-pink-text-emphasis, #6f1230); }
+.heatmap-tooltip-badge[data-state="Unknown"]   { background: var(--bs-secondary-bg-subtle); color: var(--bs-secondary-text-emphasis); }
+
+.heatmap-tooltip-table {
+  width: 100%;
+  border-collapse: collapse;
+  line-height: 1.6;
+}
+
+.heatmap-tooltip-table td {
+  vertical-align: middle;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.heatmap-tooltip-dot {
+  width: 14px;
+  padding-right: 6px;
+}
+
+.heatmap-tooltip-label {
+  padding-right: 1rem;
+  color: var(--bs-body-color);
+}
+
+.heatmap-tooltip-count {
+  text-align: right;
+  padding-right: 0.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-secondary-color);
+}
+
+.heatmap-tooltip-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-secondary-color);
+}
+
+.heatmap-state-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.heatmap-state-dot[data-state="Healthy"]   { background: var(--bs-success); }
+.heatmap-state-dot[data-state="Degraded"]  { background: var(--bs-warning); }
+.heatmap-state-dot[data-state="Unhealthy"] { background: var(--bs-danger); }
+.heatmap-state-dot[data-state="TimedOut"]  { background: var(--bs-pink, #d63384); }
+.heatmap-state-dot[data-state="Unknown"]   { background: var(--bs-secondary); }
+
+.heatmap-tooltip-nodata {
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+.heatmap-tooltip-deploy {
+  margin-top: 0.35rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--bs-border-color);
+  color: var(--bs-secondary-color);
+}
+
+.heatmap-tooltip-deploy i {
+  margin-right: 4px;
 }

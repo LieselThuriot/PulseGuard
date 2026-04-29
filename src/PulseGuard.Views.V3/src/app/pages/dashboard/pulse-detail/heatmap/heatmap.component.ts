@@ -6,18 +6,31 @@ import { PulseHeatmaps, PulseHeatmap } from '../../../../models/pulse-heatmap.mo
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { effect } from '@angular/core';
 
+interface TooltipRow {
+  label: string;
+  count: number;
+  pct: string;
+}
+
+interface TooltipData {
+  date: string;
+  state: string;
+  rows: TooltipRow[];
+  deployments: number;
+}
+
 interface DayStats {
   state: string;
   intensity: number;
   hasDeployment: boolean;
-  tooltipLines: string[];
+  tooltipData: TooltipData;
 }
 
 interface CellHit {
   x: number;
   y: number;
   dayKey: string;
-  tooltipLines: string[];
+  tooltipData: TooltipData;
 }
 
 @Component({
@@ -37,7 +50,7 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
   readonly tooltipVisible = signal(false);
   readonly tooltipX = signal(0);
   readonly tooltipY = signal(0);
-  readonly tooltipLines = signal<string[]>([]);
+  readonly tooltipData = signal<TooltipData>({ date: '', state: '', rows: [], deployments: 0 });
   readonly dayClicked = output<string>();
 
   private readonly CELL_SIZE = 12;
@@ -82,7 +95,7 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     const hit = this.hitMap.find(h => mx >= h.x && mx <= h.x + cs + cg && my >= h.y && my <= h.y + cs + cg);
 
     if (hit) {
-      this.tooltipLines.set(hit.tooltipLines);
+      this.tooltipData.set(hit.tooltipData);
       // Use fixed positioning relative to viewport to avoid overflow/scrollbar issues
       this.tooltipX.set(event.clientX + 14);
       this.tooltipY.set(event.clientY - 10);
@@ -261,7 +274,7 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
           ctx.restore();
         }
 
-        this.hitMap.push({ x, y, dayKey, tooltipLines: stats.tooltipLines });
+        this.hitMap.push({ x, y, dayKey, tooltipData: stats.tooltipData });
       }
     }
   }
@@ -270,9 +283,8 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     const hasDeployment = deployCount > 0;
 
     if (!entry) {
-      const lines = [dayKey, 'No data'];
-      if (hasDeployment) lines.push(`Deployed: ${deployCount} time${deployCount > 1 ? 's' : ''}`);
-      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipLines: lines };
+      const tooltipData: TooltipData = { date: dayKey, state: 'Unknown', rows: [], deployments: deployCount };
+      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipData };
     }
 
     const counts = {
@@ -285,9 +297,8 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     const total = counts.Healthy + counts.Degraded + counts.Unhealthy + counts.TimedOut + counts.Unknown;
 
     if (total === 0) {
-      const lines = [dayKey, 'No data'];
-      if (hasDeployment) lines.push(`Deployed: ${deployCount} time${deployCount > 1 ? 's' : ''}`);
-      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipLines: lines };
+      const tooltipData: TooltipData = { date: dayKey, state: 'Unknown', rows: [], deployments: deployCount };
+      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipData };
     }
 
     const timedOutPct = counts.TimedOut / total;
@@ -311,13 +322,13 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     }
     intensity = Math.max(0.33, Math.min(1, intensity));
 
-    const lines: string[] = [`${dayKey}: ${state}`];
+    const rows: TooltipRow[] = [];
     for (const s of ['Healthy', 'Degraded', 'Unhealthy', 'TimedOut', 'Unknown'] as const) {
-      if (counts[s]) lines.push(`${s}: ${counts[s]} (${((counts[s] / total) * 100).toFixed(2)}%)`);
+      if (counts[s]) rows.push({ label: s, count: counts[s], pct: `${((counts[s] / total) * 100).toFixed(1)}%` });
     }
-    if (hasDeployment) lines.push(`Deployed: ${deployCount} time${deployCount > 1 ? 's' : ''}`);
 
-    return { state, intensity, hasDeployment, tooltipLines: lines };
+    const tooltipData: TooltipData = { date: dayKey, state, rows, deployments: deployCount };
+    return { state, intensity, hasDeployment, tooltipData };
   }
 
   private getStateColorVars(state: string): [string, string] {

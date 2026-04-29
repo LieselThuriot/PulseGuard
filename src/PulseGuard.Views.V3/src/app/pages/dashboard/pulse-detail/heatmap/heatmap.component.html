@@ -12,8 +12,29 @@
         <div class="heatmap-tooltip"
              [style.left.px]="tooltipX()"
              [style.top.px]="tooltipY()">
-          @for (line of tooltipLines(); track $index) {
-            <div [class.heatmap-tooltip-title]="$index === 0">{{ line }}</div>
+          <div class="heatmap-tooltip-header">
+            <span class="heatmap-tooltip-date">{{ tooltipData().date }}</span>
+            <span class="heatmap-tooltip-badge" [attr.data-state]="tooltipData().state">{{ tooltipData().state }}</span>
+          </div>
+          @if (tooltipData().rows.length) {
+            <table class="heatmap-tooltip-table">
+              @for (row of tooltipData().rows; track row.label) {
+                <tr>
+                  <td class="heatmap-tooltip-dot"><span class="heatmap-state-dot" [attr.data-state]="row.label"></span></td>
+                  <td class="heatmap-tooltip-label">{{ row.label }}</td>
+                  <td class="heatmap-tooltip-count">{{ row.count }}</td>
+                  <td class="heatmap-tooltip-pct">{{ row.pct }}</td>
+                </tr>
+              }
+            </table>
+          } @else {
+            <div class="heatmap-tooltip-nodata">No data</div>
+          }
+          @if (tooltipData().deployments) {
+            <div class="heatmap-tooltip-deploy">
+              <i class="bi bi-rocket-takeoff"></i>
+              Deployed {{ tooltipData().deployments }} time{{ tooltipData().deployments > 1 ? 's' : '' }}
+            </div>
           }
         </div>
       }
