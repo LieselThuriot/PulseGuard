@@ -1,4 +1,5 @@
 <!-- Named group header -->
+@let grp = group();
 <a href="#"
    class="list-group-item list-group-item-action d-flex flex-row align-items-center fw-semibold"
    (click)="$event.preventDefault(); toggle()">
@@ -7,15 +8,15 @@
   <i class="bi bi-heart-pulse me-2"
      [ngClass]="groupStateClass()"></i>
   <span class="flex-grow-1 text-truncate me-3"
-        [ngbTooltip]="group().group"
+        [ngbTooltip]="grp.group"
         triggers="hover"
-        container="body">{{ group().group }}</span>
+        container="body">{{ grp.group }}</span>
   <app-health-bar [items]="allPulseItems()" />
 </a>
 
 <!-- Children — single collapse container per group -->
 <div [ngbCollapse]="!expanded()">
-  @for (item of group().items; track item.id) {
+  @for (item of grp.items; track item.id) {
     <app-pulse-tree-item
       [item]="item"
       [selected]="selectedId() === item.id"

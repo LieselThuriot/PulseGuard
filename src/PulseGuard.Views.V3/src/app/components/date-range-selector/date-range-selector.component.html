@@ -4,19 +4,20 @@
          (change)="onFromChange($any($event.target).value)" />
 
   <div ngbDropdown container="body">
+    @let active = activeLabel();
     <button ngbDropdownToggle class="btn btn-outline-secondary rounded-0 border-start-0 border-end-0"
             type="button">
       <i class="bi bi-arrow-right text-secondary-emphasis"></i>
     </button>
     <div ngbDropdownMenu>
       @for (preset of presets; track preset.label) {
-        <button ngbDropdownItem [class.active]="activeLabel() === preset.label"
+        <button ngbDropdownItem [class.active]="active === preset.label"
                 (click)="selectPreset(preset)">{{ preset.text }}</button>
       }
       <div class="dropdown-divider"></div>
-      <button ngbDropdownItem [class.active]="activeLabel() === 'today'"
+      <button ngbDropdownItem [class.active]="active === 'today'"
               (click)="selectToday()">Today</button>
-      <button ngbDropdownItem [class.active]="activeLabel() === 'All'"
+      <button ngbDropdownItem [class.active]="active === 'All'"
               (click)="selectAll()">All Pulses</button>
     </div>
   </div>

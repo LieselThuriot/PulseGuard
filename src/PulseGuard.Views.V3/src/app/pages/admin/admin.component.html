@@ -16,6 +16,14 @@
       @if (loading()) {
         <app-loading-spinner />
       } @else {
+        @let sc = sortCol();
+        @let sd = sortDir();
+        @let tab = tabName();
+        @let pulses = filteredPulseConfigs();
+        @let agents = filteredAgentConfigs();
+        @let hooks = filteredWebhooks();
+        @let users = filteredUsers();
+        @let creds = filteredCredentials();
         <div class="mb-3">
           <app-search-input (searchChange)="onSearchChange($event)" />
         </div>
@@ -26,14 +34,14 @@
           <li [ngbNavItem]="1">
             <button ngbNavLink>
               <i class="bi bi-activity"></i><span class="d-none d-sm-inline"> Pulse Checks</span>
-              <span class="badge bg-primary ms-1">{{ filteredPulseConfigs().length }}</span>
+              <span class="badge bg-primary ms-1">{{ pulses.length }}</span>
             </button>
             <ng-template ngbNavContent>
               <app-pulse-list
-                [configs]="filteredPulseConfigs()"
-                [sortCol]="sortCol()"
-                [sortDir]="sortDir()"
-                [tabName]="tabName()"
+                [configs]="pulses"
+                [sortCol]="sc"
+                [sortDir]="sd"
+                [tabName]="tab"
                 (sortChange)="sort($event)"
                 (toggleChange)="togglePulse($event.config, $event.enabled)"
                 (renameItem)="renameConfig($event)"
@@ -46,14 +54,14 @@
           <li [ngbNavItem]="2">
             <button ngbNavLink>
               <i class="bi bi-robot"></i><span class="d-none d-sm-inline"> Agent Checks</span>
-              <span class="badge bg-info ms-1">{{ filteredAgentConfigs().length }}</span>
+              <span class="badge bg-info ms-1">{{ agents.length }}</span>
             </button>
             <ng-template ngbNavContent>
               <app-agent-list
-                [configs]="filteredAgentConfigs()"
-                [sortCol]="sortCol()"
-                [sortDir]="sortDir()"
-                [tabName]="tabName()"
+                [configs]="agents"
+                [sortCol]="sc"
+                [sortDir]="sd"
+                [tabName]="tab"
                 (sortChange)="sort($event)"
                 (toggleChange)="toggleAgent($event.config, $event.enabled)"
                 (renameItem)="renameConfig($event)"
@@ -66,14 +74,14 @@
           <li [ngbNavItem]="3">
             <button ngbNavLink>
               <i class="bi bi-send-exclamation-fill"></i><span class="d-none d-sm-inline"> Webhooks</span>
-              <span class="badge bg-success ms-1">{{ filteredWebhooks().length }}</span>
+              <span class="badge bg-success ms-1">{{ hooks.length }}</span>
             </button>
             <ng-template ngbNavContent>
               <app-webhook-list
-                [webhooks]="filteredWebhooks()"
-                [sortCol]="sortCol()"
-                [sortDir]="sortDir()"
-                [tabName]="tabName()"
+                [webhooks]="hooks"
+                [sortCol]="sc"
+                [sortDir]="sd"
+                [tabName]="tab"
                 (sortChange)="sort($event)"
                 (toggleChange)="toggleWebhook($event.webhook, $event.enabled)"
                 (deleteItem)="deleteWebhook($event)"
@@ -85,12 +93,12 @@
           <li [ngbNavItem]="4">
             <button ngbNavLink>
               <i class="bi bi-people-fill"></i><span class="d-none d-sm-inline"> Users</span>
-              <span class="badge bg-warning ms-1">{{ filteredUsers().length }}</span>
+              <span class="badge bg-warning ms-1">{{ users.length }}</span>
             </button>
             <ng-template ngbNavContent>
               <app-user-list
-                [users]="filteredUsers()"
-                [tabName]="tabName()"
+                [users]="users"
+                [tabName]="tab"
                 (renameItem)="renameUser($event)"
                 (deleteItem)="deleteUser($event)"
               />
@@ -102,12 +110,12 @@
           <li [ngbNavItem]="5">
             <button ngbNavLink>
               <i class="bi bi-key-fill"></i><span class="d-none d-sm-inline"> Credentials</span>
-              <span class="badge bg-secondary ms-1">{{ filteredCredentials().length }}</span>
+              <span class="badge bg-secondary ms-1">{{ creds.length }}</span>
             </button>
             <ng-template ngbNavContent>
               <app-credential-list
-                [credentials]="filteredCredentials()"
-                [tabName]="tabName()"
+                [credentials]="creds"
+                [tabName]="tab"
                 (deleteItem)="deleteCredential($event)"
               />
             </ng-template>

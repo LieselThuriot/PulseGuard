@@ -46,6 +46,7 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
   readonly deployments = input<PulseDeployment[]>([]);
 
   @ViewChild('heatmapCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('tooltipEl') tooltipEl?: ElementRef<HTMLDivElement>;
 
   readonly tooltipVisible = signal(false);
   readonly tooltipX = signal(0);
@@ -96,9 +97,23 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
 
     if (hit) {
       this.tooltipData.set(hit.tooltipData);
-      // Use fixed positioning relative to viewport to avoid overflow/scrollbar issues
-      this.tooltipX.set(event.clientX + 14);
-      this.tooltipY.set(event.clientY - 10);
+
+      const margin = 8;
+      let x = event.clientX + 14;
+      let y = event.clientY - 10;
+
+      // Use the tooltip's last-rendered size to keep it within the viewport
+      const el = this.tooltipEl?.nativeElement;
+      const w = el?.offsetWidth ?? 200;
+      const h = el?.offsetHeight ?? 120;
+
+      if (x + w + margin > window.innerWidth)  { x = event.clientX - w - 14; }
+      if (y + h + margin > window.innerHeight) { y = event.clientY - h - 10; }
+      x = Math.max(margin, x);
+      y = Math.max(margin, y);
+
+      this.tooltipX.set(x);
+      this.tooltipY.set(y);
       this.tooltipVisible.set(true);
     } else {
       this.tooltipVisible.set(false);

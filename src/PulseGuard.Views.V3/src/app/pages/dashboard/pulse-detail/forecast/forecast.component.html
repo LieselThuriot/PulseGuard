@@ -7,6 +7,9 @@
     <button type="button" class="btn-close" aria-label="Close" (click)="onClose()"></button>
   </div>
   <div class="offcanvas-body">
+    @let p = params();
+    @let gen = generating();
+    @let archived = archivedLoading();
     <p class="text-muted small mb-3">
       <i class="bi bi-info-circle"></i> Vector AutoRegression (VAR) Model with Volatility Preservation
     </p>
@@ -18,45 +21,45 @@
           <div class="col-6">
             <label for="forecast-historical-days" class="form-label small">Historical Days</label>
             <input type="number" class="form-control form-control-sm" id="forecast-historical-days"
-                   [ngModel]="params().historicalDays" (ngModelChange)="updateParam('historicalDays', $event)"
+                   [ngModel]="p.historicalDays" (ngModelChange)="updateParam('historicalDays', $event)"
                    min="7" max="365" />
           </div>
           <div class="col-6">
             <label for="forecast-periods" class="form-label small">Forecast Days</label>
             <input type="number" class="form-control form-control-sm" id="forecast-periods"
-                   [ngModel]="params().forecastPeriods" (ngModelChange)="updateParam('forecastPeriods', $event)"
+                   [ngModel]="p.forecastPeriods" (ngModelChange)="updateParam('forecastPeriods', $event)"
                    min="1" max="30" />
           </div>
           <div class="col-6">
             <label for="forecast-maxlags" class="form-label small">Max Lags</label>
             <input type="number" class="form-control form-control-sm" id="forecast-maxlags"
-                   [ngModel]="params().maxLags" (ngModelChange)="updateParam('maxLags', $event)"
+                   [ngModel]="p.maxLags" (ngModelChange)="updateParam('maxLags', $event)"
                    min="1" max="72" />
           </div>
           <div class="col-6">
             <label for="forecast-volatility" class="form-label small">Volatility Scale</label>
             <input type="number" class="form-control form-control-sm" id="forecast-volatility"
-                   [ngModel]="params().volatilityScale" (ngModelChange)="updateParam('volatilityScale', $event)"
+                   [ngModel]="p.volatilityScale" (ngModelChange)="updateParam('volatilityScale', $event)"
                    min="0" max="2" step="0.1" />
           </div>
           <div class="col-6">
             <label for="forecast-pattern" class="form-label small">Pattern Strength</label>
             <input type="number" class="form-control form-control-sm" id="forecast-pattern"
-                   [ngModel]="params().patternStrength" (ngModelChange)="updateParam('patternStrength', $event)"
+                   [ngModel]="p.patternStrength" (ngModelChange)="updateParam('patternStrength', $event)"
                    min="0" max="1" step="0.1" />
           </div>
         </div>
       </div>
     </div>
 
-    @if (archivedLoading()) {
+    @if (archived) {
       <div class="alert alert-info py-2 small mb-3">
         <span class="spinner-border spinner-border-sm me-2"></span> Loading archived data&hellip;
       </div>
     }
 
-    <button class="btn btn-primary w-100 mb-3" [disabled]="generating() || archivedLoading()" (click)="generate()">
-      @if (generating()) {
+    <button class="btn btn-primary w-100 mb-3" [disabled]="gen || archived" (click)="generate()">
+      @if (gen) {
         <span class="spinner-border spinner-border-sm me-2"></span> Generating...
       } @else {
         <i class="bi bi-play-circle"></i> Generate Forecast

@@ -1,6 +1,13 @@
 @if (loading()) {
   <app-loading-spinner />
-} @else if (detailData()) {
+} @else if (detailData(); as detail) {
+  @let dec = decimation();
+  @let pct = percentile();
+  @let s = stats();
+  @let items = filteredItems();
+  @let deps = deployments();
+  @let archived = archivedLoading();
+  @let pid = pulseId();
   <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between">
       <div class="d-flex align-items-center gap-2">
@@ -33,14 +40,14 @@
           <div class="input-group input-group-sm">
             <label class="input-group-text" for="decimation-select">M</label>
             <select class="form-select" id="decimation-select" (change)="onDecimationChange(+$any($event.target).value)">
-              <option [value]="5"  [selected]="decimation() === 5">5 minutes</option>
-              <option [value]="15" [selected]="decimation() === 15">15 minutes</option>
-              <option [value]="60" [selected]="decimation() === 60">1 hour</option>
-              <option [value]="180" [selected]="decimation() === 180">3 hours</option>
-              <option [value]="300" [selected]="decimation() === 300">5 hours</option>
-              <option [value]="720" [selected]="decimation() === 720">12 hours</option>
-              <option [value]="1440" [selected]="decimation() === 1440">1 day</option>
-              <option [value]="1" [selected]="decimation() === 1">None</option>
+              <option [value]="5"  [selected]="dec === 5">5 minutes</option>
+              <option [value]="15" [selected]="dec === 15">15 minutes</option>
+              <option [value]="60" [selected]="dec === 60">1 hour</option>
+              <option [value]="180" [selected]="dec === 180">3 hours</option>
+              <option [value]="300" [selected]="dec === 300">5 hours</option>
+              <option [value]="720" [selected]="dec === 720">12 hours</option>
+              <option [value]="1440" [selected]="dec === 1440">1 day</option>
+              <option [value]="1" [selected]="dec === 1">None</option>
             </select>
           </div>
         </div>
@@ -48,13 +55,13 @@
           <div class="input-group input-group-sm">
             <label class="input-group-text" for="percentile-select"><i class="bi bi-percent"></i></label>
             <select class="form-select" id="percentile-select" (change)="onPercentileChange(+$any($event.target).value)">
-              <option [value]="50"  [selected]="percentile() === 50">P50</option>
-              <option [value]="75"  [selected]="percentile() === 75">P75</option>
-              <option [value]="90"  [selected]="percentile() === 90">P90</option>
-              <option [value]="95"  [selected]="percentile() === 95">P95</option>
-              <option [value]="99"  [selected]="percentile() === 99">P99</option>
-              <option [value]="100" [selected]="percentile() === 100">P100</option>
-              <option [value]="0"   [selected]="percentile() === 0">Average</option>
+              <option [value]="50"  [selected]="pct === 50">P50</option>
+              <option [value]="75"  [selected]="pct === 75">P75</option>
+              <option [value]="90"  [selected]="pct === 90">P90</option>
+              <option [value]="95"  [selected]="pct === 95">P95</option>
+              <option [value]="99"  [selected]="pct === 99">P99</option>
+              <option [value]="100" [selected]="pct === 100">P100</option>
+              <option [value]="0"   [selected]="pct === 0">Average</option>
             </select>
           </div>
         </div>
@@ -63,7 +70,7 @@
       <!-- Health bar -->
       <div class="row mb-2">
         <div class="col-12">
-          <app-health-bar [detailItems]="filteredItems()" [tiny]="false" />
+          <app-health-bar [detailItems]="items" [tiny]="false" />
         </div>
       </div>
 
@@ -72,43 +79,43 @@
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-play-fill me-2"></i>Since</div>
-            <div class="card-body"><p class="card-text">{{ stats().since }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.since }}</p></div>
           </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-stopwatch me-2"></i>Average</div>
-            <div class="card-body"><p class="card-text">{{ stats().average }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.average }}</p></div>
           </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-check-all me-2"></i>Uptime</div>
-            <div class="card-body"><p class="card-text">{{ stats().uptime }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.uptime }}</p></div>
           </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-bug me-2"></i>Error Rate</div>
-            <div class="card-body"><p class="card-text">{{ stats().errorRate }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.errorRate }}</p></div>
           </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-clock-history me-2"></i>Time-out Rate</div>
-            <div class="card-body"><p class="card-text">{{ stats().timeoutRate }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.timeoutRate }}</p></div>
           </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
           <div class="card h-100">
             <div class="card-header"><i class="bi bi-arrow-down-up me-2"></i>Volatility</div>
-            <div class="card-body"><p class="card-text">{{ stats().volatility }}</p></div>
+            <div class="card-body"><p class="card-text">{{ s.volatility }}</p></div>
           </div>
         </div>
       </div>
 
       <!-- Response chart -->
-      @if (archivedLoading()) {
+      @if (archived) {
         <div class="row d-flex flex-grow-1 mb-2">
           <div class="col-12 d-flex align-items-center justify-content-center">
             <app-loading-spinner />
@@ -118,35 +125,35 @@
         <div class="row d-flex flex-grow-1 mb-2">
           <div class="col-12">
             <app-response-chart
-              [items]="filteredItems()"
-              [decimation]="decimation()"
-              [percentile]="percentile()"
-              [deployments]="deployments()"
+              [items]="items"
+              [decimation]="dec"
+              [percentile]="pct"
+              [deployments]="deps"
               [overlays]="filteredOverlayData()" />
           </div>
         </div>
 
         <!-- Metrics charts -->
         @if (metricsData(); as metrics) {
-          <app-metrics-chart [metrics]="metrics" [decimation]="decimation()" [percentile]="percentile()" [dateRange]="dateRange()" />
+          <app-metrics-chart [metrics]="metrics" [decimation]="dec" [percentile]="pct" [dateRange]="dateRange()" />
         }
       }
 
       <!-- Heatmap -->
       @if (heatmapData(); as heatmap) {
-        <app-heatmap [data]="heatmap" [deployments]="deployments()" (dayClicked)="onHeatmapDayClicked($event)" />
+        <app-heatmap [data]="heatmap" [deployments]="deps" (dayClicked)="onHeatmapDayClicked($event)" />
       }
     </div>
   </div>
 
   <!-- Offcanvas panels -->
   @if (showLogs()) {
-    <app-log-entries [pulseId]="pulseId()" (close)="showLogs.set(false)" />
+    <app-log-entries [pulseId]="pid" (close)="showLogs.set(false)" />
   }
   @if (showLive()) {
-    <app-live-pulse [pulseId]="pulseId()" [overlayIds]="overlayIds()" (close)="showLive.set(false)" />
+    <app-live-pulse [pulseId]="pid" [overlayIds]="overlayIds()" (close)="showLive.set(false)" />
   }
   @if (showForecast()) {
-    <app-forecast [items]="detailData()!.items" [archivedLoading]="archivedLoading()" (close)="showForecast.set(false)" />
+    <app-forecast [items]="detail.items" [archivedLoading]="archived" (close)="showForecast.set(false)" />
   }
 }

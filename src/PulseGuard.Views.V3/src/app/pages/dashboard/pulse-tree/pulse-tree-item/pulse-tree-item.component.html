@@ -1,3 +1,4 @@
+@let it = item();
 <a href="#"
    class="list-group-item list-group-item-action d-flex flex-row align-items-center"
    [class.active]="selected()"
@@ -7,9 +8,9 @@
   <app-uptime-badge class="me-2 d-none d-xl-inline-flex"
                     [percentage]="uptime()" />
   <span class="flex-grow-1 text-truncate me-3"
-        [ngbTooltip]="item().name"
+        [ngbTooltip]="it.name"
         triggers="hover"
-        container="body">{{ item().name }}</span>
+        container="body">{{ it.name }}</span>
   <button class="btn btn-link btn-sm p-0 me-2 d-none d-md-inline overlay-btn"
           [class.active]="overlay()"
           ngbTooltip="Toggle Overlay"
@@ -18,5 +19,5 @@
           (click)="toggleOverlay($event)">
     <i class="bi bi-stack"></i>
   </button>
-  <app-health-bar [items]="item().items" />
+  <app-health-bar [items]="it.items" />
 </a>

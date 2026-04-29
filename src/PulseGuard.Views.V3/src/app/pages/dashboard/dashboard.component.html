@@ -1,12 +1,13 @@
 <router-outlet class="d-none" />
 <div class="container-fluid my-3">
+  @let selectedId = pulseService.selectedPulseId();
   <div class="row">
-    <div [class]="'col-12 col-lg-4' + (pulseService.selectedPulseId() ? ' d-none d-lg-block' : '')">
+    <div [class]="'col-12 col-lg-4' + (selectedId ? ' d-none d-lg-block' : '')">
       <app-pulse-tree />
     </div>
     <div class="col-12 col-lg-8">
-      @if (pulseService.selectedPulseId()) {
-        <app-pulse-detail [pulseId]="pulseService.selectedPulseId()!" (deselect)="pulseService.deselectPulse()" />
+      @if (selectedId) {
+        <app-pulse-detail [pulseId]="selectedId!" (deselect)="pulseService.deselectPulse()" />
       } @else {
         <div class="alert border d-flex flex-column align-items-center">
           <span>« Select a pulse to view its details »</span>
