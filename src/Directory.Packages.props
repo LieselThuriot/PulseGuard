@@ -5,27 +5,28 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageVersion Include="Azure.Identity" Version="1.18.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Monitor.Query" Version="1.7.1" />
     <PackageVersion Include="Azure.Monitor.Query.Logs" Version="1.0.0" />
     <PackageVersion Include="Azure.ResourceManager.AppService" Version="1.4.1" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.25.0" />
-    <PackageVersion Include="FastExpressionCompiler" Version="5.3.0" />
+    <PackageVersion Include="FastExpressionCompiler" Version="5.4.1" />
     <PackageVersion Include="MagicConstants" Version="1.0.0-preview-22" />
-    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Polly" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Polly" Version="10.0.7" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="NUglify" Version="1.21.11" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
     <PackageVersion Include="Polly" Version="8.6.6" />
     <PackageVersion Include="protobuf-net" Version="3.2.56" />
     <PackageVersion Include="protobuf-net.BuildTools" Version="3.2.52" />
-    <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.13.1" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.14.8" />
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.1" />
     <PackageVersion Include="Sqids" Version="3.2.1" />
     <PackageVersion Include="TableStorage" Version="6.0.0-preview-06" />

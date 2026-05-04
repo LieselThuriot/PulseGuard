@@ -6,6 +6,7 @@ import * as d3 from 'd3';
 import { PulseCheckResultDetail, OverlayData } from '../../../../models/pulse-detail.model';
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
+import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE } from '../../../../constants';
 
 const OVERLAY_COLORS = ['#6366f1', '#06b6d4', '#f97316', '#a855f7', '#14b8a6'];
 
@@ -37,8 +38,8 @@ interface ChartPoint {
 })
 export class ResponseChartComponent implements AfterViewInit, OnDestroy {
   readonly items = input.required<PulseCheckResultDetail[]>();
-  readonly decimation = input(15);
-  readonly percentile = input(99);
+  readonly decimation = input(DEFAULT_DECIMATION);
+  readonly percentile = input(DEFAULT_PERCENTILE);
   readonly deployments = input<PulseDeployment[]>([]);
   readonly overlays = input<OverlayData[]>([]);
 

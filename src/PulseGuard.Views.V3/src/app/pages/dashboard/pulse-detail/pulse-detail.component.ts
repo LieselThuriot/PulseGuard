@@ -6,7 +6,7 @@ import { PulseDetailService } from '../../../services/pulse-detail.service';
 import { PulseCheckResultDetail, PulseDetailResultGroup, PulseMetricsResultGroup, OverlayData } from '../../../models/pulse-detail.model';
 import { PulseHeatmaps } from '../../../models/pulse-heatmap.model';
 import { PulseDeployment } from '../../../models/pulse-overview.model';
-import { PulseStates, STATE_CSS_CLASSES } from '../../../models/pulse-states.enum';
+import { PulseStates } from '../../../models/pulse-states.enum';
 import { ResponseChartComponent } from './response-chart/response-chart.component';
 import { MetricsChartComponent } from './metrics-chart/metrics-chart.component';
 import { HeatmapComponent } from './heatmap/heatmap.component';

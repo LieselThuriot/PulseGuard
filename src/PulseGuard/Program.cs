@@ -1,4 +1,3 @@
-using Azure.Data.Tables;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using PulseGuard;
@@ -11,7 +10,6 @@ using PulseGuard.Services;
 using System.IO.Compression;
 using System.Text.Json.Serialization;
 using TableStorage;
-using TableStorage.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,51 +98,62 @@ app.UseRouting();
 app.MapRoutes(authorized);
 
 // only once
-//{
-//    List<Heatmap> maps = [];
+// {
 
-//    var scope = app.Services.CreateScope();
-//    var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
+//     var scope = app.Services.CreateScope();
+//     var context = scope.ServiceProvider.GetRequiredService<PulseContext>();
 
-//    await foreach (var results in context.ArchivedPulseCheckResults)
-//    {
-//        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
-//        {
-//            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
-//            {
-//                Sqid = results.Sqid,
-//                Day = pulses.Key
-//            };
+//     await foreach (var results in context.ArchivedPulseCheckResults)
+//     {
+//         List<Heatmap> maps = [];
 
-//            foreach (var pulse in pulses)
-//            {
-//                heatmap.Increment(pulse.State);
-//            }
+//         foreach (var pulses in results.Items.GroupBy(x => DateTimeOffset.FromUnixTimeSeconds(x.Timestamp).ToString(PulseCheckResult.PartitionKeyFormat)))
+//         {
+//             var counter = pulses.CountBy(x => x.State).ToList();
+//             int GetValueOrDefault(PulseStates key) => counter.FirstOrDefault(x => x.Key == key).Value;
 
-//            maps.Add(heatmap);
-//        }
-//    }
+//             Heatmap heatmap = new()
+//             {
+//                 Sqid = results.Sqid,
+//                 Day = pulses.Key,
+//                 Unknown = GetValueOrDefault(PulseStates.Unknown),
+//                 Healthy = GetValueOrDefault(PulseStates.Healthy),
+//                 Degraded = GetValueOrDefault(PulseStates.Degraded),
+//                 Unhealthy = GetValueOrDefault(PulseStates.Unhealthy),
+//                 TimedOut = GetValueOrDefault(PulseStates.TimedOut),
+//             };
 
-//    await foreach (var results in context.PulseCheckResults)
-//    {
-//        foreach (var pulses in results.Items.GroupBy(x => x.Timestamp.ToString(PulseCheckResult.PartitionKeyFormat)))
-//        {
-//            Heatmap heatmap = await context.Heatmaps.FindAsync(results.Sqid, pulses.Key, default) ?? new()
-//            {
-//                Sqid = results.Sqid,
-//                Day = pulses.Key
-//            };
+//             maps.Add(heatmap);
+//         }
 
-//            foreach (var pulse in pulses)
-//            {
-//                heatmap.Increment(pulse.State);
-//            }
+//         await context.Heatmaps.BulkUpsertAsync(maps, default);
+//     }
 
-//            maps.Add(heatmap);
-//        }
-//    }
+//     await foreach (var results in context.PulseCheckResults)
+//     {
+//         List<Heatmap> maps = [];
 
-//    await context.Heatmaps.BulkUpsertAsync(maps, default);
-//}
+//         foreach (var pulses in results.Items.GroupBy(x => DateTimeOffset.FromUnixTimeSeconds(x.Timestamp).ToString(PulseCheckResult.PartitionKeyFormat)))
+//         {
+//             var counter = pulses.CountBy(x => x.State).ToList();
+//             int GetValueOrDefault(PulseStates key) => counter.FirstOrDefault(x => x.Key == key).Value;
+
+//             Heatmap heatmap = new()
+//             {
+//                 Sqid = results.Sqid,
+//                 Day = pulses.Key,
+//                 Unknown = GetValueOrDefault(PulseStates.Unknown),
+//                 Healthy = GetValueOrDefault(PulseStates.Healthy),
+//                 Degraded = GetValueOrDefault(PulseStates.Degraded),
+//                 Unhealthy = GetValueOrDefault(PulseStates.Unhealthy),
+//                 TimedOut = GetValueOrDefault(PulseStates.TimedOut),
+//             };
+
+//             maps.Add(heatmap);
+//         }
+
+//         await context.Heatmaps.BulkUpsertAsync(maps, default);
+//     }
+// }
 
 app.Run();

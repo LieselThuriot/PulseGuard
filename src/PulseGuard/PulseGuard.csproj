@@ -20,6 +20,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Microsoft.Extensions.Http.Polly" />
 		<PackageReference Include="Newtonsoft.Json" />
+		<PackageReference Include="OpenTelemetry.Api" />
 		<PackageReference Include="Polly" />
 		<PackageReference Include="protobuf-net" />
 		<PackageReference Include="protobuf-net.BuildTools">
