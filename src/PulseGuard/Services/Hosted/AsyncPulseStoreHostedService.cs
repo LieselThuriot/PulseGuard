@@ -3,7 +3,7 @@ using PulseGuard.Models;
 
 namespace PulseGuard.Services.Hosted;
 
-public class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, SignalService signalService, IServiceProvider services, IOptions<PulseOptions> options, ILogger<AsyncPulseStoreHostedService> logger) : BackgroundService
+public sealed class AsyncPulseStoreHostedService(AsyncPulseStoreService storeClient, SignalService signalService, IServiceProvider services, IOptions<PulseOptions> options, ILogger<AsyncPulseStoreHostedService> logger) : BackgroundService
 {
     private readonly AsyncPulseStoreService _storeClient = storeClient;
     private readonly SignalService _signalService = signalService;

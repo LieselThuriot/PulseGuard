@@ -6,7 +6,7 @@ using TableStorage;
 
 namespace PulseGuard.Entities.Serializers;
 
-public class PulseBlobSerializer : IBlobSerializer
+public sealed class PulseBlobSerializer : IBlobSerializer
 {
     private static JsonTypeInfo<T> GetTypeInfo<T>()
         => PulseSerializerContext.Default.GetTypeInfo(typeof(T)) as JsonTypeInfo<T> ?? throw new NotSupportedException("No metadata found for type " + typeof(T));

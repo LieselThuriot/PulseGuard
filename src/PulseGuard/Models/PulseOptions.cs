@@ -1,6 +1,6 @@
 ﻿namespace PulseGuard.Models;
 
-public class PulseOptions
+public sealed class PulseOptions
 {
     public int Interval { get; set => field = Math.Max(1, value); } = 1;
     public int CleaningInterval { get; set => field = Math.Max(1, value); } = 13;

@@ -5,7 +5,7 @@ using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
 
-public class WebhookHostedService(WebhookService webhookClient, SignalService signalService, IHttpClientFactory factory, PulseContext context, AuthService authService, ILogger<WebhookHostedService> logger) : BackgroundService
+internal sealed class WebhookHostedService(WebhookService webhookClient, SignalService signalService, IHttpClientFactory factory, PulseContext context, AuthService authService, ILogger<WebhookHostedService> logger) : BackgroundService
 {
     private readonly WebhookService _webhookClient = webhookClient;
     private readonly SignalService _signalService = signalService;
