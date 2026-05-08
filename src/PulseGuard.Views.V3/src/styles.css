@@ -6,6 +6,10 @@
    Global Styles
    ============================================ */
 
+body {
+  overflow: hidden;
+}
+
 .navbar-brand-title {
   position: relative;
 }
@@ -31,6 +35,33 @@
 
 .min-vh-50 {
   min-height: 50vh;
+}
+
+/* ============================================
+   Full-height card page layout
+   ============================================ */
+
+.page-card-container {
+  height: calc(100dvh - 56px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.page-card-container > .card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-card-container > .card > .card-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* ============================================

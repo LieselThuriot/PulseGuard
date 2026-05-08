@@ -1,0 +1,11 @@
+:host .card-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-content-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}

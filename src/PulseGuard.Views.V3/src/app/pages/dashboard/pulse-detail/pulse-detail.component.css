@@ -1,0 +1,15 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+:host > .card {
+  height: 100%;
+  overflow: hidden;
+}
+
+:host > .card > .card-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}

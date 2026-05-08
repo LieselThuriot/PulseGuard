@@ -1,0 +1,12 @@
+.dashboard-row {
+  flex: 1;
+  overflow: hidden;
+}
+
+.tree-col,
+.detail-col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

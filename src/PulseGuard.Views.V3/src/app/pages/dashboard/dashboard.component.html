@@ -1,11 +1,11 @@
 <router-outlet class="d-none" />
-<div class="container-fluid my-3">
+<div class="container-fluid page-card-container">
   @let selectedId = pulseService.selectedPulseId();
-  <div class="row">
-    <div [class]="'col-12 col-lg-4' + (selectedId ? ' d-none d-lg-block' : '')">
+  <div class="row dashboard-row">
+    <div [class]="'col-12 col-lg-4 tree-col' + (selectedId ? ' d-none d-lg-block' : '')">
       <app-pulse-tree />
     </div>
-    <div class="col-12 col-lg-8">
+    <div class="col-12 col-lg-8 detail-col">
       @if (selectedId) {
         <app-pulse-detail [pulseId]="selectedId!" (deselect)="pulseService.deselectPulse()" />
       } @else {
