@@ -52,6 +52,8 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     effect(() => {
       this.filteredItems();
+      this.decimation();
+      this.percentile();
       this.scheduleRender();
     }, { injector: this.injector });
 
