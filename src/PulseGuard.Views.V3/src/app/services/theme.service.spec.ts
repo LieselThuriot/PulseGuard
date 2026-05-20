@@ -46,6 +46,12 @@ describe('ThemeService', () => {
       expect(service.mode()).toBe('matrix');
     });
 
+    it('should read a stored synthwave mode from localStorage', () => {
+      localStorage.setItem('bs-theme', 'synthwave');
+      const service = TestBed.inject(ThemeService);
+      expect(service.mode()).toBe('synthwave');
+    });
+
     it('should fall back to auto for an unrecognised localStorage value', () => {
       localStorage.setItem('bs-theme', 'invalid');
       const service = TestBed.inject(ThemeService);
@@ -84,6 +90,13 @@ describe('ThemeService', () => {
       expect(localStorage.getItem('bs-theme')).toBe('matrix');
     });
 
+    it('should persist synthwave mode to localStorage', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('synthwave');
+      TestBed.flushEffects();
+      expect(localStorage.getItem('bs-theme')).toBe('synthwave');
+    });
+
     it('should remove the localStorage key when switching to auto', () => {
       localStorage.setItem('bs-theme', 'dark');
       const service = TestBed.inject(ThemeService);
@@ -111,6 +124,13 @@ describe('ThemeService', () => {
     it('should resolve to dark when mode is matrix', () => {
       const service = TestBed.inject(ThemeService);
       service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(service.resolvedTheme()).toBe('dark');
+    });
+
+    it('should resolve to dark when mode is synthwave', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('synthwave');
       TestBed.flushEffects();
       expect(service.resolvedTheme()).toBe('dark');
     });
@@ -152,6 +172,13 @@ describe('ThemeService', () => {
       service.setMode('matrix');
       TestBed.flushEffects();
       expect(service.icon()).toBe('bi-terminal-fill');
+    });
+
+    it('should return the music-note icon for synthwave mode', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('synthwave');
+      TestBed.flushEffects();
+      expect(service.icon()).toBe('bi-music-note-beamed');
     });
 
     it('should return the circle-half icon for auto mode', () => {
@@ -196,6 +223,36 @@ describe('ThemeService', () => {
       service.setMode('dark');
       TestBed.flushEffects();
       expect(document.documentElement.classList.contains('theme-matrix')).toBe(false);
+    });
+
+    it('should set data-bs-theme to dark and add theme-synthwave class when mode is synthwave', () => {
+      const service = TestBed.inject(ThemeService);
+      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      service.setMode('synthwave');
+      TestBed.flushEffects();
+      expect(spy).toHaveBeenCalledWith('data-bs-theme', 'dark');
+      expect(document.documentElement.classList.contains('theme-synthwave')).toBe(true);
+    });
+
+    it('should remove theme-synthwave class when switching away from synthwave', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('synthwave');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-synthwave')).toBe(true);
+      service.setMode('light');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-synthwave')).toBe(false);
+    });
+
+    it('should remove theme-matrix when switching to synthwave', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-matrix')).toBe(true);
+      service.setMode('synthwave');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-matrix')).toBe(false);
+      expect(document.documentElement.classList.contains('theme-synthwave')).toBe(true);
     });
   });
 });

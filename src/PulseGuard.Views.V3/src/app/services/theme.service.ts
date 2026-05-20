@@ -1,10 +1,12 @@
 import { Injectable, signal, effect, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
-export type ThemeMode = 'light' | 'dark' | 'auto' | 'matrix';
+export type ThemeMode = 'light' | 'dark' | 'auto' | 'matrix' | 'synthwave';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
+  private static readonly THEME_CLASSES = ['theme-matrix', 'theme-synthwave'] as const;
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
@@ -22,10 +24,11 @@ export class ThemeService {
       if (this.isBrowser) {
         document.documentElement.setAttribute('data-bs-theme', resolved);
 
-        if (mode === 'matrix') {
-          document.documentElement.classList.add('theme-matrix');
-        } else {
-          document.documentElement.classList.remove('theme-matrix');
+        // Remove all custom theme classes, then add the active one
+        document.documentElement.classList.remove(...ThemeService.THEME_CLASSES);
+        const themeClass = `theme-${mode}`;
+        if (ThemeService.THEME_CLASSES.includes(themeClass as any)) {
+          document.documentElement.classList.add(themeClass);
         }
 
         if (mode === 'auto') {
@@ -68,6 +71,7 @@ export class ThemeService {
       case 'dark': return 'bi-moon-stars-fill';
       case 'light': return 'bi-brightness-high-fill';
       case 'matrix': return 'bi-terminal-fill';
+      case 'synthwave': return 'bi-music-note-beamed';
       default: return 'bi-circle-half';
     }
   }

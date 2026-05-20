@@ -2,6 +2,9 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
+/* Theme fonts (downloaded on-demand when theme is active) */
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700&display=swap');
+
 /* ============================================
    Global Styles
    ============================================ */
@@ -264,5 +267,134 @@ body {
   100% {
     opacity: 0.97;
   }
+}
+
+/* ============================================
+   Synthwave Theme
+   ============================================ */
+
+[data-bs-theme="dark"].theme-synthwave {
+  /* Core Bootstrap overrides */
+  --bs-body-bg: #0f0a1e;
+  --bs-body-color: #e0d6ff;
+  --bs-secondary-color: #9b8abf;
+  --bs-tertiary-bg: #1a1030;
+  --bs-tertiary-color: #c4b5e3;
+  --bs-emphasis-color: #f5f0ff;
+  --bs-border-color: #2d1b4e;
+  --bs-primary: #ff2975;
+  --bs-primary-rgb: 255, 41, 117;
+  --bs-link-color: #00e5ff;
+  --bs-link-color-rgb: 0, 229, 255;
+  --bs-link-hover-color: #ff2975;
+  --bs-link-hover-color-rgb: 255, 41, 117;
+  --bs-secondary-border-subtle: #2d1b4e;
+  --bs-secondary-bg: #1a1030;
+
+  /* Card & component surfaces */
+  --bs-card-bg: #150e28;
+  --bs-card-border-color: #2d1b4e;
+  --bs-card-cap-bg: #1a1030;
+
+  /* Form controls */
+  --bs-body-bg-rgb: 15, 10, 30;
+  --bs-form-control-bg: #0f0a1e;
+
+  /* Dropdown */
+  --bs-dropdown-bg: #150e28;
+  --bs-dropdown-border-color: #2d1b4e;
+  --bs-dropdown-link-color: #e0d6ff;
+  --bs-dropdown-link-hover-bg: #1a1030;
+  --bs-dropdown-link-hover-color: #ff2975;
+
+  /* Navbar */
+  --bs-navbar-color: #e0d6ff;
+  --bs-nav-link-color: #e0d6ff;
+
+  /* Inputs */
+  --bs-input-bg: #0f0a1e;
+  --bs-input-border-color: #2d1b4e;
+  --bs-input-color: #e0d6ff;
+  --bs-input-focus-border-color: #ff2975;
+
+  /* Font */
+  --bs-body-font-family: 'Oxanium', sans-serif;
+
+  /* Chart custom properties (synthwave overrides) */
+  --pg-crosshair: #9b8abf;
+  --pg-legend-separator: #2d1b4e;
+  --pg-legend-swatch: #9b8abf;
+  --pg-brush-fill: rgba(255, 41, 117, 0.15);
+  --pg-brush-stroke: rgba(255, 41, 117, 0.5);
+  --pg-overlay-1: #ff2975;
+  --pg-overlay-2: #00e5ff;
+  --pg-overlay-3: #b44dff;
+  --pg-overlay-4: #ffb800;
+  --pg-overlay-5: #ff6b35;
+  --pg-metric-cpu: #00e5ff;
+  --pg-metric-cpu-fill: rgba(0, 229, 255, 0.2);
+  --pg-metric-memory: #ff2975;
+  --pg-metric-memory-fill: rgba(255, 41, 117, 0.2);
+  --pg-metric-io: #b44dff;
+  --pg-metric-io-fill: rgba(180, 77, 255, 0.2);
+}
+
+/* Neon text glow */
+.theme-synthwave {
+  text-shadow: 0 0 2px rgba(255, 41, 117, 0.3), 0 0 8px rgba(0, 229, 255, 0.1);
+}
+
+.theme-synthwave .btn,
+.theme-synthwave .badge,
+.theme-synthwave .nav-link,
+.theme-synthwave .dropdown-item {
+  text-shadow: 0 0 4px rgba(255, 41, 117, 0.4), 0 0 10px rgba(0, 229, 255, 0.15);
+}
+
+/* Navbar styling */
+.theme-synthwave .navbar {
+  background: #1a1030 !important;
+  border-bottom: 1px solid rgba(180, 77, 255, 0.4);
+  box-shadow: 0 1px 8px rgba(180, 77, 255, 0.15), 0 1px 3px rgba(255, 41, 117, 0.1);
+}
+
+/* ============================================
+   Synthwave Atmosphere Overlay
+   ============================================ */
+
+/* Ambient glow: cyan at top, pink at bottom */
+.theme-synthwave body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 229, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 110%, rgba(255, 41, 117, 0.1) 0%, transparent 45%);
+}
+
+/* Neon horizon line at the bottom */
+.theme-synthwave body::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(255, 41, 117, 0.6) 20%,
+    rgba(180, 77, 255, 0.8) 50%,
+    rgba(0, 229, 255, 0.6) 80%,
+    transparent 95%
+  );
+  box-shadow:
+    0 0 6px 1px rgba(180, 77, 255, 0.3),
+    0 0 20px 4px rgba(180, 77, 255, 0.12),
+    0 0 40px 8px rgba(255, 41, 117, 0.06);
 }
 
