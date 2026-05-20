@@ -40,6 +40,12 @@ describe('ThemeService', () => {
       expect(service.mode()).toBe('light');
     });
 
+    it('should read a stored matrix mode from localStorage', () => {
+      localStorage.setItem('bs-theme', 'matrix');
+      const service = TestBed.inject(ThemeService);
+      expect(service.mode()).toBe('matrix');
+    });
+
     it('should fall back to auto for an unrecognised localStorage value', () => {
       localStorage.setItem('bs-theme', 'invalid');
       const service = TestBed.inject(ThemeService);
@@ -71,6 +77,13 @@ describe('ThemeService', () => {
       expect(localStorage.getItem('bs-theme')).toBe('light');
     });
 
+    it('should persist matrix mode to localStorage', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(localStorage.getItem('bs-theme')).toBe('matrix');
+    });
+
     it('should remove the localStorage key when switching to auto', () => {
       localStorage.setItem('bs-theme', 'dark');
       const service = TestBed.inject(ThemeService);
@@ -91,6 +104,13 @@ describe('ThemeService', () => {
     it('should resolve to dark when mode is explicitly dark', () => {
       const service = TestBed.inject(ThemeService);
       service.setMode('dark');
+      TestBed.flushEffects();
+      expect(service.resolvedTheme()).toBe('dark');
+    });
+
+    it('should resolve to dark when mode is matrix', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('matrix');
       TestBed.flushEffects();
       expect(service.resolvedTheme()).toBe('dark');
     });
@@ -127,6 +147,13 @@ describe('ThemeService', () => {
       expect(service.icon()).toBe('bi-brightness-high-fill');
     });
 
+    it('should return the terminal icon for matrix mode', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(service.icon()).toBe('bi-terminal-fill');
+    });
+
     it('should return the circle-half icon for auto mode', () => {
       const service = TestBed.inject(ThemeService);
       service.setMode('auto');
@@ -150,6 +177,25 @@ describe('ThemeService', () => {
       service.setMode('light');
       TestBed.flushEffects();
       expect(spy).toHaveBeenCalledWith('data-bs-theme', 'light');
+    });
+
+    it('should set data-bs-theme to dark and add theme-matrix class when mode is matrix', () => {
+      const service = TestBed.inject(ThemeService);
+      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(spy).toHaveBeenCalledWith('data-bs-theme', 'dark');
+      expect(document.documentElement.classList.contains('theme-matrix')).toBe(true);
+    });
+
+    it('should remove theme-matrix class when switching away from matrix', () => {
+      const service = TestBed.inject(ThemeService);
+      service.setMode('matrix');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-matrix')).toBe(true);
+      service.setMode('dark');
+      TestBed.flushEffects();
+      expect(document.documentElement.classList.contains('theme-matrix')).toBe(false);
     });
   });
 });

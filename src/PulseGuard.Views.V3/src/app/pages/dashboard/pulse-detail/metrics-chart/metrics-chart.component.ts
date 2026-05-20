@@ -82,15 +82,15 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     const pct = this.percentile();
     if (this.hasCpu() && this.cpuRef) {
       const data = this.buildBuckets(items, 'cpu', dec, pct);
-      this.renderChart(this.cpuRef.nativeElement, this.cpuTooltipRef?.nativeElement, data, 'CPU', '%', '#0d6efd');
+      this.renderChart(this.cpuRef.nativeElement, this.cpuTooltipRef?.nativeElement, data, 'CPU', '%', 'var(--pg-metric-cpu)', 'var(--pg-metric-cpu-fill)');
     }
     if (this.hasMemory() && this.memRef) {
       const data = this.buildBuckets(items, 'memory', dec, pct);
-      this.renderChart(this.memRef.nativeElement, this.memTooltipRef?.nativeElement, data, 'Memory', '%', '#6f42c1');
+      this.renderChart(this.memRef.nativeElement, this.memTooltipRef?.nativeElement, data, 'Memory', '%', 'var(--pg-metric-memory)', 'var(--pg-metric-memory-fill)');
     }
     if (this.hasIo() && this.ioRef) {
       const data = this.buildBuckets(items, 'io', dec, pct);
-      this.renderChart(this.ioRef.nativeElement, this.ioTooltipRef?.nativeElement, data, 'I/O', 'MB/s', '#20c997');
+      this.renderChart(this.ioRef.nativeElement, this.ioTooltipRef?.nativeElement, data, 'I/O', 'MB/s', 'var(--pg-metric-io)', 'var(--pg-metric-io-fill)');
     }
   }
 
@@ -101,6 +101,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     seriesName: string,
     yLabel: string,
     color: string,
+    fillColor: string,
   ): void {
     const container = svgEl.parentElement!;
     const totalWidth = container.clientWidth || 400;
@@ -172,11 +173,11 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
       .curve(d3.curveCatmullRom.alpha(0.1));
 
     plotG.append('path').datum(data)
-      .attr('fill', color + '33')
+      .style('fill', fillColor)
       .attr('d', area);
     plotG.append('path').datum(data)
       .attr('fill', 'none')
-      .attr('stroke', color)
+      .style('stroke', color)
       .attr('stroke-width', 1.5)
       .attr('d', line);
 
@@ -191,9 +192,9 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
         .x((d) => xSc(d.timestamp)).y((d) => yScale(d.value))
         .curve(d3.curveCatmullRom.alpha(0.1));
       plotG.insert('path', ':first-child').datum(data)
-        .attr('fill', color + '33').attr('d', rArea);
+        .style('fill', fillColor).attr('d', rArea);
       plotG.insert('path', ':nth-child(2)').datum(data)
-        .attr('fill', 'none').attr('stroke', color).attr('stroke-width', 1.5).attr('d', rLine);
+        .attr('fill', 'none').style('stroke', color).attr('stroke-width', 1.5).attr('d', rLine);
     };
 
     let currentXScale = xScale;
@@ -214,8 +215,8 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
     brushG.call(brush);
     brushG.select('.selection')
-      .attr('fill', 'rgba(13,110,253,0.15)')
-      .attr('stroke', 'rgba(13,110,253,0.5)')
+      .style('fill', 'var(--pg-brush-fill)')
+      .style('stroke', 'var(--pg-brush-stroke)')
       .attr('stroke-width', 1);
 
     // Tooltip via brush overlay
@@ -224,7 +225,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
       const tooltip = d3.select(tooltipEl);
 
       const vline = plotG.insert('line', '.brush')
-        .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
+        .style('stroke', 'var(--pg-crosshair)').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
         .attr('y1', 0).attr('y2', height).style('opacity', 0);
 
       const showTooltip = (event: MouseEvent, html: string) => {

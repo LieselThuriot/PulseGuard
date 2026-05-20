@@ -139,8 +139,8 @@ export class ForecastComponent implements AfterViewInit {
 
     brushG.call(brush);
     brushG.select('.selection')
-      .attr('fill', 'rgba(13,110,253,0.15)')
-      .attr('stroke', 'rgba(13,110,253,0.5)')
+      .style('fill', 'var(--pg-brush-fill)')
+      .style('stroke', 'var(--pg-brush-stroke)')
       .attr('stroke-width', 1);
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()

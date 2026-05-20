@@ -95,3 +95,174 @@ body {
   }
 }
 
+/* ============================================
+   Chart custom properties (default palette)
+   ============================================ */
+
+:root {
+  --pg-crosshair: #999;
+  --pg-legend-separator: #ccc;
+  --pg-legend-swatch: #6c757d;
+  --pg-brush-fill: rgba(13, 110, 253, 0.15);
+  --pg-brush-stroke: rgba(13, 110, 253, 0.5);
+  --pg-overlay-1: #6366f1;
+  --pg-overlay-2: #06b6d4;
+  --pg-overlay-3: #f97316;
+  --pg-overlay-4: #a855f7;
+  --pg-overlay-5: #14b8a6;
+  --pg-metric-cpu: #0d6efd;
+  --pg-metric-cpu-fill: rgba(13, 110, 253, 0.2);
+  --pg-metric-memory: #6f42c1;
+  --pg-metric-memory-fill: rgba(111, 66, 193, 0.2);
+  --pg-metric-io: #20c997;
+  --pg-metric-io-fill: rgba(32, 201, 151, 0.2);
+}
+
+/* ============================================
+   Matrix Theme
+   ============================================ */
+
+[data-bs-theme="dark"].theme-matrix {
+  /* Core Bootstrap overrides */
+  --bs-body-bg: #0a0a0a;
+  --bs-body-color: #00ff41;
+  --bs-secondary-color: #008f11;
+  --bs-tertiary-bg: #0d1a0d;
+  --bs-tertiary-color: #00cc33;
+  --bs-emphasis-color: #33ff66;
+  --bs-border-color: #003b00;
+  --bs-primary: #00ff41;
+  --bs-primary-rgb: 0, 255, 65;
+  --bs-link-color: #00ff41;
+  --bs-link-color-rgb: 0, 255, 65;
+  --bs-link-hover-color: #33ff66;
+  --bs-link-hover-color-rgb: 51, 255, 102;
+  --bs-secondary-border-subtle: #003b00;
+  --bs-secondary-bg: #0d1a0d;
+
+  /* Card & component surfaces */
+  --bs-card-bg: #0d0d0d;
+  --bs-card-border-color: #003b00;
+  --bs-card-cap-bg: #0a150a;
+
+  /* Form controls */
+  --bs-body-bg-rgb: 10, 10, 10;
+  --bs-form-control-bg: #0a0a0a;
+
+  /* Dropdown */
+  --bs-dropdown-bg: #0d0d0d;
+  --bs-dropdown-border-color: #003b00;
+  --bs-dropdown-link-color: #00ff41;
+  --bs-dropdown-link-hover-bg: #0d1a0d;
+  --bs-dropdown-link-hover-color: #33ff66;
+
+  /* Navbar */
+  --bs-navbar-color: #00ff41;
+  --bs-nav-link-color: #00ff41;
+
+  /* Inputs */
+  --bs-input-bg: #0a0a0a;
+  --bs-input-border-color: #003b00;
+  --bs-input-color: #00ff41;
+  --bs-input-focus-border-color: #00ff41;
+
+  /* Monospace font */
+  --bs-body-font-family: 'Courier New', Consolas, 'Liberation Mono', monospace;
+  --bs-font-monospace: 'Courier New', Consolas, 'Liberation Mono', monospace;
+
+  /* Chart custom properties (matrix overrides) */
+  --pg-crosshair: #00ff41;
+  --pg-legend-separator: #003b00;
+  --pg-legend-swatch: #008f11;
+  --pg-brush-fill: rgba(0, 255, 65, 0.15);
+  --pg-brush-stroke: rgba(0, 255, 65, 0.5);
+  --pg-overlay-1: #00ff41;
+  --pg-overlay-2: #33ff66;
+  --pg-overlay-3: #66ff8c;
+  --pg-overlay-4: #00cc33;
+  --pg-overlay-5: #99ffb3;
+  --pg-metric-cpu: #00ff41;
+  --pg-metric-cpu-fill: rgba(0, 255, 65, 0.2);
+  --pg-metric-memory: #33ff66;
+  --pg-metric-memory-fill: rgba(51, 255, 102, 0.2);
+  --pg-metric-io: #66ff8c;
+  --pg-metric-io-fill: rgba(102, 255, 140, 0.2);
+}
+
+/* Green text glow (phosphor monitor effect) */
+.theme-matrix {
+  text-shadow: 0 0 2px rgba(0, 255, 65, 0.4), 0 0 8px rgba(0, 255, 65, 0.15);
+}
+
+.theme-matrix .btn,
+.theme-matrix .badge,
+.theme-matrix .nav-link,
+.theme-matrix .dropdown-item {
+  text-shadow: 0 0 3px rgba(0, 255, 65, 0.5);
+}
+
+/* ============================================
+   Matrix CRT Overlay
+   ============================================ */
+
+/* Scanlines + vignette (static layers) */
+.theme-matrix body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.25) 0px,
+      rgba(0, 0, 0, 0.25) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.65) 100%);
+  animation: crt-flicker 0.1s infinite;
+}
+
+/* Sweeping refresh line (animated) */
+.theme-matrix body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(0, 255, 65, 0.03);
+  box-shadow: 0 0 6px 2px rgba(0, 255, 65, 0.015);
+  animation: crt-sweep 4s linear infinite;
+}
+
+@keyframes crt-sweep {
+  0% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes crt-flicker {
+  0% {
+    opacity: 0.94;
+  }
+  25% {
+    opacity: 0.98;
+  }
+  50% {
+    opacity: 0.96;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.97;
+  }
+}
+

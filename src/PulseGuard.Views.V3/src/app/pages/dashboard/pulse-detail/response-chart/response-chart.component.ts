@@ -8,7 +8,7 @@ import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
 import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE } from '../../../../constants';
 
-const OVERLAY_COLORS = ['#6366f1', '#06b6d4', '#f97316', '#a855f7', '#14b8a6'];
+const OVERLAY_COLORS = ['var(--pg-overlay-1)', 'var(--pg-overlay-2)', 'var(--pg-overlay-3)', 'var(--pg-overlay-4)', 'var(--pg-overlay-5)'];
 
 interface OverlayPoint {
   x: number;
@@ -243,7 +243,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
           .datum(series.points)
           .attr('class', 'overlay-path')
           .attr('fill', 'none')
-          .attr('stroke', series.color)
+          .style('stroke', series.color)
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '5,3')
           .attr('opacity', 0.85)
@@ -322,8 +322,8 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
     // Style the brush selection rectangle
     brushG.select('.selection')
-      .attr('fill', 'rgba(13,110,253,0.15)')
-      .attr('stroke', 'rgba(13,110,253,0.5)')
+      .style('fill', 'var(--pg-brush-fill)')
+      .style('stroke', 'var(--pg-brush-stroke)')
       .attr('stroke-width', 1);
 
     // Unified tooltip via brush overlay (sits on top, captures all pointer events)
@@ -331,7 +331,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     const bisectOverlay = d3.bisector<OverlayPoint, Date>((p) => p.x).center;
 
     const vline = plotG.append('line')
-      .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
+      .style('stroke', 'var(--pg-crosshair)').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
       .attr('y1', 0).attr('y2', height).style('opacity', 0);
 
     // Show tooltip with boundary-aware positioning.
@@ -425,12 +425,12 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
         .attr('transform', `translate(${margin.left}, ${300 + 4})`);
       legendG.append('line')
         .attr('x1', 0).attr('x2', width)
-        .attr('stroke', '#ccc').attr('stroke-width', 0.5);
+        .style('stroke', 'var(--pg-legend-separator)').attr('stroke-width', 0.5);
       // Main series entry
       const mainLegendY = 14;
       legendG.append('line')
         .attr('x1', 0).attr('y1', mainLegendY).attr('x2', 18).attr('y2', mainLegendY)
-        .attr('stroke', '#6c757d').attr('stroke-width', 2);
+        .style('stroke', 'var(--pg-legend-swatch)').attr('stroke-width', 2);
       legendG.append('text')
         .attr('x', 22).attr('y', mainLegendY + 4)
         .attr('font-size', '11px')
@@ -441,12 +441,12 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
         const series = overlaySeries[i];
         legendG.append('line')
           .attr('x1', 0).attr('y1', y).attr('x2', 18).attr('y2', y)
-          .attr('stroke', series.color).attr('stroke-width', 2)
+          .style('stroke', series.color).attr('stroke-width', 2)
           .attr('stroke-dasharray', '5,3');
         legendG.append('text')
           .attr('x', 22).attr('y', y + 4)
           .attr('font-size', '11px')
-          .attr('fill', series.color)
+          .style('fill', series.color)
           .text(series.label);
       }
     }

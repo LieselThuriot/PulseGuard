@@ -72,9 +72,9 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
       this.drawCanvas();
     }, { injector: this.injector });
 
-    // Redraw when theme changes (data-bs-theme attribute)
+    // Redraw when theme changes (data-bs-theme attribute or theme-matrix class)
     this.themeObserver = new MutationObserver(() => this.drawCanvas());
-    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme', 'class'] });
   }
 
   ngOnDestroy(): void {

@@ -7,7 +7,7 @@ import { EventService } from '../../../../services/event.service';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
 import { LIVE_PULSE_MAX_POINTS } from '../../../../constants';
 
-const OVERLAY_COLORS = ['#6366f1', '#06b6d4', '#f97316', '#a855f7', '#14b8a6'];
+const OVERLAY_COLORS = ['var(--pg-overlay-1)', 'var(--pg-overlay-2)', 'var(--pg-overlay-3)', 'var(--pg-overlay-4)', 'var(--pg-overlay-5)'];
 
 interface LivePoint {
   timestamp: number;
@@ -211,7 +211,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
 
       g.append('path').datum(overlayPts)
         .attr('fill', 'none')
-        .attr('stroke', color)
+        .style('stroke', color)
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', '5,3')
         .attr('d', lineGen)
@@ -226,14 +226,14 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
         .attr('cx', (p) => xScale(p.timestamp))
         .attr('cy', (p) => yScale(p.elapsedMs))
         .attr('r', 3)
-        .attr('fill', color);
+        .style('fill', color);
     });
 
     // Legend when overlays are present
     if (hasOverlays) {
       const mainLabel = this._pulseLabels.get(pulseId) ?? pulseId;
       const legendItems: { label: string; color: string; dashed: boolean }[] = [
-        { label: mainLabel, color: '#6c757d', dashed: false },
+        { label: mainLabel, color: 'var(--pg-legend-swatch)', dashed: false },
         ...overlayIds.map((oid, i) => ({
           label: this._pulseLabels.get(oid) ?? oid,
           color: OVERLAY_COLORS[i % OVERLAY_COLORS.length],
@@ -268,7 +268,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
         row.append('line')
           .attr('x1', 0).attr('x2', swatchW)
           .attr('y1', 0).attr('y2', 0)
-          .attr('stroke', item.color)
+          .style('stroke', item.color)
           .attr('stroke-width', 2)
           .attr('stroke-dasharray', item.dashed ? '4,2' : '');
 
@@ -309,7 +309,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       const vline = g.append('line')
-        .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
+        .style('stroke', 'var(--pg-crosshair)').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
         .attr('y1', 0).attr('y2', height).style('opacity', 0);
 
       const showTooltip = (event: MouseEvent, html: string) => {

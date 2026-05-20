@@ -1,7 +1,7 @@
 import { Injectable, signal, effect, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
-export type ThemeMode = 'light' | 'dark' | 'auto';
+export type ThemeMode = 'light' | 'dark' | 'auto' | 'matrix';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -21,6 +21,13 @@ export class ThemeService {
 
       if (this.isBrowser) {
         document.documentElement.setAttribute('data-bs-theme', resolved);
+
+        if (mode === 'matrix') {
+          document.documentElement.classList.add('theme-matrix');
+        } else {
+          document.documentElement.classList.remove('theme-matrix');
+        }
+
         if (mode === 'auto') {
           localStorage.removeItem('bs-theme');
         } else {
@@ -60,6 +67,7 @@ export class ThemeService {
     switch (mode) {
       case 'dark': return 'bi-moon-stars-fill';
       case 'light': return 'bi-brightness-high-fill';
+      case 'matrix': return 'bi-terminal-fill';
       default: return 'bi-circle-half';
     }
   }
