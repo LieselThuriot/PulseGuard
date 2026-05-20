@@ -115,7 +115,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     svg.attr('width', totalWidth).attr('height', totalHeight);
     svg.selectAll('*').remove();
 
-    const clipId = `clip-${color.replace('#', '')}`;
+    const clipId = `clip-metric-${seriesName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Math.random().toString(36).slice(2, 8)}`;
     svg.append('defs').append('clipPath').attr('id', clipId)
       .append('rect').attr('width', width).attr('height', height);
 
