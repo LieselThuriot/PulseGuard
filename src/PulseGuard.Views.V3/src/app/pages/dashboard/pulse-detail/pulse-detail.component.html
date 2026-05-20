@@ -36,7 +36,7 @@
         <div class="col-12 col-lg-6">
           <app-date-range-selector [setRange]="externalDateRange()" (rangeChange)="onDateRangeChange($event)" />
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-3 mt-2 mt-lg-0">
           <div class="input-group input-group-sm">
             <label class="input-group-text" for="decimation-select">M</label>
             <select class="form-select" id="decimation-select" (change)="onDecimationChange(+$any($event.target).value)">
@@ -51,7 +51,7 @@
             </select>
           </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-3 mt-2 mt-lg-0">
           <div class="input-group input-group-sm">
             <label class="input-group-text" for="percentile-select"><i class="bi bi-percent"></i></label>
             <select class="form-select" id="percentile-select" (change)="onPercentileChange(+$any($event.target).value)">

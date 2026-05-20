@@ -1,4 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Observable } from 'rxjs';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { PulseOverviewItem } from '../../models/pulse-overview.model';
 import { PulseCheckResultDetail } from '../../models/pulse-detail.model';
@@ -27,6 +29,17 @@ export class HealthBarComponent {
   /** Detail items (PulseCheckResultDetail[]) — use for full detail health bar */
   readonly detailItems = input<PulseCheckResultDetail[] | null>(null);
   readonly tiny = input(true);
+
+  private readonly isSmallScreen = toSignal(
+    new Observable<boolean>(subscriber => {
+      const mq = window.matchMedia('(max-width: 767.98px)');
+      subscriber.next(mq.matches);
+      const handler = (e: MediaQueryListEvent) => subscriber.next(e.matches);
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }),
+    { initialValue: false }
+  );
 
   readonly buckets = computed<HealthBucket[]>(() => {
     const detail = this.detailItems();
@@ -71,7 +84,9 @@ export class HealthBarComponent {
   private buildDetailBuckets(items: PulseCheckResultDetail[]): HealthBucket[] {
     if (!items.length) return [];
 
-    const bucketCount = HEALTH_BAR_DETAIL_BUCKETS;
+    const bucketCount = this.isSmallScreen()
+      ? Math.floor(HEALTH_BAR_DETAIL_BUCKETS / 2)
+      : HEALTH_BAR_DETAIL_BUCKETS;
     const healthStates: PulseStates[] = [
       PulseStates.Healthy,
       PulseStates.Degraded,
