@@ -1,0 +1,145 @@
+/* ============================================
+   Synthwave Theme
+   ============================================ */
+
+[data-bs-theme="dark"].theme-synthwave {
+  /* Internal palette (DRY) */
+  --_sw-pink: #ff2975;
+  --_sw-cyan: #00e5ff;
+  --_sw-purple: #b44dff;
+  --_sw-text: #e0d6ff;
+  --_sw-text-dim: #9b8abf;
+  --_sw-text-mid: #c4b5e3;
+  --_sw-bg: #0f0a1e;
+  --_sw-surface: #150e28;
+  --_sw-elevated: #1a1030;
+  --_sw-border: #2d1b4e;
+
+  /* Core Bootstrap overrides */
+  --bs-body-bg: var(--_sw-bg);
+  --bs-body-color: var(--_sw-text);
+  --bs-secondary-color: var(--_sw-text-dim);
+  --bs-tertiary-bg: var(--_sw-elevated);
+  --bs-tertiary-color: var(--_sw-text-mid);
+  --bs-emphasis-color: #f5f0ff;
+  --bs-border-color: var(--_sw-border);
+  --bs-primary: var(--_sw-pink);
+  --bs-primary-rgb: 255, 41, 117;
+  --bs-link-color: var(--_sw-cyan);
+  --bs-link-color-rgb: 0, 229, 255;
+  --bs-link-hover-color: var(--_sw-pink);
+  --bs-link-hover-color-rgb: 255, 41, 117;
+  --bs-secondary-border-subtle: var(--_sw-border);
+  --bs-secondary-bg: var(--_sw-elevated);
+
+  /* Card & component surfaces */
+  --bs-card-bg: var(--_sw-surface);
+  --bs-card-border-color: var(--_sw-border);
+  --bs-card-cap-bg: var(--_sw-elevated);
+
+  /* Form controls */
+  --bs-body-bg-rgb: 15, 10, 30;
+  --bs-form-control-bg: var(--_sw-bg);
+
+  /* Dropdown */
+  --bs-dropdown-bg: var(--_sw-surface);
+  --bs-dropdown-border-color: var(--_sw-border);
+  --bs-dropdown-link-color: var(--_sw-text);
+  --bs-dropdown-link-hover-bg: var(--_sw-elevated);
+  --bs-dropdown-link-hover-color: var(--_sw-pink);
+
+  /* Navbar */
+  --bs-navbar-color: var(--_sw-text);
+  --bs-nav-link-color: var(--_sw-text);
+
+  /* Inputs */
+  --bs-input-bg: var(--_sw-bg);
+  --bs-input-border-color: var(--_sw-border);
+  --bs-input-color: var(--_sw-text);
+  --bs-input-focus-border-color: var(--_sw-pink);
+
+  /* Font (loaded dynamically by ThemeService) */
+  --bs-body-font-family: 'Oxanium', sans-serif;
+
+  /* Chart custom properties */
+  --pg-crosshair: var(--_sw-text-dim);
+  --pg-legend-separator: var(--_sw-border);
+  --pg-legend-swatch: var(--_sw-text-dim);
+  --pg-brush-fill: rgba(255, 41, 117, 0.15);
+  --pg-brush-stroke: rgba(255, 41, 117, 0.5);
+  --pg-overlay-1: var(--_sw-pink);
+  --pg-overlay-2: var(--_sw-cyan);
+  --pg-overlay-3: var(--_sw-purple);
+  --pg-overlay-4: #ffb800;
+  --pg-overlay-5: #ff6b35;
+  --pg-metric-cpu: var(--_sw-cyan);
+  --pg-metric-cpu-fill: rgba(0, 229, 255, 0.2);
+  --pg-metric-memory: var(--_sw-pink);
+  --pg-metric-memory-fill: rgba(255, 41, 117, 0.2);
+  --pg-metric-io: var(--_sw-purple);
+  --pg-metric-io-fill: rgba(180, 77, 255, 0.2);
+}
+
+/* Neon text glow */
+.theme-synthwave {
+  text-shadow: 0 0 2px rgba(255, 41, 117, 0.3), 0 0 8px rgba(0, 229, 255, 0.1);
+}
+
+.theme-synthwave :is(.btn, .badge, .nav-link, .dropdown-item) {
+  text-shadow: 0 0 4px rgba(255, 41, 117, 0.4), 0 0 10px rgba(0, 229, 255, 0.15);
+}
+
+/* Navbar styling */
+.theme-synthwave .navbar {
+  background: #1a1030 !important;
+  border-bottom: 1px solid rgba(180, 77, 255, 0.4);
+  box-shadow: 0 1px 8px rgba(180, 77, 255, 0.15), 0 1px 3px rgba(255, 41, 117, 0.1);
+}
+
+/* ============================================
+   Atmosphere Overlay
+   ============================================ */
+
+/* Ambient glow: cyan at top, pink at bottom */
+.theme-synthwave body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 229, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 110%, rgba(255, 41, 117, 0.1) 0%, transparent 45%);
+}
+
+/* Neon horizon line at the bottom */
+.theme-synthwave body::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(255, 41, 117, 0.6) 20%,
+    rgba(180, 77, 255, 0.8) 50%,
+    rgba(0, 229, 255, 0.6) 80%,
+    transparent 95%
+  );
+  box-shadow:
+    0 0 6px 1px rgba(180, 77, 255, 0.3),
+    0 0 20px 4px rgba(180, 77, 255, 0.12),
+    0 0 40px 8px rgba(255, 41, 117, 0.06);
+}
+
+/* Accessibility: disable decorative overlays for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .theme-synthwave body::before,
+  .theme-synthwave body::after {
+    display: none;
+  }
+}

@@ -1,0 +1,156 @@
+/* ============================================
+   Matrix Theme
+   ============================================ */
+
+[data-bs-theme="dark"].theme-matrix {
+  /* Internal palette (DRY) */
+  --_mx-green: #00ff41;
+  --_mx-green-bright: #33ff66;
+  --_mx-green-mid: #00cc33;
+  --_mx-green-dim: #008f11;
+  --_mx-green-pale: #66ff8c;
+  --_mx-green-faint: #99ffb3;
+  --_mx-bg: #0a0a0a;
+  --_mx-surface: #0d0d0d;
+  --_mx-elevated: #0d1a0d;
+  --_mx-cap: #0a150a;
+  --_mx-border: #003b00;
+
+  /* Core Bootstrap overrides */
+  --bs-body-bg: var(--_mx-bg);
+  --bs-body-color: var(--_mx-green);
+  --bs-secondary-color: var(--_mx-green-dim);
+  --bs-tertiary-bg: var(--_mx-elevated);
+  --bs-tertiary-color: var(--_mx-green-mid);
+  --bs-emphasis-color: var(--_mx-green-bright);
+  --bs-border-color: var(--_mx-border);
+  --bs-primary: var(--_mx-green);
+  --bs-primary-rgb: 0, 255, 65;
+  --bs-link-color: var(--_mx-green);
+  --bs-link-color-rgb: 0, 255, 65;
+  --bs-link-hover-color: var(--_mx-green-bright);
+  --bs-link-hover-color-rgb: 51, 255, 102;
+  --bs-secondary-border-subtle: var(--_mx-border);
+  --bs-secondary-bg: var(--_mx-elevated);
+
+  /* Card & component surfaces */
+  --bs-card-bg: var(--_mx-surface);
+  --bs-card-border-color: var(--_mx-border);
+  --bs-card-cap-bg: var(--_mx-cap);
+
+  /* Form controls */
+  --bs-body-bg-rgb: 10, 10, 10;
+  --bs-form-control-bg: var(--_mx-bg);
+
+  /* Dropdown */
+  --bs-dropdown-bg: var(--_mx-surface);
+  --bs-dropdown-border-color: var(--_mx-border);
+  --bs-dropdown-link-color: var(--_mx-green);
+  --bs-dropdown-link-hover-bg: var(--_mx-elevated);
+  --bs-dropdown-link-hover-color: var(--_mx-green-bright);
+
+  /* Navbar */
+  --bs-navbar-color: var(--_mx-green);
+  --bs-nav-link-color: var(--_mx-green);
+
+  /* Inputs */
+  --bs-input-bg: var(--_mx-bg);
+  --bs-input-border-color: var(--_mx-border);
+  --bs-input-color: var(--_mx-green);
+  --bs-input-focus-border-color: var(--_mx-green);
+
+  /* Monospace font */
+  --bs-body-font-family: 'Courier New', Consolas, 'Liberation Mono', monospace;
+
+  /* Chart custom properties */
+  --pg-crosshair: var(--_mx-green);
+  --pg-legend-separator: var(--_mx-border);
+  --pg-legend-swatch: var(--_mx-green-dim);
+  --pg-brush-fill: rgba(0, 255, 65, 0.15);
+  --pg-brush-stroke: rgba(0, 255, 65, 0.5);
+  --pg-overlay-1: var(--_mx-green);
+  --pg-overlay-2: var(--_mx-green-bright);
+  --pg-overlay-3: var(--_mx-green-pale);
+  --pg-overlay-4: var(--_mx-green-mid);
+  --pg-overlay-5: var(--_mx-green-faint);
+  --pg-metric-cpu: var(--_mx-green);
+  --pg-metric-cpu-fill: rgba(0, 255, 65, 0.2);
+  --pg-metric-memory: var(--_mx-green-bright);
+  --pg-metric-memory-fill: rgba(51, 255, 102, 0.2);
+  --pg-metric-io: var(--_mx-green-pale);
+  --pg-metric-io-fill: rgba(102, 255, 140, 0.2);
+}
+
+/* Green text glow (phosphor monitor effect) */
+.theme-matrix {
+  text-shadow: 0 0 2px rgba(0, 255, 65, 0.4), 0 0 8px rgba(0, 255, 65, 0.15);
+}
+
+.theme-matrix :is(.btn, .badge, .nav-link, .dropdown-item) {
+  text-shadow: 0 0 3px rgba(0, 255, 65, 0.5);
+}
+
+/* ============================================
+   CRT Overlay
+   ============================================ */
+
+/* Scanlines + vignette (static layers) */
+.theme-matrix body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  will-change: opacity;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.25) 0px,
+      rgba(0, 0, 0, 0.25) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.65) 100%);
+  animation: crt-flicker 0.1s infinite;
+}
+
+/* Sweeping refresh line (GPU-accelerated) */
+.theme-matrix body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 9999;
+  pointer-events: none;
+  will-change: transform;
+  background: rgba(0, 255, 65, 0.03);
+  box-shadow: 0 0 6px 2px rgba(0, 255, 65, 0.015);
+  animation: crt-sweep 4s linear infinite;
+}
+
+@keyframes crt-sweep {
+  from { transform: translateY(-3px); }
+  to { transform: translateY(100vh); }
+}
+
+@keyframes crt-flicker {
+  0%   { opacity: 0.94; }
+  25%  { opacity: 0.98; }
+  50%  { opacity: 0.96; }
+  75%  { opacity: 1; }
+  100% { opacity: 0.97; }
+}
+
+/* Accessibility: disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .theme-matrix body::before {
+    animation: none;
+  }
+
+  .theme-matrix body::after {
+    animation: none;
+    display: none;
+  }
+}
