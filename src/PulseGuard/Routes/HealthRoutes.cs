@@ -15,6 +15,10 @@ public static class HealthRoutes
     {
         public void MapHealth()
         {
+            builder.MapGet("/version", () => TypedResults.Ok(new AppVersion(AppInfo.Version)))
+                   .WithTags("Health")
+                   .AllowAnonymous();
+
             var healthGroup = builder.MapGroup("/health").WithTags("Health");
 
             healthGroup.MapGet("", async (IMemoryCache cache, PulseContext context, ILogger<Program> logger, CancellationToken token) =>

@@ -27,6 +27,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(PulseAgentReport))]
 [JsonSerializable(typeof(DeploymentAgentReport))]
 [JsonSerializable(typeof(ApplicationInsightsQueryResponse))]
+[JsonSerializable(typeof(AppVersion))]
 [JsonSerializable(typeof(UserInfo))]
 [JsonSerializable(typeof(EmptyUserInfo))]
 [JsonSerializable(typeof(PulseDeployments))]

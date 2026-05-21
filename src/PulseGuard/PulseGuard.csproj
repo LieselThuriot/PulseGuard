@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
+		<Version>3.0.0</Version>
 		<UserSecretsId>ca07f3be-343d-4cb5-8a4d-8cd5574d739b</UserSecretsId>
 		<TableStorageSerializerContext>PulseGuard.Models.PulseSerializerContext</TableStorageSerializerContext>
 		<EnableLoggingGenerator>true</EnableLoggingGenerator>
@@ -45,4 +46,13 @@
 			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 		</ProjectReference>
 	</ItemGroup>
+
+	<Target Name="TruncateSourceRevisionId"
+	        BeforeTargets="AddSourceRevisionToInformationalVersion"
+	        Condition="'$(SourceRevisionId)' != '' and $(SourceRevisionId.Length) > 7">
+		<PropertyGroup>
+			<SourceRevisionId>$(SourceRevisionId.Substring(0, 7))</SourceRevisionId>
+		</PropertyGroup>
+	</Target>
+
 </Project>

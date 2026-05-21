@@ -72,7 +72,7 @@ public static class Routes
         if (app.Environment.IsDevelopment())
         {
             var forwarder = app.Services.GetRequiredService<IHttpForwarder>();
-            var httpClient = new HttpMessageInvoker(new SocketsHttpHandler());
+            HttpMessageInvoker httpClient = new(new SocketsHttpHandler());
             string spaDevServerUrl = app.Configuration["SpaDevServerUrl"] ?? "http://localhost:4200";
 
             routes.MapFallback("/{**catch-all}", async context => await forwarder.SendAsync(context, spaDevServerUrl, httpClient, new ForwarderRequestConfig(), HttpTransformer.Default));

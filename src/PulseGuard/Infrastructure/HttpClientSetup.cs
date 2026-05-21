@@ -78,6 +78,6 @@ internal static class HttpClientSetup
     private static void SetDefaultHeaders(this HttpRequestHeaders headers)
     {
         headers.CacheControl = new() { NoCache = true };
-        headers.UserAgent.Add(new("PulseGuard", "2.0"));
+        headers.UserAgent.Add(new("PulseGuard", AppInfo.Version));
     }
 }

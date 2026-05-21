@@ -24,3 +24,6 @@ export const DEFAULT_PERCENTILE = 90;
 
 /** Maximum events held in the SSE buffer */
 export const MAX_EVENT_BUFFER = 1000;
+
+/** How often the client polls version.json to detect a new deployment */
+export const VERSION_POLL_INTERVAL_MS = 5 * 60 * 1000;
