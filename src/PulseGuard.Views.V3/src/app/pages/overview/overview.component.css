@@ -68,3 +68,12 @@
   background-color: color-mix(in srgb, var(--bs-body-color) 10%, transparent);
   border-radius: 2px;
 }
+
+/* Live indicator */
+.live-indicator {
+  font-size: 0.75rem;
+  color: var(--bs-body-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

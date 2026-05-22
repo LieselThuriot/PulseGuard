@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, DestroyRef, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, DestroyRef, inject, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { PulseService } from '../../services/pulse.service';
@@ -40,6 +40,7 @@ export class OverviewComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = this.pulseService.loading;
+  readonly secondsUntilRefresh = signal(60);
 
   readonly sections = computed<OverviewSection[]>(() =>
     this.pulseService.overview().map((group) => ({
@@ -51,8 +52,19 @@ export class OverviewComponent implements OnInit {
   ngOnInit(): void {
     this.pulseService.loadOverview();
 
-    const interval = setInterval(() => this.pulseService.loadOverview(), 60_000);
-    this.destroyRef.onDestroy(() => clearInterval(interval));
+    const countdown = setInterval(() => {
+      this.secondsUntilRefresh.update((s) => (s > 0 ? s - 1 : 0));
+    }, 1_000);
+
+    const refresh = setInterval(() => {
+      this.pulseService.loadOverview();
+      this.secondsUntilRefresh.set(60);
+    }, 60_000);
+
+    this.destroyRef.onDestroy(() => {
+      clearInterval(countdown);
+      clearInterval(refresh);
+    });
   }
 
   #buildCard(item: PulseOverviewGroupItem): OverviewCard {

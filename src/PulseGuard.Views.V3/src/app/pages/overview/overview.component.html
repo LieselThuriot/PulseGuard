@@ -1,7 +1,10 @@
 <div class="container-fluid page-card-container">
   <div class="card shadow-sm">
-    <div class="card-header">
-      <i class="bi bi-grid-3x3-gap-fill me-2"></i>Application Overview
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-grid-3x3-gap-fill me-2"></i>Application Overview</span>
+      <span class="live-indicator">
+        <span class="pulse-dot"></span> Live | refreshing in {{ secondsUntilRefresh() }}s
+      </span>
     </div>
     <div class="card-body">
       @if (loading() && sections().length === 0) {
