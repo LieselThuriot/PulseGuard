@@ -1,54 +1,6 @@
 import { PulseStates } from '../../../models/pulse-states.enum';
 import { PulseCheckResultDetail } from '../../../models/pulse-detail.model';
-
-/**
- * The stats, createBuckets, calculatePercentile, and getWorstState logic lives in
- * PulseDetailComponent and ResponseChartComponent as private methods / computed signals.
- * We extract and re-implement the pure functions here to test their logic in isolation.
- */
-
-// ── Extracted from ResponseChartComponent ──
-
-interface TimeBucket {
-  timestamp: number;
-  values: number[];
-  states: PulseStates[];
-}
-
-function createBuckets(items: PulseCheckResultDetail[], decimationMinutes: number): TimeBucket[] {
-  if (!items.length) return [];
-  const bucketMs = decimationMinutes * 60 * 1000;
-  const map = new Map<number, TimeBucket>();
-  for (const item of items) {
-    const key = Math.floor(item.timestamp / bucketMs) * bucketMs;
-    let bucket = map.get(key);
-    if (!bucket) {
-      bucket = { timestamp: key, values: [], states: [] };
-      map.set(key, bucket);
-    }
-    if (item.elapsedMilliseconds != null) bucket.values.push(item.elapsedMilliseconds);
-    bucket.states.push(item.state);
-  }
-  return Array.from(map.values()).sort((a, b) => a.timestamp - b.timestamp);
-}
-
-function calculatePercentile(values: number[], percentile: number): number {
-  if (!values.length) return 0;
-  if (percentile === 0) return values.reduce((a, b) => a + b, 0) / values.length;
-  const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.ceil((percentile / 100) * sorted.length) - 1;
-  return sorted[Math.max(0, idx)];
-}
-
-function getWorstState(states: PulseStates[]): PulseStates {
-  const priority = [PulseStates.Unknown, PulseStates.Healthy, PulseStates.Degraded, PulseStates.TimedOut, PulseStates.Unhealthy];
-  let worst = 0;
-  for (const s of states) {
-    const idx = priority.indexOf(s);
-    if (idx > worst) worst = idx;
-  }
-  return priority[worst];
-}
+import { createBuckets, calculatePercentile, getWorstState } from './chart-utils';
 
 // ── Extracted from PulseDetailComponent.stats ──
 

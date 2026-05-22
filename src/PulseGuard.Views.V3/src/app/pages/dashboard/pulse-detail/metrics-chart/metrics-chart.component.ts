@@ -5,6 +5,8 @@ import {
 import * as d3 from 'd3';
 import { PulseMetricsResultGroup, PulseAgentCheckResultDetail } from '../../../../models/pulse-detail.model';
 import { DateRange } from '../../../../components/date-range-selector/date-range-selector.component';
+import { groupByTimeBucket, calculatePercentile } from '../chart-utils';
+import { applyTimeAxis, createCrosshair, positionTooltip, setupBrushAndZoom } from '../chart-rendering';
 
 interface MetricBucket {
   timestamp: number;
@@ -130,26 +132,11 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
     const xAxisG = g.append('g').attr('transform', `translate(0,${height})`);
 
-    const applyXAxis = (xSc: d3.ScaleTime<number, number>) => {
-      const [d0, d1] = xSc.domain() as [Date, Date];
-      const s = d1.getTime() - d0.getTime();
-      const fmt = s > 7 * 86400000 ? d3.timeFormat('%b %d') :
-                  s > 86400000     ? d3.timeFormat('%b %d') :
-                                     d3.timeFormat('%H:%M');
-      xAxisG.call(d3.axisBottom(xSc).ticks(6).tickFormat(fmt as any));
-      if (s > 86400000 && s <= 7 * 86400000) {
-        xAxisG.selectAll<SVGTextElement, Date>('.tick text').each(function(d) {
-          d3.select(this).append('tspan').attr('x', 0).attr('dy', '1.2em')
-            .text(d3.timeFormat('%H:%M')(d));
-        });
-      }
-    };
-
     const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat((v) =>
       yLabel === 'MB/s' ? `${(v as number).toFixed(1)}` : `${v as number}%`,
     );
 
-    applyXAxis(xScale);
+    applyTimeAxis(xAxisG, xScale, 6);
     g.append('g').attr('class', 'y-axis').call(yAxis);
 
     g.append('text')
@@ -190,7 +177,7 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
       yScale.domain([0, newYMax]).nice();
       g.select<SVGGElement>('.y-axis').call(yAxis);
 
-      applyXAxis(xSc);
+      applyTimeAxis(xAxisG, xSc, 6);
       plotG.selectAll('path').remove();
       const rArea = d3.area<MetricBucket>()
         .x((d) => xSc(d.timestamp)).y0(height).y1((d) => yScale(d.value))
@@ -204,89 +191,38 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
         .attr('fill', 'none').style('stroke', color).attr('stroke-width', 1.5).attr('d', rLine);
     };
 
-    let currentXScale = xScale;
+    // Crosshair appended before setupBrushAndZoom so it sits behind the brush group
+    const vline = createCrosshair(plotG, height);
 
-    // Brush-to-zoom
-    const brushG = plotG.append('g').attr('class', 'brush');
-    const brush = d3.brushX()
-      .extent([[0, 0], [width, height]])
-      .on('end', (event) => {
-        if (!event.selection) return;
-        const [x0, x1] = event.selection as [number, number];
-        if (Math.abs(x1 - x0) < 4) { brushG.call(brush.move, null); return; }
-        const newDomain: [Date, Date] = [currentXScale.invert(x0), currentXScale.invert(x1)];
-        currentXScale = xScale.copy().domain(newDomain);
-        brushG.call(brush.move, null);
-        redrawPaths(currentXScale);
-      });
-
-    brushG.call(brush);
-    brushG.select('.selection')
-      .style('fill', 'var(--pg-brush-fill)')
-      .style('stroke', 'var(--pg-brush-stroke)')
-      .attr('stroke-width', 1);
+    // Brush-to-zoom + Ctrl+wheel zoom (brush appended to plotG, after the crosshair)
+    const { brushG, getCurrentScale } = setupBrushAndZoom({
+      svg, brushParent: plotG, xScale, width, height, onRedraw: redrawPaths,
+    });
 
     // Tooltip via brush overlay
     if (tooltipEl) {
       const bisect = d3.bisector<MetricBucket, number>((d) => d.timestamp).left;
       const tooltip = d3.select(tooltipEl);
 
-      const vline = plotG.insert('line', '.brush')
-        .style('stroke', 'var(--pg-crosshair)').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
-        .attr('y1', 0).attr('y2', height).style('opacity', 0);
-
-      const showTooltip = (event: MouseEvent, html: string) => {
-        const containerW = tooltipEl.parentElement!.clientWidth;
-        const containerH = tooltipEl.parentElement!.clientHeight;
-        tooltip.html(html).style('opacity', '1');
-        const ttW = tooltipEl.offsetWidth;
-        const ttH = tooltipEl.offsetHeight;
-        const ox = event.offsetX;
-        const oy = event.offsetY;
-        let left = ox + 12;
-        if (left + ttW > containerW) left = ox - ttW - 12;
-        left = Math.max(0, left);
-        let top = oy - 10;
-        if (top - ttH < 0) top = oy + 10 + ttH;
-        top = Math.min(top, containerH);
-        tooltip.style('left', `${left}px`).style('top', `${top}px`);
-      };
-
       brushG.select<SVGRectElement>('.overlay')
         .on('mousemove', (event) => {
           const [mx] = d3.pointer(event);
-          const t = currentXScale.invert(mx).getTime();
+          const scale = getCurrentScale();
+          const t = scale.invert(mx).getTime();
           const idx = Math.min(bisect(data, t, 1), data.length - 1);
           const pt = data[idx];
-          vline.attr('x1', currentXScale(pt.timestamp)).attr('x2', currentXScale(pt.timestamp)).style('opacity', 1);
+          vline.attr('x1', scale(pt.timestamp)).attr('x2', scale(pt.timestamp)).style('opacity', 1);
           const val = yLabel === 'MB/s' ? `${pt.value.toFixed(2)} MB/s` : `${pt.value.toFixed(1)}%`;
           const ts = new Date(pt.timestamp).toLocaleString();
-          showTooltip(event, `<div class="tt-date">${ts}</div><div class="tt-row"><span class="tt-swatch" style="background:${color}"></span><span class="tt-label">${seriesName}:</span> <span class="tt-value">${val}</span></div>`);
+          positionTooltip(tooltip, tooltipEl, event,
+            `<div class="tt-date">${ts}</div><div class="tt-row"><span class="tt-swatch" style="background:${color}"></span><span class="tt-label">${seriesName}:</span> <span class="tt-value">${val}</span></div>`,
+          );
         })
         .on('mouseout', () => {
           vline.style('opacity', 0);
           tooltip.style('opacity', '0');
         });
     }
-
-    // Ctrl+wheel zoom
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 200])
-      .translateExtent([[0, 0], [width, height]])
-      .extent([[0, 0], [width, height]])
-      .filter((event) => event.type === 'wheel' && event.ctrlKey)
-      .on('zoom', (event) => {
-        currentXScale = event.transform.rescaleX(xScale);
-        redrawPaths(currentXScale);
-      });
-
-    svg.call(zoom);
-    svg.on('dblclick.zoom', null);
-    svg.on('dblclick', () => {
-      currentXScale = xScale;
-      redrawPaths(currentXScale);
-      svg.call(zoom.transform, d3.zoomIdentity);
-    });
   }
 
   private buildBuckets(
@@ -295,27 +231,17 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
     dec: number,
     pct: number,
   ): MetricBucket[] {
-    const bucketMs = dec * 60 * 1000;
-    const map = new Map<number, number[]>();
-    for (const item of items) {
-      const raw = metric === 'cpu' ? item.cpu : metric === 'memory' ? item.memory : item.inputOutput;
-      if (raw == null) continue;
-      const key = Math.floor(item.timestamp / bucketMs) * bucketMs;
-      const arr = map.get(key) ?? [];
-      arr.push(raw);
-      map.set(key, arr);
-    }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([timestamp, values]) => {
-        let v: number;
-        if (pct === 0) v = values.reduce((s, x) => s + x, 0) / values.length;
-        else {
-          const sv = [...values].sort((a, z) => a - z);
-          v = sv[Math.max(0, Math.ceil((pct / 100) * sv.length) - 1)];
-        }
-        if (metric === 'io') v = v / 1024 / 1024;
-        return { timestamp, value: v };
-      });
+    const getMetricValue = (item: PulseAgentCheckResultDetail): number | null | undefined =>
+      metric === 'cpu' ? item.cpu : metric === 'memory' ? item.memory : item.inputOutput;
+
+    const filtered = items.filter((i) => getMetricValue(i) != null);
+    const grouped = groupByTimeBucket(filtered, dec, (i) => i.timestamp);
+
+    return Array.from(grouped.entries()).map(([timestamp, bucket]) => {
+      const values = bucket.map((i) => getMetricValue(i) as number);
+      let v = calculatePercentile(values, pct);
+      if (metric === 'io') v = v / 1024 / 1024;
+      return { timestamp, value: v };
+    });
   }
 }
