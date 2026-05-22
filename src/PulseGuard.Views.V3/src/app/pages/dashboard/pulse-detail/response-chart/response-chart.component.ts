@@ -174,7 +174,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat((d) => `${d}`);
 
     applyXAxis(xScale);
-    g.append('g').call(yAxis);
+    g.append('g').attr('class', 'y-axis').call(yAxis);
 
     // Y axis label
     g.append('text')
@@ -279,6 +279,16 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
 
     // Redraw helper — takes a live x scale and updates all chart elements
     const redraw = (xSc: d3.ScaleTime<number, number>) => {
+      // Rescale Y to only the visible data range
+      const [xMin, xMax] = xSc.domain().map((d: Date) => +d);
+      const visiblePoints = points.filter(p => p.x >= xMin && p.x <= xMax);
+      const visibleOverlayYs = overlaySeries.flatMap(s =>
+        s.points.filter(p => p.x >= xMin && p.x <= xMax).map(p => p.y)
+      );
+      const visibleYMax = d3.max([...visiblePoints.map(p => p.y), ...visibleOverlayYs]) ?? yMax;
+      yScale.domain([0, visibleYMax * 1.1]).nice();
+      g.select<SVGGElement>('.y-axis').call(yAxis);
+
       applyXAxis(xSc);
       drawDeployments(xSc);
       plotG.selectAll('path').remove();

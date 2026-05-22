@@ -125,8 +125,8 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
     const xExtent = d3.extent(data, (d) => d.timestamp) as [number, number];
     const xScale = d3.scaleTime().domain([xExtent[0], xExtent[1]]).range([0, width]);
-    const yMax = yLabel === '%' ? 100 : (d3.max(data, (d) => d.value) ?? 0) * 1.1;
-    const yScale = d3.scaleLinear().domain([0, yMax]).range([height, 0]).nice();
+    const initialYMax = (d3.max(data, (d) => d.value) ?? 0) * 1.1;
+    const yScale = d3.scaleLinear().domain([0, initialYMax]).range([height, 0]).nice();
 
     const xAxisG = g.append('g').attr('transform', `translate(0,${height})`);
 
@@ -145,12 +145,12 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
       }
     };
 
-    applyXAxis(xScale);
-    g.append('g').call(
-      d3.axisLeft(yScale).ticks(5).tickFormat((v) =>
-        yLabel === 'MB/s' ? `${(v as number).toFixed(1)}` : `${v as number}%`,
-      ),
+    const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat((v) =>
+      yLabel === 'MB/s' ? `${(v as number).toFixed(1)}` : `${v as number}%`,
     );
+
+    applyXAxis(xScale);
+    g.append('g').attr('class', 'y-axis').call(yAxis);
 
     g.append('text')
       .attr('transform', 'rotate(-90)')
@@ -183,6 +183,13 @@ export class MetricsChartComponent implements AfterViewInit, OnDestroy {
 
     // Redraw helper
     const redrawPaths = (xSc: d3.ScaleTime<number, number>) => {
+      const [xMin, xMax] = xSc.domain().map((d: Date) => +d);
+      const visibleData = data.filter((d) => d.timestamp >= xMin && d.timestamp <= xMax);
+      const visibleMax = d3.max(visibleData, (d) => d.value) ?? 0;
+      const newYMax = visibleMax * 1.1 || initialYMax;
+      yScale.domain([0, newYMax]).nice();
+      g.select<SVGGElement>('.y-axis').call(yAxis);
+
       applyXAxis(xSc);
       plotG.selectAll('path').remove();
       const rArea = d3.area<MetricBucket>()

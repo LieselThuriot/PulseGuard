@@ -1,3 +1,12 @@
 [ngbDropdownToggle]::after {
   display: none;
 }
+
+[ngbDropdown] {
+  display: flex;
+}
+
+[ngbDropdownToggle] {
+  border-color: var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
+}
