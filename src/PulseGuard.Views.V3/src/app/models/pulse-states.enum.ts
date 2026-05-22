@@ -29,3 +29,11 @@ export const STATE_TEXT_CLASSES: Record<PulseStates, string> = {
   [PulseStates.TimedOut]: 'text-pink',
   [PulseStates.Unknown]: 'text-secondary',
 };
+
+export const STATE_BORDER_VARS: Record<PulseStates, string> = {
+  [PulseStates.Healthy]: 'var(--bs-success)',
+  [PulseStates.Degraded]: 'var(--bs-warning)',
+  [PulseStates.Unhealthy]: 'var(--bs-danger)',
+  [PulseStates.TimedOut]: 'var(--bs-pink)',
+  [PulseStates.Unknown]: 'var(--bs-secondary)',
+};

@@ -14,6 +14,10 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'overview',
+    loadComponent: () => import('./pages/overview/overview.component').then((m) => m.OverviewComponent),
+  },
+  {
     path: 'admin',
     canActivate: [adminGuard],
     children: [

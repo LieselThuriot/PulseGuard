@@ -1,0 +1,70 @@
+.overview-card {
+  border-left: 5px solid var(--bs-secondary);
+  background: var(--card-bg, transparent);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+  cursor: pointer;
+}
+
+.overview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.overview-card:active {
+  transform: translateY(0);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Animated pulse dot for healthy state */
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--bs-success);
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+/* Animated pulse triangle for non-healthy states */
+.pulse-triangle {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid var(--triangle-color, var(--bs-danger));
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+@keyframes pulse-indicator {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.4);
+  }
+}
+
+/* Uptime section */
+.uptime-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Incident / degraded pills */
+.incident-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+/* Progress bar */
+.overview-card .progress {
+  background-color: color-mix(in srgb, var(--bs-body-color) 10%, transparent);
+  border-radius: 2px;
+}

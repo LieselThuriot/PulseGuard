@@ -92,9 +92,7 @@ export class AdminComponent implements OnInit {
       if (!q) return true;
       return u.id.toLowerCase().includes(q) || (u.nickname ?? '').toLowerCase().includes(q);
     });
-    return [...list]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((u) => ({ ...u, daysAgo: this.#computeDaysAgo(u.lastVisited) }));
+    return [...list].sort((a, b) => a.id.localeCompare(b.id));
   });
 
   readonly filteredCredentials = computed(() => {
@@ -132,15 +130,6 @@ export class AdminComponent implements OnInit {
 
   onSearchChange(query: string): void {
     this.searchQuery.set(query);
-  }
-
-  #computeDaysAgo(dateStr: string | undefined): string {
-    if (!dateStr) return '';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86_400_000);
-    if (days === 0) return ' ( Today )';
-    if (days === 1) return ' ( Yesterday )';
-    return ` ( ${days} days ago )`;
   }
 
   toggleDisabledFilter(): void {
