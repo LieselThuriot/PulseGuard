@@ -96,6 +96,17 @@
   box-shadow: 0 1px 8px rgba(180, 77, 255, 0.15), 0 1px 3px rgba(255, 41, 117, 0.1);
 }
 
+/* Brand text */
+.theme-synthwave .navbar-brand {
+  color: #e0d6ff !important;
+  text-shadow: 0 0 4px rgba(255, 41, 117, 0.6), 0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+/* Tint the logo icon pink/purple to match */
+.theme-synthwave .navbar-brand img {
+  filter: sepia(1) saturate(8) hue-rotate(270deg) brightness(1.1);
+}
+
 /* ============================================
    Atmosphere Overlay
    ============================================ */
