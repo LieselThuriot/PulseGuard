@@ -90,6 +90,36 @@
   text-shadow: 0 0 3px rgba(0, 255, 65, 0.5);
 }
 
+/* Navbar styling */
+.theme-matrix .navbar {
+  background: #0a0a0a !important;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+  box-shadow: 0 1px 8px rgba(0, 255, 65, 0.1), 0 1px 3px rgba(0, 255, 65, 0.05);
+}
+
+/* Brand text */
+.theme-matrix .navbar-brand {
+  color: #00ff41 !important;
+  text-shadow: 0 0 4px rgba(0, 255, 65, 0.7), 0 0 12px rgba(0, 255, 65, 0.3);
+}
+
+/* Tint the logo icon green to match */
+.theme-matrix .navbar-brand img {
+  filter: sepia(1) saturate(5) hue-rotate(90deg) brightness(1.2);
+}
+
+/* Outline buttons: override Bootstrap's internal btn vars */
+.theme-matrix .btn-outline-secondary {
+  --bs-btn-color: #00ff41;
+  --bs-btn-border-color: #003b00;
+  --bs-btn-hover-color: #0a0a0a;
+  --bs-btn-hover-bg: #00ff41;
+  --bs-btn-hover-border-color: #00ff41;
+  --bs-btn-active-color: #0a0a0a;
+  --bs-btn-active-bg: #00cc33;
+  --bs-btn-active-border-color: #00cc33;
+}
+
 /* ============================================
    CRT Overlay
    ============================================ */
