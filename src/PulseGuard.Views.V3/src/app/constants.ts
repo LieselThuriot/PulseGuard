@@ -27,3 +27,6 @@ export const MAX_EVENT_BUFFER = 1000;
 
 /** How often the client polls version.json to detect a new deployment */
 export const VERSION_POLL_INTERVAL_MS = 5 * 60 * 1000;
+
+/** Overview page auto-refresh interval in seconds */
+export const OVERVIEW_REFRESH_INTERVAL_S = 60;

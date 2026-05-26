@@ -1,9 +1,11 @@
 import { Component, ChangeDetectionStrategy, OnInit, DestroyRef, inject, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
+import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
+import { OVERVIEW_REFRESH_INTERVAL_S } from '../../constants';
 import { PulseService } from '../../services/pulse.service';
 import { PulseOverviewGroupItem } from '../../models/pulse-overview.model';
-import { PulseStates, STATE_BORDER_VARS } from '../../models/pulse-states.enum';
+import { PulseStates, STATE_BORDER_VARS, STATE_LABELS } from '../../models/pulse-states.enum';
 import { StatusBadgeComponent } from '../../components/status-badge/status-badge.component';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
@@ -12,6 +14,7 @@ interface OverviewCard {
   id: string;
   name: string;
   state: PulseStates;
+  stateLabel: string;
   message: string | undefined;
   to: string | undefined;
   isHealthy: boolean;
@@ -30,7 +33,7 @@ interface OverviewSection {
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, StatusBadgeComponent, LoadingSpinnerComponent, TimeAgoPipe],
+  imports: [RouterLink, DecimalPipe, NgbTooltip, StatusBadgeComponent, LoadingSpinnerComponent, TimeAgoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './overview.component.html',
   styleUrl: './overview.component.css',
@@ -40,7 +43,8 @@ export class OverviewComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = this.pulseService.loading;
-  readonly secondsUntilRefresh = signal(60);
+  readonly secondsUntilRefresh = signal(OVERVIEW_REFRESH_INTERVAL_S);
+  readonly compact = signal(false);
 
   readonly sections = computed<OverviewSection[]>(() =>
     this.pulseService.overview().map((group) => ({
@@ -58,8 +62,8 @@ export class OverviewComponent implements OnInit {
 
     const refresh = setInterval(() => {
       this.pulseService.loadOverview();
-      this.secondsUntilRefresh.set(60);
-    }, 60_000);
+      this.secondsUntilRefresh.set(OVERVIEW_REFRESH_INTERVAL_S);
+    }, OVERVIEW_REFRESH_INTERVAL_S * 1_000);
 
     this.destroyRef.onDestroy(() => {
       clearInterval(countdown);
@@ -76,6 +80,7 @@ export class OverviewComponent implements OnInit {
       id: item.id,
       name: item.name,
       state,
+      stateLabel: STATE_LABELS[state],
       message: latest?.message,
       to: latest?.to,
       isHealthy,

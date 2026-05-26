@@ -2,19 +2,24 @@
   border-left: 5px solid var(--bs-secondary);
   background: var(--card-bg, transparent);
   transition:
+    background 0.3s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
-  cursor: pointer;
 }
 
 .overview-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  box-shadow: var(--bs-box-shadow-lg);
 }
 
 .overview-card:active {
   transform: translateY(0);
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.overview-card:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
 }
 
 /* Animated pulse dot for healthy state */
@@ -67,6 +72,17 @@
 .overview-card .progress {
   background-color: color-mix(in srgb, var(--bs-body-color) 10%, transparent);
   border-radius: 2px;
+}
+
+/* Compact mode */
+.overview-card.compact .card-body {
+  padding: 0.5rem 0.75rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.overview-card.compact .card-title {
+  font-size: 0.8rem;
 }
 
 /* Live indicator */

@@ -37,3 +37,11 @@ export const STATE_BORDER_VARS: Record<PulseStates, string> = {
   [PulseStates.TimedOut]: 'var(--bs-pink)',
   [PulseStates.Unknown]: 'var(--bs-secondary)',
 };
+
+export const STATE_LABELS: Record<PulseStates, string> = {
+  [PulseStates.Healthy]: 'Healthy',
+  [PulseStates.Degraded]: 'Degraded',
+  [PulseStates.Unhealthy]: 'Unhealthy',
+  [PulseStates.TimedOut]: 'Timed Out',
+  [PulseStates.Unknown]: 'Unknown',
+};
