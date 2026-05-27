@@ -22,12 +22,15 @@ public sealed class WebAppDeploymentAgent(ArmClient client, IReadOnlyList<PulseA
     private readonly IReadOnlyList<PulseAgentConfiguration> _options = options;
     private readonly ILogger<AgentCheck> _logger = logger;
 
-    public async Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
+    public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
+    {
+        DateTimeOffset window = AgentConstants.GetDeploymentWindow();
+        return IterateDeployments(window, token);
+    }
+
+    private async Task<IReadOnlyList<AgentReport>> IterateDeployments(DateTimeOffset window, CancellationToken token)
     {
         List<AgentReport> reports = [];
-
-        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-2);
-
         foreach (PulseAgentConfiguration option in _options)
         {
             try

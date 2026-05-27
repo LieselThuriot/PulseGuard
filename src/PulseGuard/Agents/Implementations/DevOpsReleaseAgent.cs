@@ -16,7 +16,7 @@ public sealed class DevOpsReleaseAgent(HttpClient client, IReadOnlyList<PulseAge
 
     public Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
     {
-        DateTimeOffset window = DateTimeOffset.UtcNow.AddHours(-1);
+        DateTimeOffset window = AgentConstants.GetDeploymentWindow();
         return IterateReleases(window, token);
     }
 

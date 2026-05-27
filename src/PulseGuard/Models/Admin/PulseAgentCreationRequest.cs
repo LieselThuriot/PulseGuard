@@ -68,12 +68,15 @@ public sealed class PulseAgentCreationRequest
 
     private bool HasInvalidHeaders([NotNullWhen(true)] out string? message)
     {
-        if (Headers is null || !Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
+        if (Credential is null)
         {
-            message = "Authorization header is required for this type of agent.";
-            return true;
+            if (Headers is null || !Headers.TryGetValue("Authorization", out string? authHeader) || string.IsNullOrEmpty(authHeader))
+            {
+                message = "Authorization header or linked credential is required for this type of agent.";
+                return true;
+            }
         }
-
+        
         message = null;
         return false;
     }
