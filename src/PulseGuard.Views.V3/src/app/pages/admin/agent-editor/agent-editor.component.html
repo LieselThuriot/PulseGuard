@@ -52,7 +52,7 @@
             }
             @if (showSubscriptionId()) {
               <div class="col-md-6">
-                <label for="subscriptionId" class="form-label">Subscription ID</label>
+                <label for="subscriptionId" class="form-label">{{ subscriptionIdLabel() }}</label>
                 <input type="text" class="form-control" id="subscriptionId" [ngModel]="cfg.subscriptionId" (ngModelChange)="updateField('subscriptionId', $event)" name="subscriptionId" required />
               </div>
             }

@@ -60,6 +60,12 @@ export class AgentEditorComponent implements OnInit {
     this.config().type === AgentCheckType.DevOpsDeployment ||
     this.config().type === AgentCheckType.DevOpsRelease
   );
+  readonly subscriptionIdLabel = computed(() => {
+    const type = this.config().type;
+    if (type === AgentCheckType.DevOpsRelease) return 'Release ID';
+    if (type === AgentCheckType.DevOpsDeployment) return 'Environment ID';
+    return 'Subscription ID';
+  });
   readonly showBuildDefinitionId = computed(() =>
     this.config().type === AgentCheckType.DevOpsDeployment
   );
