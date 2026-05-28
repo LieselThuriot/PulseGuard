@@ -58,8 +58,8 @@
   --bs-input-color: var(--_sw-text);
   --bs-input-focus-border-color: var(--_sw-pink);
 
-  /* Font (loaded dynamically by ThemeService) */
-  --bs-body-font-family: 'Oxanium', sans-serif;
+  /* Font */
+  --bs-body-font-family: 'Oxanium', -apple-system, Roboto, 'Segoe UI', sans-serif;
 
   /* Chart custom properties */
   --pg-crosshair: var(--_sw-text-dim);

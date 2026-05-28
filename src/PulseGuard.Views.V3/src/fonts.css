@@ -1,0 +1,30 @@
+/* ============================================
+   Self-hosted fonts
+   ============================================ */
+
+/* Nunito - Default body font (variable, weights 400–700) */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/nunito/nunito-latin.woff2') format('woff2');
+}
+
+/* Share Tech Mono - Matrix theme font (single weight) */
+@font-face {
+  font-family: 'Share Tech Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/share-tech-mono/share-tech-mono-latin.woff2') format('woff2');
+}
+
+/* Oxanium - Synthwave theme font (variable, weights 400–700) */
+@font-face {
+  font-family: 'Oxanium';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/oxanium/oxanium-latin.woff2') format('woff2');
+}

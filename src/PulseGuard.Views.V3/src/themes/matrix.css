@@ -60,7 +60,7 @@
   --bs-input-focus-border-color: var(--_mx-green);
 
   /* Monospace font */
-  --bs-body-font-family: 'Courier New', Consolas, 'Liberation Mono', monospace;
+  --bs-body-font-family: 'Share Tech Mono', 'Courier New', Consolas, monospace;
 
   /* Chart custom properties */
   --pg-crosshair: var(--_mx-green);

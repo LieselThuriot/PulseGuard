@@ -6,8 +6,6 @@ export type ThemeMode = 'light' | 'dark' | 'auto' | 'matrix' | 'synthwave';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private static readonly THEME_CLASSES = ['theme-matrix', 'theme-synthwave'] as const;
-  private static readonly OXANIUM_URL = 'https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700&display=swap';
-  private static readonly OXANIUM_ID = 'theme-font-oxanium';
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -32,9 +30,6 @@ export class ThemeService {
         if (ThemeService.THEME_CLASSES.includes(themeClass as any)) {
           document.documentElement.classList.add(themeClass);
         }
-
-        // Load/unload theme-specific fonts
-        this.toggleFont(mode === 'synthwave');
 
         if (mode === 'auto') {
           localStorage.removeItem('bs-theme');
@@ -78,19 +73,6 @@ export class ThemeService {
       case 'matrix': return 'bi-terminal-fill';
       case 'synthwave': return 'bi-music-note-beamed';
       default: return 'bi-circle-half';
-    }
-  }
-
-  private toggleFont(load: boolean): void {
-    const existing = document.getElementById(ThemeService.OXANIUM_ID);
-    if (load && !existing) {
-      const link = document.createElement('link');
-      link.id = ThemeService.OXANIUM_ID;
-      link.rel = 'stylesheet';
-      link.href = ThemeService.OXANIUM_URL;
-      document.head.appendChild(link);
-    } else if (!load && existing) {
-      existing.remove();
     }
   }
 }

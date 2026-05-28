@@ -2,6 +2,9 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
+/* Self-hosted fonts */
+@import './fonts.css';
+
 /* Themes */
 @import './themes/matrix.css';
 @import './themes/synthwave.css';
@@ -104,6 +107,7 @@ body {
    ============================================ */
 
 :root {
+  --bs-body-font-family: 'Nunito', -apple-system, Roboto, 'Segoe UI', sans-serif;
   --pg-crosshair: #999;
   --pg-legend-separator: #ccc;
   --pg-legend-swatch: #6c757d;
