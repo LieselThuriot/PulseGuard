@@ -1,4 +1,5 @@
-﻿using PulseGuard.Infrastructure;
+﻿using Microsoft.Net.Http.Headers;
+using PulseGuard.Infrastructure;
 using Scalar.AspNetCore;
 using System.Net.Mime;
 using System.Text;
@@ -32,7 +33,6 @@ public static class Routes
 
         app.Use((context, next) =>
         {
-            context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
             context.Response.Headers.ContentSecurityPolicy =
                 "default-src 'self'; " +
                 "script-src 'self' 'unsafe-inline'; " +
@@ -44,6 +44,7 @@ public static class Routes
                 "frame-ancestors 'none'; " +
                 "base-uri 'self'; " +
                 "form-action 'self'";
+
             return next();
         });
 
@@ -53,22 +54,43 @@ public static class Routes
             routes.MapStaticAssets();
         }
 
+        var apiRoutes = routes.MapGroup("")
+                              .AddEndpointFilter(async (context, next) =>
+                              {
+                                  object? result = await next(context);
+                                  HttpResponse response = context.HttpContext.Response;
+
+                                  if (!response.HasStarted &&
+                                      !response.Headers.ContainsKey(HeaderNames.CacheControl))
+                                  {
+                                      response.Headers[HeaderNames.CacheControl] = "no-cache, no-store, must-revalidate";
+                                      response.Headers[HeaderNames.Pragma] = "no-cache";
+                                      response.Headers[HeaderNames.Expires] = "0";
+                                  }
+
+                                  return result;
+                              });
+
         //if (app.Environment.IsDevelopment())
         {
-            routes.MapOpenApi();
-            routes.MapScalarApiReference();
+            apiRoutes.MapOpenApi();
+            apiRoutes.MapScalarApiReference();
         }
 
-        routes.MapPulses();
-        routes.MapProtoPulses();
+        apiRoutes.MapPulses();
+        apiRoutes.MapProtoPulses();
+        apiRoutes.MapEvents();
 
-        routes.MapEvents();
+        apiRoutes.MapBadges();
+        apiRoutes.MapHealth();
 
-        routes.MapBadges();
-        routes.MapHealth();
+        apiRoutes.MapAdministration(authorized);
 
-        routes.MapAdministration(authorized);
+        app.MapViews(routes);
+    }
 
+    private static void MapViews(this WebApplication app, IEndpointRouteBuilder routes)
+    {
         if (app.Environment.IsDevelopment())
         {
             var forwarder = app.Services.GetRequiredService<IHttpForwarder>();
