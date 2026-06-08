@@ -4,23 +4,25 @@ import {
 } from '@angular/core';
 import { PulseHeatmaps, PulseHeatmap } from '../../../../models/pulse-heatmap.model';
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
+import { PulseStates, STATE_LABELS } from '../../../../models/pulse-states.enum';
+import { StatusBadgeComponent } from '../../../../components/status-badge/status-badge.component';
 import { effect } from '@angular/core';
 
 interface TooltipRow {
-  label: string;
+  label: PulseStates;
   count: number;
   pct: string;
 }
 
 interface TooltipData {
   date: string;
-  state: string;
+  state: PulseStates;
   rows: TooltipRow[];
   deployments: number;
 }
 
 interface DayStats {
-  state: string;
+  state: PulseStates;
   intensity: number;
   hasDeployment: boolean;
   tooltipData: TooltipData;
@@ -36,7 +38,7 @@ interface CellHit {
 @Component({
   selector: 'app-heatmap',
   standalone: true,
-  imports: [],
+  imports: [StatusBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './heatmap.component.html',
   styleUrl: './heatmap.component.css',
@@ -45,13 +47,15 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
   readonly data = input.required<PulseHeatmaps>();
   readonly deployments = input<PulseDeployment[]>([]);
 
+  protected readonly stateLabels = STATE_LABELS;
+
   @ViewChild('heatmapCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('tooltipEl') tooltipEl?: ElementRef<HTMLDivElement>;
 
   readonly tooltipVisible = signal(false);
   readonly tooltipX = signal(0);
   readonly tooltipY = signal(0);
-  readonly tooltipData = signal<TooltipData>({ date: '', state: '', rows: [], deployments: 0 });
+  readonly tooltipData = signal<TooltipData>({ date: '', state: PulseStates.Unknown, rows: [], deployments: 0 });
   readonly dayClicked = output<string>();
 
   private readonly CELL_SIZE = 12;
@@ -298,8 +302,8 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     const hasDeployment = deployCount > 0;
 
     if (!entry) {
-      const tooltipData: TooltipData = { date: dayKey, state: 'Unknown', rows: [], deployments: deployCount };
-      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipData };
+      const tooltipData: TooltipData = { date: dayKey, state: PulseStates.Unknown, rows: [], deployments: deployCount };
+      return { state: PulseStates.Unknown, intensity: 1, hasDeployment, tooltipData };
     }
 
     const counts = {
@@ -312,33 +316,33 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     const total = counts.Healthy + counts.Degraded + counts.Unhealthy + counts.TimedOut + counts.Unknown;
 
     if (total === 0) {
-      const tooltipData: TooltipData = { date: dayKey, state: 'Unknown', rows: [], deployments: deployCount };
-      return { state: 'Unknown', intensity: 1, hasDeployment, tooltipData };
+      const tooltipData: TooltipData = { date: dayKey, state: PulseStates.Unknown, rows: [], deployments: deployCount };
+      return { state: PulseStates.Unknown, intensity: 1, hasDeployment, tooltipData };
     }
 
     const timedOutPct = counts.TimedOut / total;
     const unhealthyPct = counts.Unhealthy / total;
     const healthyPct = counts.Healthy / total;
 
-    let state = 'Degraded';
+    let state: PulseStates = PulseStates.Degraded;
     let intensity = 0.5;
 
     if (unhealthyPct >= timedOutPct && unhealthyPct >= 0.02) {
-      state = 'Unhealthy';
+      state = PulseStates.Unhealthy;
       intensity = 0.33 + 0.67 * ((unhealthyPct - 0.02) / 0.13);
     } else if (timedOutPct >= 0.02) {
-      state = 'TimedOut';
+      state = PulseStates.TimedOut;
       intensity = 0.33 + 0.67 * ((timedOutPct - 0.02) / 0.13);
     } else if (healthyPct >= 0.98) {
-      state = 'Healthy';
+      state = PulseStates.Healthy;
       intensity = 0.33 + 0.67 * ((healthyPct - 0.98) / 0.02);
     } else {
-      intensity = 0.33 + 0.67 * (counts[state as keyof typeof counts] / total);
+      intensity = 0.33 + 0.67 * (counts[state] / total);
     }
     intensity = Math.max(0.33, Math.min(1, intensity));
 
     const rows: TooltipRow[] = [];
-    for (const s of ['Healthy', 'Degraded', 'Unhealthy', 'TimedOut', 'Unknown'] as const) {
+    for (const s of Object.values(PulseStates)) {
       if (counts[s]) rows.push({ label: s, count: counts[s], pct: `${((counts[s] / total) * 100).toFixed(1)}%` });
     }
 
@@ -346,13 +350,13 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
     return { state, intensity, hasDeployment, tooltipData };
   }
 
-  private getStateColorVars(state: string): [string, string] {
+  private getStateColorVars(state: PulseStates): [string, string] {
     switch (state) {
-      case 'Healthy':   return ['--bs-success-rgb', '25,135,84'];
-      case 'Degraded':  return ['--bs-warning-rgb', '255,193,7'];
-      case 'Unhealthy': return ['--bs-danger-rgb',  '220,53,69'];
-      case 'TimedOut':  return ['--bs-pink-rgb',    '214,51,132'];
-      default:          return ['--bs-secondary-rgb', '167,172,177'];
+      case PulseStates.Healthy:   return ['--bs-success-rgb', '25,135,84'];
+      case PulseStates.Degraded:  return ['--bs-warning-rgb', '255,193,7'];
+      case PulseStates.Unhealthy: return ['--bs-danger-rgb',  '220,53,69'];
+      case PulseStates.TimedOut:  return ['--bs-pink-rgb',    '214,51,132'];
+      default:                    return ['--bs-secondary-rgb', '167,172,177'];
     }
   }
 }

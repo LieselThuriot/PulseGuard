@@ -5,7 +5,7 @@ import { HealthBarComponent } from '../../../../components/health-bar/health-bar
 import { UptimeBadgeComponent } from '../../../../components/uptime-badge/uptime-badge.component';
 import { PulseOverviewGroupItem } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_TEXT_CLASSES } from '../../../../models/pulse-states.enum';
-import { TWELVE_HOURS_MS } from '../../../../constants';
+import { computeUptime } from '../../../../utils/uptime.util';
 
 @Component({
   selector: 'app-pulse-tree-item',
@@ -31,22 +31,7 @@ export class PulseTreeItemComponent {
 
   readonly stateClass = computed(() => STATE_TEXT_CLASSES[this.state()]);
 
-  readonly uptime = computed(() => {
-    const pulses = this.item().items;
-    if (!pulses?.length) return 0;
-    const twelveHoursAgo = Date.now() - TWELVE_HOURS_MS;
-    let totalDuration = 0;
-    let healthyDuration = 0;
-    for (const pulse of pulses) {
-      const from = Math.max(new Date(pulse.from!).getTime(), twelveHoursAgo);
-      const to = new Date(pulse.to!).getTime();
-      const duration = to - from;
-      if (duration <= 0) continue;
-      totalDuration += duration;
-      if (pulse.state === PulseStates.Healthy) healthyDuration += duration;
-    }
-    return totalDuration > 0 ? (healthyDuration / totalDuration) * 100 : 0;
-  });
+  readonly uptime = computed(() => computeUptime(this.item().items));
 
   select(): void {
     this.itemSelected.emit(this.item());

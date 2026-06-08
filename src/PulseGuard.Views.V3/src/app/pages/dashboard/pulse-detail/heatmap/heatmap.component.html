@@ -15,14 +15,14 @@
              [style.top.px]="tooltipY()">
           <div class="heatmap-tooltip-header">
             <span class="heatmap-tooltip-date">{{ tooltip.date }}</span>
-            <span class="heatmap-tooltip-badge" [attr.data-state]="tooltip.state">{{ tooltip.state }}</span>
+            <app-status-badge [state]="tooltip.state" variant="subtle" />
           </div>
           @if (tooltip.rows.length) {
             <table class="heatmap-tooltip-table">
               @for (row of tooltip.rows; track row.label) {
                 <tr>
                   <td class="heatmap-tooltip-dot"><span class="heatmap-state-dot" [attr.data-state]="row.label"></span></td>
-                  <td class="heatmap-tooltip-label">{{ row.label }}</td>
+                  <td class="heatmap-tooltip-label">{{ stateLabels[row.label] }}</td>
                   <td class="heatmap-tooltip-count">{{ row.count }}</td>
                   <td class="heatmap-tooltip-pct">{{ row.pct }}</td>
                 </tr>

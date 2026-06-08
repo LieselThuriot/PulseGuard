@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
-import { PulseStates, STATE_CSS_CLASSES } from '../../models/pulse-states.enum';
+import { PulseStates, STATE_CSS_CLASSES, STATE_LABELS } from '../../models/pulse-states.enum';
 
 @Component({
   selector: 'app-status-badge',
@@ -9,6 +9,11 @@ import { PulseStates, STATE_CSS_CLASSES } from '../../models/pulse-states.enum';
   styleUrl: './status-badge.component.css',
 })
 export class StatusBadgeComponent {
-  readonly state = input.required<PulseStates>();
-  readonly cssClass = computed(() => STATE_CSS_CLASSES[this.state()]);
+  readonly state   = input.required<PulseStates>();
+  readonly variant = input<'solid' | 'subtle'>('solid');
+
+  readonly label    = computed(() => STATE_LABELS[this.state()]);
+  readonly cssClass = computed(() =>
+    this.variant() === 'solid' ? STATE_CSS_CLASSES[this.state()] : 'subtle-badge',
+  );
 }

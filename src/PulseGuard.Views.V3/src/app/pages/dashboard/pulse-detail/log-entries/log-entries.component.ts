@@ -59,8 +59,7 @@ export class LogEntriesComponent implements OnInit {
     this.notifications.success('Copied to clipboard.');
   }
 
-  truncate(value: string): string {
-    const limit = 500;
+  truncate(value: string, limit = 500): string {
     return value.length > limit ? value.slice(0, limit) + '…' : value;
   }
 

@@ -1,0 +1,13 @@
+.subtle-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1em 0.45em;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.subtle-badge[data-state="Healthy"]   { background: var(--bs-success-bg-subtle);          color: var(--bs-success-text-emphasis); }
+.subtle-badge[data-state="Degraded"]  { background: var(--bs-warning-bg-subtle);          color: var(--bs-warning-text-emphasis); }
+.subtle-badge[data-state="Unhealthy"] { background: var(--bs-danger-bg-subtle);           color: var(--bs-danger-text-emphasis); }
+.subtle-badge[data-state="TimedOut"]  { background: var(--bs-pink-bg-subtle, #f8d7e3);    color: var(--bs-pink-text-emphasis, #6f1230); }
+.subtle-badge[data-state="Unknown"]   { background: var(--bs-secondary-bg-subtle);        color: var(--bs-secondary-text-emphasis); }

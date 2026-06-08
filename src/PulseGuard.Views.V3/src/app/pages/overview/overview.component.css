@@ -60,6 +60,7 @@
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
+  min-width: 3rem;
 }
 
 /* Incident / degraded pills */
@@ -72,6 +73,36 @@
 .overview-card .progress {
   background-color: color-mix(in srgb, var(--bs-body-color) 10%, transparent);
   border-radius: 2px;
+}
+
+/* History timeline bar */
+.timeline-bar {
+  display: flex;
+  height: 4px;
+  gap: 1px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.timeline-segment {
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Cursor-following tooltip for timeline segments */
+.seg-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 1055;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 140px;
 }
 
 /* Compact mode */

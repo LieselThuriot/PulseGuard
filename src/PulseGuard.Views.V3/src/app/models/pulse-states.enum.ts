@@ -1,9 +1,9 @@
 export enum PulseStates {
-  Unknown = 'Unknown',
   Healthy = 'Healthy',
   Degraded = 'Degraded',
   Unhealthy = 'Unhealthy',
   TimedOut = 'TimedOut',
+  Unknown = 'Unknown',
 }
 
 export const STATE_COLORS: Record<PulseStates, string> = {
