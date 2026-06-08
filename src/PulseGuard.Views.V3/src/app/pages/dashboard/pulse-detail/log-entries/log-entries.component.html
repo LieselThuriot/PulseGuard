@@ -20,11 +20,17 @@
         </thead>
         <tbody>
           @for (entry of entries(); track $index) {
+            @let detail = entry.error || entry.message || null;
             <tr>
               <td>{{ entry.from ? (entry.from | date:'short') : '...' }}</td>
               <td>{{ entry.to ? (entry.to | date:'short') : '...' }}</td>
               <td>{{ formatDuration(entry.from, entry.to) }}</td>
-              <td><span class="badge" [class]="getBadgeClass(entry.state)">{{ entry.state }}</span></td>
+              <td>
+                <span class="badge" [class]="getBadgeClass(entry.state)"
+                      [ngbTooltip]="detail ? truncate(detail) : null"
+                      [style.cursor]="detail ? 'pointer' : null"
+                      (click)="detail && copy(detail)">{{ entry.state }}</span>
+              </td>
               <td class="text-truncate" style="max-width: 200px">{{ entry.message ?? '' }}</td>
             </tr>
           }

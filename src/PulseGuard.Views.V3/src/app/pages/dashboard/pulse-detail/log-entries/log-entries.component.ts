@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
+import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
+import { NotificationService } from '../../../../services/notification.service';
 import { PulseDetailService } from '../../../../services/pulse-detail.service';
 import { PulseDetailItem } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_CSS_CLASSES } from '../../../../models/pulse-states.enum';
@@ -9,7 +10,7 @@ import { LoadingSpinnerComponent } from '../../../../components/loading-spinner/
 @Component({
   selector: 'app-log-entries',
   standalone: true,
-  imports: [LoadingSpinnerComponent, DatePipe],
+  imports: [LoadingSpinnerComponent, DatePipe, NgbTooltip],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './log-entries.component.html',
   styleUrl: './log-entries.component.css',
@@ -23,7 +24,10 @@ export class LogEntriesComponent implements OnInit {
   readonly continuationToken = signal<string | undefined>(undefined);
   readonly hasMore = signal(false);
 
-  constructor(private readonly detailService: PulseDetailService) {}
+  constructor(
+    private readonly detailService: PulseDetailService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   ngOnInit(): void {
     this.loadEntries();
@@ -48,6 +52,16 @@ export class LogEntriesComponent implements OnInit {
 
   onClose(): void {
     this.close.emit();
+  }
+
+  copy(value: string): void {
+    navigator.clipboard.writeText(value);
+    this.notifications.success('Copied to clipboard.');
+  }
+
+  truncate(value: string): string {
+    const limit = 500;
+    return value.length > limit ? value.slice(0, limit) + '…' : value;
   }
 
   private loadEntries(token?: string): void {
