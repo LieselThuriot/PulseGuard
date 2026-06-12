@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { OVERVIEW_REFRESH_INTERVAL_S, TWELVE_HOURS_MS } from '../../constants';
+import { computeViewportTooltipPosition } from '../../utils/tooltip.util';
 import { PulseService } from '../../services/pulse.service';
 import { PulseOverviewGroupItem } from '../../models/pulse-overview.model';
 import { PulseStates, STATE_BORDER_VARS, STATE_LABELS } from '../../models/pulse-states.enum';
@@ -86,19 +87,7 @@ export class OverviewComponent implements OnInit {
   }
 
   onSegmentHover(event: MouseEvent, segment: TimelineSegment): void {
-    const margin = 8;
-    const el = this.segTooltipEl?.nativeElement;
-    const w = el?.offsetWidth ?? 160;
-    const h = el?.offsetHeight ?? 90;
-
-    let x = event.clientX + 14;
-    let y = event.clientY - 10;
-
-    if (x + w + margin > window.innerWidth)  { x = event.clientX - w - 14; }
-    if (y + h + margin > window.innerHeight) { y = event.clientY - h - 10; }
-    x = Math.max(margin, x);
-    y = Math.max(margin, y);
-
+    const { x, y } = computeViewportTooltipPosition(event, this.segTooltipEl?.nativeElement, 160, 90);
     this.activeSegment.set({ segment, x, y });
   }
 

@@ -17,4 +17,11 @@ export class UserListComponent {
 
   readonly renameItem = output<UserEntry>();
   readonly deleteItem = output<string>();
+
+  getActivityClass(lastVisited: string): string {
+    const days = Math.floor((Date.now() - new Date(lastVisited).getTime()) / 86_400_000);
+    if (days < 7) return 'badge text-bg-success';
+    if (days < 30) return 'badge text-bg-warning';
+    return 'badge text-bg-danger';
+  }
 }

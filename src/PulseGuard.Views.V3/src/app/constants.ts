@@ -30,3 +30,12 @@ export const VERSION_POLL_INTERVAL_MS = 5 * 60 * 1000;
 
 /** Overview page auto-refresh interval in seconds */
 export const OVERVIEW_REFRESH_INTERVAL_S = 60;
+
+/** CSS variable colour tokens for overlay series (up to 5) */
+export const OVERLAY_COLORS = [
+  'var(--pg-overlay-1)',
+  'var(--pg-overlay-2)',
+  'var(--pg-overlay-3)',
+  'var(--pg-overlay-4)',
+  'var(--pg-overlay-5)',
+];

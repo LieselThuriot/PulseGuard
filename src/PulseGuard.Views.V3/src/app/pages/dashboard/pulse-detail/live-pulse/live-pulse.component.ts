@@ -5,9 +5,8 @@ import {
 import * as d3 from 'd3';
 import { EventService } from '../../../../services/event.service';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
-import { LIVE_PULSE_MAX_POINTS } from '../../../../constants';
-
-const OVERLAY_COLORS = ['var(--pg-overlay-1)', 'var(--pg-overlay-2)', 'var(--pg-overlay-3)', 'var(--pg-overlay-4)', 'var(--pg-overlay-5)'];
+import { LIVE_PULSE_MAX_POINTS, OVERLAY_COLORS } from '../../../../constants';
+import { appendColoredPaths, catmullRomBeziers, createCrosshair, positionTooltip } from '../chart-rendering';
 
 interface LivePoint {
   timestamp: number;
@@ -161,32 +160,12 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
     const mainPts = hasOverlays ? pts.filter(p => p.pulseId === pulseId) : pts;
 
     if (mainPts.length > 0) {
-      const segments: LivePoint[][] = [];
-      let cur: LivePoint[] = [mainPts[0]];
-      for (let i = 1; i < mainPts.length; i++) {
-        cur.push(mainPts[i]);
-        if (mainPts[i].state !== mainPts[i - 1].state || i === mainPts.length - 1) {
-          segments.push(cur);
-          cur = [mainPts[i]];
-        }
-      }
-      if (cur.length > 1) segments.push(cur);
-
-      for (const seg of segments) {
-        const lineGen = d3.line<LivePoint>()
-          .x((p) => xScale(p.timestamp))
-          .y((p) => yScale(p.elapsedMs))
-          .curve(d3.curveCatmullRom.alpha(0.1));
-
-        g.append('path').datum(seg)
-          .attr('fill', 'none')
-          .attr('stroke', STATE_COLORS[seg[0].state])
-          .attr('stroke-width', 2)
-          .attr('d', lineGen)
-          .style('opacity', 0)
-          .transition().duration(300)
-          .style('opacity', 1);
-      }
+      const pixelPts = mainPts.map(p => ({
+        px: xScale(p.timestamp),
+        py: yScale(p.elapsedMs),
+        color: STATE_COLORS[p.state],
+      }));
+      appendColoredPaths(g, pixelPts, catmullRomBeziers(pixelPts, 0.1), 2, true);
 
       g.selectAll<SVGCircleElement, LivePoint>('.dot-main')
         .data(mainPts)
@@ -308,26 +287,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
 
-      const vline = g.append('line')
-        .style('stroke', 'var(--pg-crosshair)').attr('stroke-width', 1).attr('stroke-dasharray', '3,3')
-        .attr('y1', 0).attr('y2', height).style('opacity', 0);
-
-      const showTooltip = (event: MouseEvent, html: string) => {
-        const containerW = tooltipEl.parentElement!.clientWidth;
-        const containerH = tooltipEl.parentElement!.clientHeight;
-        tooltip.html(html).style('opacity', '1');
-        const ttW = tooltipEl.offsetWidth;
-        const ttH = tooltipEl.offsetHeight;
-        const ox = event.offsetX;
-        const oy = event.offsetY;
-        let left = ox + 12;
-        if (left + ttW > containerW) left = ox - ttW - 12;
-        left = Math.max(0, left);
-        let top = oy - 10;
-        if (top - ttH < 0) top = oy + 10 + ttH;
-        top = Math.min(top, containerH);
-        tooltip.style('left', `${left}px`).style('top', `${top}px`);
-      };
+      const vline = createCrosshair(g, height);
 
       // Transparent rect to capture pointer events
       g.append('rect')
@@ -361,7 +321,7 @@ export class LivePulseComponent implements OnInit, AfterViewInit, OnDestroy {
               + `<div class="tt-row"><span class="tt-label">State:</span> <span class="tt-value">${hit.p.state}</span></div>`
               + `</div>`;
           });
-          showTooltip(event, html);
+          positionTooltip(tooltip, tooltipEl, event, html);
         })
         .on('mouseout', () => {
           vline.style('opacity', 0);

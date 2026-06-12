@@ -12,7 +12,7 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$|@angular|@ng-bootstrap|d3|d3-.*)'],
+  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$|@angular|@ng-bootstrap|d3|d3-.*|internmap|delaunator|robust-predicates)'],
   moduleFileExtensions: ['ts', 'js', 'html'],
   collectCoverageFrom: [
     'src/app/**/*.ts',

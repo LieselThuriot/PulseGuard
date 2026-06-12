@@ -6,6 +6,7 @@
         <th>Name</th>
         <th>Roles</th>
         <th>Last Visited</th>
+        <th>Last Active</th>
         <th class="text-center" style="width: 220px">Actions</th>
       </tr>
     </thead>
@@ -24,10 +25,12 @@
               }
             </div>
           </td>
+          <td>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</td>
           <td>
-            <span>{{ user.lastVisited ? (user.lastVisited | date:'short') : 'Never' }}</span>
             @if (user.lastVisited) {
-              <span class="text-muted small"> ( {{ user.lastVisited | timeAgo }} )</span>
+              <span [class]="getActivityClass(user.lastVisited)">{{ user.lastVisited | timeAgo }}</span>
+            } @else {
+              <span class="text-muted">Never</span>
             }
           </td>
           <td class="text-center">

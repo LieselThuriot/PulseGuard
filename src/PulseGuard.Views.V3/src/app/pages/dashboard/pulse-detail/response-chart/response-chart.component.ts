@@ -6,11 +6,9 @@ import * as d3 from 'd3';
 import { PulseCheckResultDetail, OverlayData } from '../../../../models/pulse-detail.model';
 import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_COLORS } from '../../../../models/pulse-states.enum';
-import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE } from '../../../../constants';
+import { DEFAULT_DECIMATION, DEFAULT_PERCENTILE, OVERLAY_COLORS } from '../../../../constants';
 import { createBuckets, calculatePercentile, getWorstState } from '../chart-utils';
-import { applyTimeAxis, createCrosshair, positionTooltip, setupBrushAndZoom } from '../chart-rendering';
-
-const OVERLAY_COLORS = ['var(--pg-overlay-1)', 'var(--pg-overlay-2)', 'var(--pg-overlay-3)', 'var(--pg-overlay-4)', 'var(--pg-overlay-5)'];
+import { applyTimeAxis, appendColoredPaths, catmullRomBeziers, createCrosshair, positionTooltip, setupBrushAndZoom } from '../chart-rendering';
 
 interface OverlayPoint {
   x: number;
@@ -230,21 +228,14 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     };
     drawOverlays(xScale);
 
-    // Draw line segments grouped by consecutive color
-    const segments = this.groupByColor(points);
-    for (const seg of segments) {
-      const lineGen = d3.line<ChartPoint>()
-        .x((p) => xScale(p.x))
-        .y((p) => yScale(p.y))
-        .curve(d3.curveCatmullRom.alpha(0.1));
-
-      plotG.append('path')
-        .datum(seg)
-        .attr('fill', 'none')
-        .attr('stroke', seg[0].color)
-        .attr('stroke-width', 1.5)
-        .attr('d', lineGen);
-    }
+    // Draw one <path> per consecutive colour run. catmullRomBeziers pre-computes
+    // control points across the full dataset so tangents are correct at every
+    // colour boundary — no clip paths needed.
+    const drawColoredSegments = (xSc: d3.ScaleTime<number, number>) => {
+      const pixelPts = points.map(p => ({ px: xSc(p.x), py: yScale(p.y), color: p.color }));
+      appendColoredPaths(plotG, pixelPts, catmullRomBeziers(pixelPts, 0.1), 1.5);
+    };
+    drawColoredSegments(xScale);
 
     // Points
     plotG.selectAll<SVGCircleElement, ChartPoint>('circle')
@@ -272,14 +263,7 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
       plotG.selectAll('path').remove();
       plotG.selectAll('circle').remove();
       drawOverlays(xSc);
-      for (const seg of segments) {
-        const lineGen = d3.line<ChartPoint>()
-          .x((p) => xSc(p.x)).y((p) => yScale(p.y))
-          .curve(d3.curveCatmullRom.alpha(0.1));
-        plotG.append('path')
-          .datum(seg).attr('fill', 'none')
-          .attr('stroke', seg[0].color).attr('stroke-width', 1.5).attr('d', lineGen);
-      }
+      drawColoredSegments(xSc);
       plotG.selectAll<SVGCircleElement, ChartPoint>('circle')
         .data(points).join('circle')
         .attr('cx', (p) => xSc(p.x)).attr('cy', (p) => yScale(p.y))
@@ -373,20 +357,4 @@ export class ResponseChartComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  /** Split an array of points into consecutive runs of the same color */
-  private groupByColor(points: ChartPoint[]): ChartPoint[][] {
-    if (!points.length) return [];
-    const groups: ChartPoint[][] = [];
-    let cur: ChartPoint[] = [points[0]];
-    for (let i = 1; i < points.length; i++) {
-      // Always include the boundary point in both segments for continuity
-      cur.push(points[i]);
-      if (points[i].color !== points[i - 1].color || i === points.length - 1) {
-        groups.push(cur);
-        cur = [points[i]];
-      }
-    }
-    if (cur.length > 1) groups.push(cur);
-    return groups;
-  }
 }

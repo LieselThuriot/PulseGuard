@@ -7,6 +7,7 @@ import { PulseDeployment } from '../../../../models/pulse-overview.model';
 import { PulseStates, STATE_LABELS } from '../../../../models/pulse-states.enum';
 import { StatusBadgeComponent } from '../../../../components/status-badge/status-badge.component';
 import { effect } from '@angular/core';
+import { computeViewportTooltipPosition } from '../../../../utils/tooltip.util';
 
 interface TooltipRow {
   label: PulseStates;
@@ -101,21 +102,7 @@ export class HeatmapComponent implements AfterViewInit, OnDestroy {
 
     if (hit) {
       this.tooltipData.set(hit.tooltipData);
-
-      const margin = 8;
-      let x = event.clientX + 14;
-      let y = event.clientY - 10;
-
-      // Use the tooltip's last-rendered size to keep it within the viewport
-      const el = this.tooltipEl?.nativeElement;
-      const w = el?.offsetWidth ?? 200;
-      const h = el?.offsetHeight ?? 120;
-
-      if (x + w + margin > window.innerWidth)  { x = event.clientX - w - 14; }
-      if (y + h + margin > window.innerHeight) { y = event.clientY - h - 10; }
-      x = Math.max(margin, x);
-      y = Math.max(margin, y);
-
+      const { x, y } = computeViewportTooltipPosition(event, this.tooltipEl?.nativeElement, 200, 120);
       this.tooltipX.set(x);
       this.tooltipY.set(y);
       this.tooltipVisible.set(true);

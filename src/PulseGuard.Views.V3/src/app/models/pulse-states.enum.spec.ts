@@ -2,7 +2,7 @@ import { PulseStates, STATE_COLORS, STATE_CSS_CLASSES, STATE_TEXT_CLASSES } from
 
 describe('PulseStates', () => {
   it('should have all five states', () => {
-    expect(Object.values(PulseStates)).toEqual(['Unknown', 'Healthy', 'Degraded', 'Unhealthy', 'TimedOut']);
+    expect(Object.values(PulseStates)).toEqual(['Healthy', 'Degraded', 'Unhealthy', 'TimedOut', 'Unknown']);
   });
 
   it('should have a color for every state', () => {
