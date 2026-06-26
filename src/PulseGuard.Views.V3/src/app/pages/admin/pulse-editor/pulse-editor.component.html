@@ -34,11 +34,11 @@
               <input type="url" class="form-control" id="location" [ngModel]="cfg.location" (ngModelChange)="updateField('location', $event)" name="location" />
             </div>
             <div class="col-md-6">
-              <label for="timeout" class="form-label">Timeout (seconds)</label>
-              <input type="number" class="form-control" id="timeout" [ngModel]="cfg.timeout" (ngModelChange)="updateField('timeout', $event)" name="timeout" min="1" />
+              <label for="timeout" class="form-label">Timeout (ms)</label>
+              <input type="number" class="form-control" id="timeout" [ngModel]="cfg.timeout" (ngModelChange)="updateField('timeout', $event)" name="timeout" min="1000" />
             </div>
             <div class="col-md-6">
-              <label for="degrationTimeout" class="form-label">Degradation Timeout (seconds)</label>
+              <label for="degrationTimeout" class="form-label">Degradation Timeout (ms)</label>
               <input type="number" class="form-control" id="degrationTimeout" [ngModel]="cfg.degrationTimeout" (ngModelChange)="updateField('degrationTimeout', $event)" name="degrationTimeout" />
             </div>
             @if (showComparisonValue()) {

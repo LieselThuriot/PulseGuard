@@ -235,7 +235,7 @@ export class AdminComponent implements OnInit {
     const ref = this.modal.open(ConfirmDialogComponent);
     ref.result.then((confirmed) => {
       if (confirmed) {
-        this.adminService.deleteAgentConfig(config.id).subscribe({
+        this.adminService.deleteAgentConfig(config.id, config.subType).subscribe({
           next: () => {
             this.agentConfigs.update((list) => list.filter((c) => c.id !== config.id));
             this.notifications.success('Agent configuration deleted.');
@@ -276,13 +276,13 @@ export class AdminComponent implements OnInit {
     }).catch(() => {});
   }
 
-  deleteCredential(id: string): void {
+  deleteCredential(cred: CredentialEntry): void {
     const ref = this.modal.open(ConfirmDialogComponent);
     ref.result.then((confirmed) => {
       if (confirmed) {
-        this.adminService.deleteCredential(id).subscribe({
+        this.adminService.deleteCredential(cred).subscribe({
           next: () => {
-            this.credentials.update((list) => list.filter((c: CredentialEntry) => c.id !== id));
+            this.credentials.update((list) => list.filter((c: CredentialEntry) => c.id !== cred.id));
             this.notifications.success('Credential deleted.');
           },
           error: () => this.notifications.error('Failed to delete credential.'),

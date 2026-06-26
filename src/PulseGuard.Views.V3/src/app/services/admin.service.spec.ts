@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { AdminService } from './admin.service';
+import { CredentialEntry } from '../models/admin.model';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -23,13 +24,6 @@ describe('AdminService', () => {
   // Pulse Configurations
   // ---------------------------------------------------------------------------
   describe('Pulse Configurations', () => {
-    it('should GET all pulse configurations', () => {
-      service.getPulseConfigurations().subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/configurations/pulse');
-      expect(req.request.method).toBe('GET');
-      req.flush([]);
-    });
-
     it('should GET all generic configurations', () => {
       service.getConfigurations().subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/configurations');
@@ -44,10 +38,10 @@ describe('AdminService', () => {
       req.flush({});
     });
 
-    it('should POST to create a pulse config', () => {
+    it('should POST to create a pulse config (no id, server generates sqid)', () => {
       const config = { url: 'https://example.com' };
-      service.createPulseConfig('my-id', config).subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/configurations/pulse/my-id');
+      service.createPulseConfig(config).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/configurations/pulse');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(config);
       req.flush(null);
@@ -105,13 +99,6 @@ describe('AdminService', () => {
   // Agent Configurations
   // ---------------------------------------------------------------------------
   describe('Agent Configurations', () => {
-    it('should GET all agent configurations', () => {
-      service.getAgentConfigurations().subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/configurations/agent');
-      expect(req.request.method).toBe('GET');
-      req.flush([]);
-    });
-
     it('should GET an agent config with both id and type encoded', () => {
       service.getAgentConfig('my app', 'App/Insights').subscribe();
       const req = httpTesting.expectOne(
@@ -121,10 +108,10 @@ describe('AdminService', () => {
       req.flush({});
     });
 
-    it('should POST to create an agent config', () => {
+    it('should POST to create an agent config with both id and type in the URL', () => {
       const config = { type: 'ApplicationInsights' };
-      service.createAgentConfig('my-id', config).subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/configurations/agent/my-id');
+      service.createAgentConfig('my-id', 'ApplicationInsights', config).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/configurations/agent/my-id/ApplicationInsights');
       expect(req.request.method).toBe('POST');
       req.flush(null);
     });
@@ -136,9 +123,9 @@ describe('AdminService', () => {
       req.flush(null);
     });
 
-    it('deleteAgentConfiguration should delegate to deleteAgentConfig (same URL and verb)', () => {
-      service.deleteAgentConfiguration('my-id').subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/configurations/agent/my-id');
+    it('deleteAgentConfiguration should DELETE with both id and type in the URL', () => {
+      service.deleteAgentConfiguration('my-id', 'MyType').subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/configurations/agent/my-id/MyType');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });
@@ -287,16 +274,34 @@ describe('AdminService', () => {
       req.flush(null);
     });
 
-    it('deleteCredential should use the generic /credentials/ path (not type-specific)', () => {
-      service.deleteCredential('cred-id').subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/credentials/cred-id');
+    it('deleteCredential should DELETE via the OAuth2 type-specific path', () => {
+      const cred: CredentialEntry = { $type: 'OAuth2', id: 'cred-id', tokenEndpoint: 'url', clientId: 'id' };
+      service.deleteCredential(cred).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/credentials/oauth2/cred-id');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });
 
-    it('should encode special characters in credential IDs', () => {
-      service.deleteCredential('cred/id with spaces').subscribe();
-      const req = httpTesting.expectOne('api/1.0/admin/credentials/cred%2Fid%20with%20spaces');
+    it('deleteCredential should DELETE via the Basic type-specific path', () => {
+      const cred: CredentialEntry = { $type: 'Basic', id: 'cred-id' };
+      service.deleteCredential(cred).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/credentials/basic/cred-id');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+
+    it('deleteCredential should DELETE via the ApiKey type-specific path', () => {
+      const cred: CredentialEntry = { $type: 'ApiKey', id: 'cred-id', header: 'X-Key' };
+      service.deleteCredential(cred).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/credentials/apikey/cred-id');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+
+    it('deleteCredential should encode special characters in credential IDs', () => {
+      const cred: CredentialEntry = { $type: 'Basic', id: 'cred/id with spaces' };
+      service.deleteCredential(cred).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/credentials/basic/cred%2Fid%20with%20spaces');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });

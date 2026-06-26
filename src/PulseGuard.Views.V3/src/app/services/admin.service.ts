@@ -12,14 +12,6 @@ export class AdminService {
   constructor(private readonly http: HttpClient) {}
 
   // Configurations
-  getPulseConfigurations(): Observable<PulseConfiguration[]> {
-    return this.http.get<PulseConfiguration[]>('api/1.0/admin/configurations/pulse');
-  }
-
-  getAgentConfigurations(): Observable<PulseAgentConfiguration[]> {
-    return this.http.get<PulseAgentConfiguration[]>('api/1.0/admin/configurations/agent');
-  }
-
   getConfigurations(): Observable<PulseEntry[]> {
     return this.http.get<PulseEntry[]>('api/1.0/admin/configurations');
   }
@@ -28,8 +20,8 @@ export class AdminService {
     return this.http.get<PulseConfiguration>(`api/1.0/admin/configurations/pulse/${encodeURIComponent(id)}`);
   }
 
-  createPulseConfig(id: string, config: Partial<PulseConfiguration>): Observable<void> {
-    return this.http.post<void>(`api/1.0/admin/configurations/pulse/${encodeURIComponent(id)}`, config);
+  createPulseConfig(config: Partial<PulseConfiguration>): Observable<void> {
+    return this.http.post<void>('api/1.0/admin/configurations/pulse', config);
   }
 
   updatePulseConfig(id: string, config: Partial<PulseConfiguration>): Observable<void> {
@@ -52,20 +44,20 @@ export class AdminService {
     return this.http.get<PulseAgentConfiguration>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`);
   }
 
-  createAgentConfig(id: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
-    return this.http.post<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}`, config);
+  createAgentConfig(id: string, type: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
+    return this.http.post<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`, config);
   }
 
   updateAgentConfig(id: string, type: string, config: Partial<PulseAgentConfiguration>): Observable<void> {
     return this.http.put<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`, config);
   }
 
-  deleteAgentConfig(id: string): Observable<void> {
-    return this.http.delete<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}`);
+  deleteAgentConfig(id: string, type: string): Observable<void> {
+    return this.http.delete<void>(`api/1.0/admin/configurations/agent/${encodeURIComponent(id)}/${encodeURIComponent(type)}`);
   }
 
-  deleteAgentConfiguration(id: string): Observable<void> {
-    return this.deleteAgentConfig(id);
+  deleteAgentConfiguration(id: string, type: string): Observable<void> {
+    return this.deleteAgentConfig(id, type);
   }
 
   toggleAgentConfig(id: string, subType: string, enabled: boolean): Observable<void> {
@@ -175,7 +167,11 @@ export class AdminService {
     return this.http.delete<void>(`api/1.0/admin/credentials/apikey/${encodeURIComponent(id)}`);
   }
 
-  deleteCredential(id: string): Observable<void> {
-    return this.http.delete<void>(`api/1.0/admin/credentials/${encodeURIComponent(id)}`);
+  deleteCredential(cred: CredentialEntry): Observable<void> {
+    switch (cred.$type) {
+      case 'OAuth2': return this.deleteOAuth2(cred.id);
+      case 'Basic':  return this.deleteBasic(cred.id);
+      case 'ApiKey': return this.deleteApiKey(cred.id);
+    }
   }
 }

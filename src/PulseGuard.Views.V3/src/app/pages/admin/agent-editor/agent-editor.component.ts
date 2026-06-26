@@ -130,7 +130,7 @@ export class AgentEditorComponent implements OnInit {
     const id = this.isCreate() ? this.selectedCheckId() : this.configId;
 
     const op = this.isCreate()
-      ? this.adminService.createAgentConfig(id, data)
+      ? this.adminService.createAgentConfig(id, data.type ?? '', data)
       : this.adminService.updateAgentConfig(id, data.type ?? '', data);
 
     op.subscribe({

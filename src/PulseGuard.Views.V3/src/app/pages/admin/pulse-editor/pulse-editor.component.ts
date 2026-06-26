@@ -31,7 +31,7 @@ export class PulseEditorComponent implements OnInit {
     name: '',
     location: '',
     type: PulseCheckType.HealthApi,
-    timeout: 30,
+    timeout: 30000,
     enabled: true,
     ignoreSslErrors: false,
   });
@@ -77,10 +77,10 @@ export class PulseEditorComponent implements OnInit {
   save(): void {
     this.saving.set(true);
     const data = this.config();
-    const id = this.isCreate() ? (data.name ?? '') : this.configId;
+    const id = this.isCreate() ? '' : this.configId;
 
     const op = this.isCreate()
-      ? this.adminService.createPulseConfig(id, data)
+      ? this.adminService.createPulseConfig(data)
       : this.adminService.updatePulseConfig(id, data);
 
     op.subscribe({

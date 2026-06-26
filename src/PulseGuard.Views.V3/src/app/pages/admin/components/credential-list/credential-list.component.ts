@@ -13,5 +13,5 @@ export class CredentialListComponent {
   readonly credentials = input.required<CredentialEntry[]>();
   readonly tabName = input.required<string>();
 
-  readonly deleteItem = output<string>();
+  readonly deleteItem = output<CredentialEntry>();
 }
