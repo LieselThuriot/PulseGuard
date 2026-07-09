@@ -130,7 +130,10 @@ export class OverviewComponent implements OnInit {
     const totalSpan = latest - cutoff; // fixed 12-hour window
 
     // Reverse so oldest is first (left → right chronological order),
-    // drop segments entirely before the cutoff, clip the first crossing segment
+    // drop segments entirely before the cutoff, clip the first crossing segment.
+    // Widths are purely proportional to real duration; contiguous window-clipped
+    // segments sum to <= 100% by construction, and a 1px CSS min-width (see
+    // .timeline-segment) keeps brief changes visible without inflating them.
     const segments = [...item.items]
       .reverse()
       .filter((m) => m.from && m.to && new Date(m.to!).getTime() > cutoff)
@@ -141,7 +144,7 @@ export class OverviewComponent implements OnInit {
         const visibleMs = to - clippedFrom;
         const fullMs = to - actualFrom;
         return {
-          widthPercent: Math.max(1, (visibleMs / totalSpan) * 100),
+          widthPercent: (visibleMs / totalSpan) * 100,
           color: STATE_BORDER_VARS[m.state],
           state: m.state,
           duration: this.#formatDuration(fullMs),
@@ -149,14 +152,6 @@ export class OverviewComponent implements OnInit {
           end: this.#formatDate(to),
         };
       });
-
-    // Normalize so segments always sum to exactly 100%,
-    // preventing min-width enforcement from pushing tail segments off the bar
-    const total = segments.reduce((sum, s) => sum + s.widthPercent, 0);
-    if (total > 100) {
-      const scale = 100 / total;
-      segments.forEach((s) => (s.widthPercent *= scale));
-    }
 
     return segments;
   }

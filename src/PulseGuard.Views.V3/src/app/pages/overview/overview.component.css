@@ -79,13 +79,14 @@
 .timeline-bar {
   display: flex;
   height: 4px;
-  gap: 1px;
+  gap: 0;
   border-radius: 2px;
   overflow: hidden;
 }
 
 .timeline-segment {
   height: 100%;
+  min-width: 1px;
   flex-shrink: 0;
 }
 

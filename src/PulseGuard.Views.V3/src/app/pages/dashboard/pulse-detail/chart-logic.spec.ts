@@ -5,16 +5,16 @@ import { createBuckets, calculatePercentile, getWorstState } from './chart-utils
 // ── Extracted from PulseDetailComponent.stats ──
 
 function computeStats(items: PulseCheckResultDetail[]) {
-  if (!items.length) return { since: '...', average: '...', uptime: '...', errorRate: '...', timeoutRate: '...', volatility: '...' };
-
-  const first = items[0];
-  const since = new Date(first.timestamp).toLocaleString();
+  if (!items.length) return { slowest: '...', average: '...', uptime: '...', errorRate: '...', timeoutRate: '...', volatility: '...' };
 
   const withElapsed = items.filter((i) => i.elapsedMilliseconds != null && i.elapsedMilliseconds! > 0);
   const avgMs = withElapsed.length > 0
     ? withElapsed.reduce((sum, i) => sum + (i.elapsedMilliseconds ?? 0), 0) / withElapsed.length
     : 0;
   const average = avgMs > 0 ? `${avgMs.toFixed(0)} ms` : 'N/A';
+
+  const maxMs = withElapsed.reduce((m, i) => Math.max(m, i.elapsedMilliseconds ?? 0), 0);
+  const slowest = maxMs > 0 ? `${maxMs.toFixed(0)} ms` : 'N/A';
 
   const total = items.length;
   const healthy = items.filter((i) => i.state === PulseStates.Healthy).length;
@@ -31,7 +31,7 @@ function computeStats(items: PulseCheckResultDetail[]) {
   }
   const volatility = total > 1 ? `${((transitions / (total - 1)) * 100).toFixed(2)}%` : 'N/A';
 
-  return { since, average, uptime, errorRate, timeoutRate, volatility };
+  return { slowest, average, uptime, errorRate, timeoutRate, volatility };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -194,6 +194,23 @@ describe('computeStats (pulse-detail stats computed)', () => {
     ];
     const stats = computeStats(items);
     expect(stats.average).toBe('N/A');
+  });
+
+  it('should compute slowest response time', () => {
+    const items: PulseCheckResultDetail[] = [
+      { state: PulseStates.Healthy, timestamp: 1000, elapsedMilliseconds: 100 },
+      { state: PulseStates.Healthy, timestamp: 2000, elapsedMilliseconds: 300 },
+    ];
+    const stats = computeStats(items);
+    expect(stats.slowest).toBe('300 ms');
+  });
+
+  it('should show N/A slowest when no elapsed data', () => {
+    const items: PulseCheckResultDetail[] = [
+      { state: PulseStates.Healthy, timestamp: 1000 },
+    ];
+    const stats = computeStats(items);
+    expect(stats.slowest).toBe('N/A');
   });
 
   it('should compute volatility for alternating states', () => {

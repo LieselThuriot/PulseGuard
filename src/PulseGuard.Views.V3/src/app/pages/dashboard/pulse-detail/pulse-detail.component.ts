@@ -100,16 +100,16 @@ export class PulseDetailComponent implements OnDestroy {
 
   readonly stats = computed(() => {
     const items = this.filteredItems();
-    if (!items.length) return { since: '...', average: '...', uptime: '...', errorRate: '...', timeoutRate: '...', volatility: '...' };
-
-    const first = items[0];
-    const since = new Date(first.timestamp).toLocaleString();
+    if (!items.length) return { slowest: '...', average: '...', uptime: '...', errorRate: '...', timeoutRate: '...', volatility: '...' };
 
     const withElapsed = items.filter((i) => i.elapsedMilliseconds != null && i.elapsedMilliseconds > 0);
     const avgMs = withElapsed.length > 0
       ? withElapsed.reduce((sum, i) => sum + (i.elapsedMilliseconds ?? 0), 0) / withElapsed.length
       : 0;
     const average = avgMs > 0 ? `${avgMs.toFixed(0)} ms` : 'N/A';
+
+    const maxMs = withElapsed.reduce((m, i) => Math.max(m, i.elapsedMilliseconds ?? 0), 0);
+    const slowest = maxMs > 0 ? `${maxMs.toFixed(0)} ms` : 'N/A';
 
     const total = items.length;
     const healthy = items.filter((i) => i.state === PulseStates.Healthy).length;
@@ -127,7 +127,7 @@ export class PulseDetailComponent implements OnDestroy {
     }
     const volatility = total > 1 ? `${((transitions / (total - 1)) * 100).toFixed(2)}%` : 'N/A';
 
-    return { since, average, uptime, errorRate, timeoutRate, volatility };
+    return { slowest, average, uptime, errorRate, timeoutRate, volatility };
   });
 
   private readonly destroy$ = new Subject<void>();
@@ -232,6 +232,14 @@ export class PulseDetailComponent implements OnDestroy {
     const range: DateRange = { from, to };
     this.externalDateRange.set(range);
     this.onDateRangeChange(range);
+    this.syncRangeToUrl(from, to);
+  }
+
+  private syncRangeToUrl(from: Date, to: Date): void {
+    const urlTree = this.router.parseUrl(this.router.url);
+    urlTree.queryParams['from'] = from.toISOString();
+    urlTree.queryParams['to'] = to.toISOString();
+    this.router.navigateByUrl(urlTree, { replaceUrl: true });
   }
 
   openForecast(): void {
