@@ -1,5 +1,5 @@
 @let isCompact = compact();
-@let allSections = sections();
+@let allSections = filteredSections();
 
 @let tip = activeSegment();
 @if (tip) {
@@ -20,7 +20,40 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="bi bi-grid-3x3-gap-fill me-2"></i>Application Overview</span>
       <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-sm btn-outline-secondary" 
+        <div class="btn-group btn-group-sm" role="group" aria-label="Filter by status">
+          <button type="button" class="btn"
+                  [class.btn-secondary]="filterMode() === 'all'"
+                  [class.btn-outline-secondary]="filterMode() !== 'all'"
+                  (click)="filterMode.set('all')">
+            <i class="bi bi-list-check me-1"></i>
+            <span class="d-none d-sm-inline">All</span>
+          </button>
+          <button type="button" class="btn"
+                  [class.btn-danger]="filterMode() === 'incidents'"
+                  [class.btn-outline-secondary]="filterMode() !== 'incidents'"
+                  (click)="filterMode.set('incidents')">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <span class="d-none d-sm-inline">Incidents</span>
+          </button>
+          <button type="button" class="btn"
+                  [class.btn-warning]="filterMode() === 'issues'"
+                  [class.btn-outline-secondary]="filterMode() !== 'issues'"
+                  (click)="filterMode.set('issues')">
+            <i class="bi bi-dash-circle me-1"></i>
+            <span class="d-none d-sm-inline">Degraded &amp; Incidents</span>
+          </button>
+        </div>
+        @if (filterMode() !== 'all') {
+          <button class="btn btn-sm"
+                  [class.btn-outline-secondary]="!filterHistory()"
+                  [class.btn-secondary]="filterHistory()"
+                  (click)="filterHistory.set(!filterHistory())"
+                  [title]="filterHistory() ? 'Filtering on full history' : 'Filtering on current state'">
+            <i class="bi" [class.bi-clock-history]="filterHistory()" [class.bi-activity]="!filterHistory()"></i>
+            <span class="d-none d-sm-inline ms-1">{{ filterHistory() ? 'History' : 'Current' }}</span>
+          </button>
+        }
+        <button class="btn btn-sm btn-outline-secondary"
                 (click)="compact.set(!isCompact)"
                 [attr.aria-pressed]="isCompact"
                 title="Toggle compact view">
@@ -35,6 +68,10 @@
     <div class="card-body">
       @if (loading() && allSections.length === 0) {
         <app-loading-spinner />
+      } @else if (allSections.length === 0) {
+        <p class="text-body-secondary text-center py-4 mb-0">
+          <i class="bi bi-check2-circle me-2"></i>No {{ filterMode() === 'incidents' ? 'incident' : 'degraded or incident' }} services right now.
+        </p>
       } @else {
         @for (section of allSections; track section.group) {
           <section class="mb-4">

@@ -61,12 +61,37 @@ export class OverviewComponent implements OnInit {
 
   @ViewChild('segTooltipEl') private segTooltipEl?: ElementRef<HTMLDivElement>;
 
+  readonly filterMode = signal<'all' | 'incidents' | 'issues'>('all');
+  readonly filterHistory = signal(true);
+
   readonly sections = computed<OverviewSection[]>(() =>
     this.pulseService.overview().map((group) => ({
       group: group.group,
       cards: group.items.map((item) => this.#buildCard(item)),
     })),
   );
+
+  readonly filteredSections = computed<OverviewSection[]>(() => {
+    const mode = this.filterMode();
+    if (mode === 'all') return this.sections();
+
+    const byHistory = this.filterHistory();
+    return this.sections()
+      .map((section) => ({
+        ...section,
+        cards: section.cards.filter((card) => {
+          if (byHistory) {
+            return mode === 'incidents'
+              ? card.incidentCount > 0
+              : card.incidentCount > 0 || card.degradedCount > 0;
+          }
+          return mode === 'incidents'
+            ? card.state === PulseStates.Unhealthy || card.state === PulseStates.TimedOut
+            : card.state !== PulseStates.Healthy;
+        }),
+      }))
+      .filter((section) => section.cards.length > 0);
+  });
 
   ngOnInit(): void {
     this.pulseService.loadOverview();
