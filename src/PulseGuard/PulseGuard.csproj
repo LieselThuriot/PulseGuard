@@ -20,6 +20,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Microsoft.Extensions.Http.Polly" />
+		<PackageReference Include="Microsoft.OpenApi" />
 		<PackageReference Include="Newtonsoft.Json" />
 		<PackageReference Include="OpenTelemetry.Api" />
 		<PackageReference Include="Polly" />
@@ -47,9 +48,7 @@
 		</ProjectReference>
 	</ItemGroup>
 
-	<Target Name="TruncateSourceRevisionId"
-	        BeforeTargets="AddSourceRevisionToInformationalVersion"
-	        Condition="'$(SourceRevisionId)' != '' and $(SourceRevisionId.Length) > 7">
+	<Target Name="TruncateSourceRevisionId" BeforeTargets="AddSourceRevisionToInformationalVersion" Condition="'$(SourceRevisionId)' != '' and $(SourceRevisionId.Length) &gt; 7">
 		<PropertyGroup>
 			<SourceRevisionId>$(SourceRevisionId.Substring(0, 7))</SourceRevisionId>
 		</PropertyGroup>
