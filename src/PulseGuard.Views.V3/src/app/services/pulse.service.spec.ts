@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { PulseService } from './pulse.service';
 import { PulseOverviewGroup } from '../models/pulse-overview.model';
+import { vi } from 'vitest';
 
 describe('PulseService', () => {
   let service: PulseService;
@@ -43,17 +44,17 @@ describe('PulseService', () => {
     });
 
     it('should set loading to false after error and retry exhausted', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       service.loadOverview();
       expect(service.loading()).toBe(true);
 
       httpTesting.expectOne('api/1.0/pulses').error(new ProgressEvent('error'));
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       httpTesting.expectOne('api/1.0/pulses').error(new ProgressEvent('error'));
 
       expect(service.loading()).toBe(false);
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should sort groups alphabetically with the empty-name group last', () => {

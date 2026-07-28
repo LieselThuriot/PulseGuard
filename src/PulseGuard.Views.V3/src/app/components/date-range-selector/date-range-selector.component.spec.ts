@@ -1,12 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DateRangeSelectorComponent, DateRange } from './date-range-selector.component';
+import { vi, type Mock } from 'vitest';
 
 describe('DateRangeSelectorComponent', () => {
   let component: DateRangeSelectorComponent;
   let fixture: ComponentFixture<DateRangeSelectorComponent>;
-  let mockRouter: { url: string; parseUrl: jest.Mock; navigateByUrl: jest.Mock };
-  let mockQueryParamMap: { get: jest.Mock };
+  let mockRouter: { url: string; parseUrl: Mock; navigateByUrl: Mock };
+  let mockQueryParamMap: { get: Mock };
 
   function buildProviders() {
     return [
@@ -21,10 +22,10 @@ describe('DateRangeSelectorComponent', () => {
   beforeEach(() => {
     mockRouter = {
       url: '/',
-      parseUrl: jest.fn(() => ({ queryParams: {} as Record<string, string> })),
-      navigateByUrl: jest.fn(),
+      parseUrl: vi.fn(() => ({ queryParams: {} as Record<string, string> })),
+      navigateByUrl: vi.fn(),
     };
-    mockQueryParamMap = { get: jest.fn().mockReturnValue(null) };
+    mockQueryParamMap = { get: vi.fn().mockReturnValue(null) };
   });
 
   // Helper: create component WITHOUT calling detectChanges (so ngOnInit hasn't run yet).
@@ -82,14 +83,14 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should set activeLabel to "custom"', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       fixture.detectChanges();
       expect(component.activeLabel()).toBe('custom');
     });
 
     it('should emit rangeChange with the parsed dates', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       fixture.detectChanges();
       expect(spy).toHaveBeenCalledTimes(1);
@@ -134,14 +135,14 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit rangeChange', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.selectToday();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('should emit a range where from is at UTC midnight', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.selectToday();
       const range: DateRange = spy.mock.calls[0][0];
@@ -151,7 +152,7 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit a range where to is at 23:59 of the same day', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.selectToday();
       const range: DateRange = spy.mock.calls[0][0];
@@ -183,14 +184,14 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit rangeChange', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.selectAll();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('should emit a range where from is the epoch (1 Jan 1970 UTC)', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.selectAll();
       const range: DateRange = spy.mock.calls[0][0];
@@ -222,7 +223,7 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit rangeChange with the correct time range', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
 
       const before = Date.now();
@@ -274,14 +275,14 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit rangeChange when both from and to are valid dates', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.onFromChange('2025-06-01T10:00');
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('should NOT emit rangeChange when the from value is not a valid date', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.onFromChange('not-a-date');
       expect(spy).not.toHaveBeenCalled();
@@ -310,14 +311,14 @@ describe('DateRangeSelectorComponent', () => {
     });
 
     it('should emit rangeChange when both from and to are valid dates', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.onToChange('2025-06-10T23:59');
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it('should NOT emit rangeChange when the to value is not a valid date', () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       component.rangeChange.subscribe(spy);
       component.onToChange('bad-date');
       expect(spy).not.toHaveBeenCalled();

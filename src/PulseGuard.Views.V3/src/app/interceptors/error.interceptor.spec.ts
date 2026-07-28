@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { HttpClient } from '@angular/common/http';
 import { errorInterceptor, SUPPRESS_NOT_FOUND } from './error.interceptor';
 import { NotificationService } from '../services/notification.service';
+import { vi } from 'vitest';
 
 describe('errorInterceptor', () => {
   let httpClient: HttpClient;
@@ -32,7 +33,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show permission error on 403', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     httpClient.get('/test').subscribe({ error: () => {} });
 
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 403 });
@@ -41,7 +42,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show connection error on status 0', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     httpClient.get('/test').subscribe({ error: () => {} });
 
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 0 });
@@ -50,7 +51,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show server error on 500+', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     httpClient.get('/test').subscribe({ error: () => {} });
 
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 500 });
@@ -59,7 +60,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show generic error on 4xx (e.g. 400)', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     httpClient.get('/test').subscribe({ error: () => {} });
 
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 400 });
@@ -68,7 +69,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show generic error on 404', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     httpClient.get('/test').subscribe({ error: () => {} });
 
     httpTesting.expectOne('/test').error(new ProgressEvent('error'), { status: 404 });
@@ -77,7 +78,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should not show a toast for 404 when SUPPRESS_NOT_FOUND is set', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     const ctx = new HttpContext().set(SUPPRESS_NOT_FOUND, true);
     httpClient.get('/test', { context: ctx }).subscribe({ error: () => {} });
 
@@ -87,7 +88,7 @@ describe('errorInterceptor', () => {
   });
 
   it('should show session expired on repeated 401 within guard window', () => {
-    const spy = jest.spyOn(notifications, 'error');
+    const spy = vi.spyOn(notifications, 'error');
     // Simulate a recent reload
     sessionStorage.setItem('pulseguard_401_reload', String(Date.now()));
 

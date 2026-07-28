@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { StringListEditorComponent } from './string-list-editor.component';
+import { vi } from 'vitest';
 
 describe('StringListEditorComponent', () => {
   let component: StringListEditorComponent;
@@ -52,7 +53,7 @@ describe('StringListEditorComponent', () => {
     fixture.componentRef.setInput('value', ['keep', '  ', 'also']);
     fixture.detectChanges();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.valueChange.subscribe(spy);
 
     component.remove(1); // remove the whitespace one
@@ -63,7 +64,7 @@ describe('StringListEditorComponent', () => {
     fixture.componentRef.setInput('value', ['a']);
     fixture.detectChanges();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.valueChange.subscribe(spy);
 
     component.update(0, 'b');

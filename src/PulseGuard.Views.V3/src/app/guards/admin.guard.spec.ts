@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { adminGuard } from './admin.guard';
-import { AuthService } from '../services/auth.service';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
+import { Component } from '@angular/core';
+
+@Component({ standalone: true, template: '' })
+class TestRouteComponent {}
 
 describe('adminGuard', () => {
   let httpTesting: HttpTestingController;
@@ -17,8 +20,8 @@ describe('adminGuard', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([
-          { path: '', component: class {} as any },
-          { path: 'admin', canActivate: [adminGuard], component: class {} as any },
+          { path: '', component: TestRouteComponent },
+          { path: 'admin', canActivate: [adminGuard], component: TestRouteComponent },
         ]),
       ],
     });
@@ -33,7 +36,9 @@ describe('adminGuard', () => {
 
   it('should allow access for admin users', async () => {
     const resultPromise = firstValueFrom(
-      TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any)) as any,
+      TestBed.runInInjectionContext(() =>
+        adminGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      ) as Observable<boolean | UrlTree>,
     );
 
     httpTesting.expectOne('api/1.0/user').flush({ id: 'u1', roles: ['Administrator'] });
@@ -44,7 +49,9 @@ describe('adminGuard', () => {
 
   it('should redirect non-admin users to root', async () => {
     const resultPromise = firstValueFrom(
-      TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any)) as any,
+      TestBed.runInInjectionContext(() =>
+        adminGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      ) as Observable<boolean | UrlTree>,
     );
 
     httpTesting.expectOne('api/1.0/user').flush({ id: 'u2', roles: ['Viewer'] });

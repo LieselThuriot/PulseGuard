@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { AdminService } from './admin.service';
-import { CredentialEntry } from '../models/admin.model';
+import {
+  AgentCheckType,
+  CredentialEntry,
+  PulseAgentConfiguration,
+  PulseConfiguration,
+} from '../models/admin.model';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -39,7 +44,7 @@ describe('AdminService', () => {
     });
 
     it('should POST to create a pulse config (no id, server generates sqid)', () => {
-      const config = { url: 'https://example.com' };
+      const config = { name: 'Example pulse' } satisfies Partial<PulseConfiguration>;
       service.createPulseConfig(config).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/configurations/pulse');
       expect(req.request.method).toBe('POST');
@@ -48,7 +53,7 @@ describe('AdminService', () => {
     });
 
     it('should PUT to update a pulse config', () => {
-      const config = { url: 'https://updated.com' };
+      const config = { name: 'Updated pulse' } satisfies Partial<PulseConfiguration>;
       service.updatePulseConfig('my-id', config).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/configurations/pulse/my-id');
       expect(req.request.method).toBe('PUT');
@@ -109,7 +114,9 @@ describe('AdminService', () => {
     });
 
     it('should POST to create an agent config with both id and type in the URL', () => {
-      const config = { type: 'ApplicationInsights' };
+      const config = {
+        type: AgentCheckType.ApplicationInsights,
+      } satisfies Partial<PulseAgentConfiguration>;
       service.createAgentConfig('my-id', 'ApplicationInsights', config).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/configurations/agent/my-id/ApplicationInsights');
       expect(req.request.method).toBe('POST');
@@ -238,7 +245,7 @@ describe('AdminService', () => {
     });
 
     it('createOAuth2 should POST to the /oauth2/ path', () => {
-      const cred = { clientId: 'id', clientSecret: 'secret', tokenEndpoint: 'url', scopes: [] };
+      const cred = { id: 'cred-id', clientId: 'id', clientSecret: 'secret', tokenEndpoint: 'url', scopes: '' };
       service.createOAuth2('cred-id', cred).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/credentials/oauth2/cred-id');
       expect(req.request.method).toBe('POST');
@@ -246,7 +253,7 @@ describe('AdminService', () => {
     });
 
     it('updateOAuth2 should PUT to the /oauth2/ path', () => {
-      const cred = { clientId: 'id', clientSecret: 'secret', tokenEndpoint: 'url', scopes: [] };
+      const cred = { id: 'cred-id', clientId: 'id', clientSecret: 'secret', tokenEndpoint: 'url', scopes: '' };
       service.updateOAuth2('cred-id', cred).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/credentials/oauth2/cred-id');
       expect(req.request.method).toBe('PUT');
@@ -261,14 +268,14 @@ describe('AdminService', () => {
     });
 
     it('createBasic should POST to the /basic/ path', () => {
-      service.createBasic('cred-id', { username: 'u', password: 'p' }).subscribe();
+      service.createBasic('cred-id', { id: 'cred-id', username: 'u', password: 'p' }).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/credentials/basic/cred-id');
       expect(req.request.method).toBe('POST');
       req.flush(null);
     });
 
     it('createApiKey should POST to the /apikey/ path', () => {
-      service.createApiKey('cred-id', { header: 'X-Key', value: 'val' }).subscribe();
+      service.createApiKey('cred-id', { id: 'cred-id', header: 'X-Key', apiKey: 'val' }).subscribe();
       const req = httpTesting.expectOne('api/1.0/admin/credentials/apikey/cred-id');
       expect(req.request.method).toBe('POST');
       req.flush(null);

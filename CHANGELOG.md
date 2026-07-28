@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Replaced the pulse detail "Since" metric with a "Slowest" metric on the dashboard.
+- Migrated the Views V3 test runner from Jest to Vitest and Angular's unit-test builder.
 
 ### Fixed
 
@@ -27,6 +28,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Dependencies
 
 - Resolved package vulnerabilities by upgrading backend NuGet dependencies and Angular (Views V3) npm packages.
+- Replaced Jest testing dependencies with Vitest, jsdom, and Vitest coverage tooling in Views V3.
+
+### Removed
+
+- Removed the Jest configuration, setup file, and Jest-specific test dependencies from Views V3.
 
 ---
 

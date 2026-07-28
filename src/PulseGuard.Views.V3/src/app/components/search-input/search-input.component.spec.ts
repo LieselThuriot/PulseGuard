@@ -1,12 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SearchInputComponent } from './search-input.component';
+import { vi } from 'vitest';
 
 describe('SearchInputComponent', () => {
   let component: SearchInputComponent;
   let fixture: ComponentFixture<SearchInputComponent>;
 
   beforeEach(async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     await TestBed.configureTestingModule({
       imports: [SearchInputComponent],
@@ -18,7 +19,7 @@ describe('SearchInputComponent', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should create', () => {
@@ -42,65 +43,65 @@ describe('SearchInputComponent', () => {
   });
 
   it('should not emit searchChange before 300ms have elapsed', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('hello');
-    jest.advanceTimersByTime(299);
+    vi.advanceTimersByTime(299);
 
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('should emit searchChange with the typed value after 300ms', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('hello');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('hello');
   });
 
   it('should only emit once for rapid successive inputs (debounce consolidation)', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('a');
     component.onInput('ab');
     component.onInput('abc');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('abc');
   });
 
   it('should cancel the pending timer on each new input', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('first');
-    jest.advanceTimersByTime(150); // halfway through debounce
+    vi.advanceTimersByTime(150); // halfway through debounce
 
     component.onInput('second'); // resets timer
-    jest.advanceTimersByTime(150); // not enough for the new timer
+    vi.advanceTimersByTime(150); // not enough for the new timer
 
     expect(spy).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(150); // now 300ms since 'second'
+    vi.advanceTimersByTime(150); // now 300ms since 'second'
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('second');
   });
 
   it('should emit independently for inputs spaced more than 300ms apart', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('first');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     component.onInput('second');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(spy).toHaveBeenCalledTimes(2);
     expect(spy).toHaveBeenNthCalledWith(1, 'first');
@@ -108,14 +109,14 @@ describe('SearchInputComponent', () => {
   });
 
   it('should emit an empty string when input is cleared', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.searchChange.subscribe(spy);
 
     component.onInput('hello');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     component.onInput('');
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(spy).toHaveBeenCalledTimes(2);
     expect(spy).toHaveBeenLastCalledWith('');

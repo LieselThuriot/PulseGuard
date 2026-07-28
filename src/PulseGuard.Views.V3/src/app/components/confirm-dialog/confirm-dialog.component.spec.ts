@@ -1,14 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
+import { vi, type Mock } from 'vitest';
 
 describe('ConfirmDialogComponent', () => {
   let component: ConfirmDialogComponent;
   let fixture: ComponentFixture<ConfirmDialogComponent>;
-  let mockModal: { close: jest.Mock; dismiss: jest.Mock };
+  let mockModal: { close: Mock; dismiss: Mock };
 
   beforeEach(async () => {
-    mockModal = { close: jest.fn(), dismiss: jest.fn() };
+    mockModal = { close: vi.fn(), dismiss: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ConfirmDialogComponent],

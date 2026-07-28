@@ -6,11 +6,12 @@
     "rootDir": ".",
     "outDir": "./out-tsc/spec",
     "types": [
-      "jest"
+      "vitest/globals"
     ],
     "esModuleInterop": true
   },
   "include": [
+    "setup-vitest.ts",
     "src/**/*.d.ts",
     "src/**/*.ts"
   ]

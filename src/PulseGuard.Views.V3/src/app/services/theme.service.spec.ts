@@ -1,13 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { ThemeService } from './theme.service';
+import { vi } from 'vitest';
 
 describe('ThemeService', () => {
   function setupMatchMedia(prefersLight: boolean): void {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: jest.fn(() => ({
+      value: vi.fn(() => ({
         matches: prefersLight,
-        addEventListener: jest.fn(),
+        addEventListener: vi.fn(),
       })),
     });
   }
@@ -192,7 +193,7 @@ describe('ThemeService', () => {
   describe('DOM effect', () => {
     it('should set data-bs-theme on documentElement when mode changes', () => {
       const service = TestBed.inject(ThemeService);
-      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      const spy = vi.spyOn(document.documentElement, 'setAttribute');
       service.setMode('dark');
       TestBed.flushEffects();
       expect(spy).toHaveBeenCalledWith('data-bs-theme', 'dark');
@@ -200,7 +201,7 @@ describe('ThemeService', () => {
 
     it('should set data-bs-theme to light when mode is set to light', () => {
       const service = TestBed.inject(ThemeService);
-      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      const spy = vi.spyOn(document.documentElement, 'setAttribute');
       service.setMode('light');
       TestBed.flushEffects();
       expect(spy).toHaveBeenCalledWith('data-bs-theme', 'light');
@@ -208,7 +209,7 @@ describe('ThemeService', () => {
 
     it('should set data-bs-theme to dark and add theme-matrix class when mode is matrix', () => {
       const service = TestBed.inject(ThemeService);
-      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      const spy = vi.spyOn(document.documentElement, 'setAttribute');
       service.setMode('matrix');
       TestBed.flushEffects();
       expect(spy).toHaveBeenCalledWith('data-bs-theme', 'dark');
@@ -227,7 +228,7 @@ describe('ThemeService', () => {
 
     it('should set data-bs-theme to dark and add theme-synthwave class when mode is synthwave', () => {
       const service = TestBed.inject(ThemeService);
-      const spy = jest.spyOn(document.documentElement, 'setAttribute');
+      const spy = vi.spyOn(document.documentElement, 'setAttribute');
       service.setMode('synthwave');
       TestBed.flushEffects();
       expect(spy).toHaveBeenCalledWith('data-bs-theme', 'dark');

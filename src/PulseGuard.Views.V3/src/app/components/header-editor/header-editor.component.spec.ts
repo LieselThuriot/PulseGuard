@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HeaderEditorComponent } from './header-editor.component';
+import { vi } from 'vitest';
 
 describe('HeaderEditorComponent', () => {
   let component: HeaderEditorComponent;
@@ -62,7 +63,7 @@ describe('HeaderEditorComponent', () => {
     fixture.componentRef.setInput('value', { A: '1' });
     fixture.detectChanges();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.valueChange.subscribe(spy);
 
     component.updateKey(0, 'B');
@@ -73,7 +74,7 @@ describe('HeaderEditorComponent', () => {
     fixture.componentRef.setInput('value', { A: '1' });
     fixture.detectChanges();
 
-    const spy = jest.fn();
+    const spy = vi.fn();
     component.valueChange.subscribe(spy);
 
     component.updateKey(0, '  ');

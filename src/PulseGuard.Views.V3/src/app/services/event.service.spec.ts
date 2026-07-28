@@ -1,20 +1,36 @@
 import { TestBed } from '@angular/core/testing';
 import { EventService } from './event.service';
 import { MAX_EVENT_BUFFER } from '../constants';
+import { vi, type Mock } from 'vitest';
+
+interface MockEventSource {
+  onopen: (() => void) | null;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  close: Mock<() => void>;
+}
 
 describe('EventService', () => {
   let service: EventService;
-  let mockEventSource: any;
+  let mockEventSource: MockEventSource;
+  let eventSourceConstructor: Mock<(url: string) => MockEventSource>;
 
   beforeEach(() => {
     // Mock EventSource
     mockEventSource = {
-      onopen: null as any,
-      onmessage: null as any,
-      onerror: null as any,
-      close: jest.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      close: vi.fn(),
     };
-    (globalThis as any).EventSource = jest.fn(() => mockEventSource);
+    eventSourceConstructor = vi.fn(function (_url: string) {
+      return mockEventSource;
+    });
+    Object.defineProperty(globalThis, 'EventSource', {
+      configurable: true,
+      writable: true,
+      value: eventSourceConstructor,
+    });
 
     TestBed.configureTestingModule({});
     service = TestBed.inject(EventService);
@@ -22,7 +38,7 @@ describe('EventService', () => {
 
   afterEach(() => {
     service.disconnect();
-    delete (globalThis as any).EventSource;
+    Reflect.deleteProperty(globalThis, 'EventSource');
   });
 
   it('should start disconnected', () => {
@@ -32,23 +48,23 @@ describe('EventService', () => {
 
   it('should set connected on open', () => {
     service.connect('test-url');
-    mockEventSource.onopen();
+    mockEventSource.onopen!();
     expect(service.connected()).toBe(true);
   });
 
   it('should accumulate events on message', () => {
     service.connect('test-url');
     const event = { data: JSON.stringify({ id: '1', group: 'G', name: 'N', state: 'Healthy', creation: '', elapsedMilliseconds: 100 }) };
-    mockEventSource.onmessage(event);
+    mockEventSource.onmessage!(new MessageEvent('message', event));
     expect(service.events()).toHaveLength(1);
     expect(service.events()[0].id).toBe('1');
   });
 
   it('should set disconnected on error', () => {
     service.connect('test-url');
-    mockEventSource.onopen();
+    mockEventSource.onopen!();
     expect(service.connected()).toBe(true);
-    mockEventSource.onerror();
+    mockEventSource.onerror!(new Event('error'));
     expect(service.connected()).toBe(false);
   });
 
@@ -61,17 +77,17 @@ describe('EventService', () => {
 
   it('should build correct URL for connectAll', () => {
     service.connectAll();
-    expect((globalThis as any).EventSource).toHaveBeenCalledWith('api/1.0/pulses/events');
+    expect(eventSourceConstructor).toHaveBeenCalledWith('api/1.0/pulses/events');
   });
 
   it('should encode id in connectApplication URL', () => {
     service.connectApplication('my app/test');
-    expect((globalThis as any).EventSource).toHaveBeenCalledWith('api/1.0/pulses/events/application/my%20app%2Ftest');
+    expect(eventSourceConstructor).toHaveBeenCalledWith('api/1.0/pulses/events/application/my%20app%2Ftest');
   });
 
   it('should encode group in connectGroup URL', () => {
     service.connectGroup('my group');
-    expect((globalThis as any).EventSource).toHaveBeenCalledWith('api/1.0/pulses/events/group/my%20group');
+    expect(eventSourceConstructor).toHaveBeenCalledWith('api/1.0/pulses/events/group/my%20group');
   });
 
   it('should cap events buffer at MAX_EVENT_BUFFER', () => {
@@ -79,7 +95,7 @@ describe('EventService', () => {
     // Push more than MAX_EVENT_BUFFER events
     for (let i = 0; i < MAX_EVENT_BUFFER + 50; i++) {
       const event = { data: JSON.stringify({ id: String(i), group: 'G', name: 'N', state: 'Healthy', creation: '', elapsedMilliseconds: 0 }) };
-      mockEventSource.onmessage(event);
+      mockEventSource.onmessage!(new MessageEvent('message', event));
     }
     expect(service.events().length).toBeLessThanOrEqual(MAX_EVENT_BUFFER);
   });

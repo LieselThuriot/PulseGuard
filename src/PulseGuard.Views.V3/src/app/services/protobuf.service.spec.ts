@@ -25,7 +25,7 @@ describe('ProtobufService', () => {
       writer.tag(2, 2).string('MyCheck');
       const buf = writer.finish();
 
-      const result = service.decodePulseDetails(buf.buffer);
+      const result = service.decodePulseDetails(buf.buffer as ArrayBuffer);
       expect(result.group).toBe('MyGroup');
       expect(result.name).toBe('MyCheck');
       expect(result.items).toEqual([]);
@@ -46,7 +46,7 @@ describe('ProtobufService', () => {
       writer.raw(innerBytes);
       const buf = writer.finish();
 
-      const result = service.decodePulseDetails(buf.buffer);
+      const result = service.decodePulseDetails(buf.buffer as ArrayBuffer);
       expect(result.group).toBe('G');
       expect(result.name).toBe('N');
       expect(result.items).toHaveLength(1);
@@ -75,7 +75,7 @@ describe('ProtobufService', () => {
         writer.raw(innerBytes);
         const buf = writer.finish();
 
-        const result = service.decodePulseDetails(buf.buffer);
+        const result = service.decodePulseDetails(buf.buffer as ArrayBuffer);
         expect(result.items[0].state).toBe(expected);
       }
     });
@@ -91,7 +91,7 @@ describe('ProtobufService', () => {
       writer.raw(innerBytes);
       const buf = writer.finish();
 
-      const result = service.decodePulseDetails(buf.buffer);
+      const result = service.decodePulseDetails(buf.buffer as ArrayBuffer);
       expect(result.items[0].state).toBe(PulseStates.Unknown);
     });
   });
@@ -115,7 +115,7 @@ describe('ProtobufService', () => {
       writer.raw(innerBytes);
       const buf = writer.finish();
 
-      const result = service.decodeMetrics(buf.buffer);
+      const result = service.decodeMetrics(buf.buffer as ArrayBuffer);
       expect(result.items).toHaveLength(1);
       expect(result.items[0].timestamp).toBe(1700000000000);
       expect(result.items[0].cpu).toBeCloseTo(45.5);
@@ -147,7 +147,7 @@ describe('ProtobufService', () => {
       writer.raw(innerBytes);
       const buf = writer.finish();
 
-      const result = service.decodeHeatmaps(buf.buffer);
+      const result = service.decodeHeatmaps(buf.buffer as ArrayBuffer);
       expect(result.id).toBe('pulse-123');
       expect(result.items).toHaveLength(1);
       expect(result.items[0]).toEqual({

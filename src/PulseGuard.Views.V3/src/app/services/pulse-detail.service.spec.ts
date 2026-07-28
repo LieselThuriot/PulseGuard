@@ -4,17 +4,18 @@ import { provideHttpClient } from '@angular/common/http';
 import { PulseDetailService } from './pulse-detail.service';
 import { ProtobufService } from './protobuf.service';
 import { SUPPRESS_NOT_FOUND } from '../interceptors/error.interceptor';
+import { vi, type Mocked } from 'vitest';
 
 describe('PulseDetailService', () => {
   let service: PulseDetailService;
   let httpTesting: HttpTestingController;
-  let mockProto: jest.Mocked<Pick<ProtobufService, 'decodePulseDetails' | 'decodeMetrics' | 'decodeHeatmaps'>>;
+  let mockProto: Mocked<Pick<ProtobufService, 'decodePulseDetails' | 'decodeMetrics' | 'decodeHeatmaps'>>;
 
   beforeEach(() => {
     mockProto = {
-      decodePulseDetails: jest.fn().mockReturnValue({ group: 'g', name: 'n', items: [] }),
-      decodeMetrics: jest.fn().mockReturnValue({ items: [] }),
-      decodeHeatmaps: jest.fn().mockReturnValue({ id: 'x', items: [] }),
+      decodePulseDetails: vi.fn().mockReturnValue({ group: 'g', name: 'n', items: [] }),
+      decodeMetrics: vi.fn().mockReturnValue({ items: [] }),
+      decodeHeatmaps: vi.fn().mockReturnValue({ id: 'x', items: [] }),
     };
 
     TestBed.configureTestingModule({

@@ -1,6 +1,7 @@
 import { computeUptime } from './uptime.util';
 import { PulseOverviewItem } from '../models/pulse-overview.model';
 import { PulseStates } from '../models/pulse-states.enum';
+import { vi } from 'vitest';
 
 // The 12h window is anchored to wall-clock now (Date.now() - 12h). Tests mock
 // Date.now() to a fixed instant and build fixtures inside/around that window.
@@ -8,11 +9,11 @@ const NOW = '2024-06-15T12:00:00.000Z'; // window start = 2024-06-15T00:00:00Z
 
 describe('computeUptime', () => {
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(new Date(NOW).getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(new Date(NOW).getTime());
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns 100 when there is no data', () => {
