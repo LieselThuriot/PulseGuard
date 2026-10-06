@@ -1,11 +1,11 @@
 # PulseGuard Views V3
 
-Angular 21 frontend for PulseGuard — a health-check monitoring dashboard with real-time streaming, forecasting, and admin configuration management.
+Angular 22 frontend for PulseGuard — a health-check monitoring dashboard with real-time streaming, forecasting, and admin configuration management.
 
 ## Prerequisites
 
-- Node.js 22+
-- npm 11+
+- Node.js 22.22.3+, 24.15+, or 26+
+- npm 12.2+
 
 ## Getting Started
 
