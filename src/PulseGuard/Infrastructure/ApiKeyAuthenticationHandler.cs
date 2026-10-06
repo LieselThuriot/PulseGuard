@@ -4,18 +4,20 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using PulseGuard.Entities;
+using PulseGuard.Services;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 
 namespace PulseGuard.Infrastructure;
 
-internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, PulseContext context)
+internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, PulseContext context, ApiKeyService apiKeyService)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "CookieOrApiKey";
     private const string HeaderName = "x-api-key";
 
     private readonly PulseContext _context = context;
+    private readonly ApiKeyService _apiKeyService = apiKeyService;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -41,7 +43,7 @@ internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<Authentication
 
     private async Task<AuthenticateResult> Authenticate(string key)
     {
-        PulseApiKey? apiKey = await _context.Settings.FindPulseApiKeyAsync(ApiKeyHelper.ComputeHash(key), Context.RequestAborted);
+        PulseApiKey? apiKey = await _context.Settings.FindPulseApiKeyAsync(_apiKeyService.ComputeHash(key), Context.RequestAborted);
 
         if (apiKey is not null && IsValid(apiKey))
         {

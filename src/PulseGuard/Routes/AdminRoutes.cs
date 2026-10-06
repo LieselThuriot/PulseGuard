@@ -82,7 +82,7 @@ public static class AdminRoutes
                     key.ValidFor)));
             });
 
-            builder.MapPost("", static async (ApiKeyCreationRequest request, PulseContext context, CancellationToken token) =>
+            builder.MapPost("", static async (ApiKeyCreationRequest request, ApiKeyService apiKeyService, PulseContext context, CancellationToken token) =>
             {
                 if (string.IsNullOrWhiteSpace(request.Label))
                 {
@@ -107,7 +107,7 @@ public static class AdminRoutes
                 PulseApiKey apiKey = new()
                 {
                     Id = Guid.CreateVersion7().ToString("N"),
-                    KeyHash = ApiKeyHelper.GenerateHash(),
+                    KeyHash = apiKeyService.GenerateHash(),
                     Label = request.Label.Trim(),
                     Created = DateTimeOffset.UtcNow,
                     ValidFor = request.ValidForDays
