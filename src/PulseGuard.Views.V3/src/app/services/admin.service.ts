@@ -5,6 +5,7 @@ import {
   PulseEntry, PulseConfiguration, PulseAgentConfiguration,
   WebhookEntry, Webhook, UserEntry, CredentialEntry, CredentialOverview,
   OAuth2CredentialForm, BasicCredentialForm, ApiKeyCredentialForm,
+  AdminApiKeyEntry, ApiKeyCreationRequest, ApiKeyCreatedResponse,
 } from '../models/admin.model';
 
 @Injectable({ providedIn: 'root' })
@@ -173,5 +174,18 @@ export class AdminService {
       case 'Basic':  return this.deleteBasic(cred.id);
       case 'ApiKey': return this.deleteApiKey(cred.id);
     }
+  }
+
+  // API keys used to authenticate to PulseGuard
+  getAdminApiKeys(): Observable<AdminApiKeyEntry[]> {
+    return this.http.get<AdminApiKeyEntry[]>('api/1.0/admin/api-keys');
+  }
+
+  createAdminApiKey(request: ApiKeyCreationRequest): Observable<ApiKeyCreatedResponse> {
+    return this.http.post<ApiKeyCreatedResponse>('api/1.0/admin/api-keys', request);
+  }
+
+  deleteAdminApiKey(id: string): Observable<void> {
+    return this.http.delete<void>(`api/1.0/admin/api-keys/${encodeURIComponent(id)}`);
   }
 }

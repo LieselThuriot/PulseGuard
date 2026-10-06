@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AdminService } from '../../services/admin.service';
 import { AuthService } from '../../services/auth.service';
-import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialEntry } from '../../models/admin.model';
+import { PulseEntry, PulseEntryType, WebhookEntry, UserEntry, CredentialEntry, AdminApiKeyEntry } from '../../models/admin.model';
 import { SearchInputComponent } from '../../components/search-input/search-input.component';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog.component';
@@ -15,21 +15,22 @@ import { AgentListComponent } from './components/agent-list/agent-list.component
 import { WebhookListComponent } from './components/webhook-list/webhook-list.component';
 import { UserListComponent } from './components/user-list/user-list.component';
 import { CredentialListComponent } from './components/credential-list/credential-list.component';
+import { ApiKeyListComponent } from './components/api-key-list/api-key-list.component';
 
 type SortColumn = 'group' | 'name' | 'id';
 type SortDir = 'asc' | 'desc';
 
-const TAB_NAMES: Record<number, string> = { 1: 'pulse', 2: 'agents', 3: 'webhooks', 4: 'users', 5: 'credentials' };
-const TAB_IDS: Record<string, number> = { pulse: 1, agents: 2, webhooks: 3, users: 4, credentials: 5 };
+const TAB_NAMES: Record<number, string> = { 1: 'pulse', 2: 'agents', 3: 'webhooks', 4: 'users', 5: 'credentials', 6: 'api-keys' };
+const TAB_IDS: Record<string, number> = { pulse: 1, agents: 2, webhooks: 3, users: 4, credentials: 5, 'api-keys': 6 };
 const EDITOR_PATHS: Record<number, string> = {
   1: '/admin/pulse-editor', 2: '/admin/agent-editor', 3: '/admin/webhook-editor',
-  4: '/admin/user-editor', 5: '/admin/credential-editor',
+  4: '/admin/user-editor', 5: '/admin/credential-editor', 6: '/admin/api-key-editor',
 };
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, SearchInputComponent, LoadingSpinnerComponent, PulseListComponent, AgentListComponent, WebhookListComponent, UserListComponent, CredentialListComponent],
+  imports: [RouterLink, NgbNav, NgbNavItem, NgbNavContent, NgbNavOutlet, NgbNavLinkButton, SearchInputComponent, LoadingSpinnerComponent, PulseListComponent, AgentListComponent, WebhookListComponent, UserListComponent, CredentialListComponent, ApiKeyListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',
@@ -54,6 +55,7 @@ export class AdminComponent implements OnInit {
   readonly webhooks = signal<WebhookEntry[]>([]);
   readonly users = signal<UserEntry[]>([]);
   readonly credentials = signal<CredentialEntry[]>([]);
+  readonly apiKeys = signal<AdminApiKeyEntry[]>([]);
 
   private sortByGroupName<T extends { group?: string; name: string }>(list: T[]): T[] {
     const col = this.sortCol();
@@ -104,8 +106,14 @@ export class AdminComponent implements OnInit {
     return [...list].sort((a, b) => a.id.localeCompare(b.id));
   });
 
+  readonly filteredApiKeys = computed(() => {
+    const q = this.searchQuery().toLowerCase();
+    return this.apiKeys().filter((key) => key.label.toLowerCase().includes(q));
+  });
+
   private readonly authService = inject(AuthService);
   readonly hasCredentials = this.authService.hasCredentials;
+  readonly hasApiKeys = this.authService.hasApiKeys;
 
   constructor(
     private readonly adminService: AdminService,
@@ -291,6 +299,21 @@ export class AdminComponent implements OnInit {
     }).catch(() => {});
   }
 
+  deleteApiKey(apiKey: AdminApiKeyEntry): void {
+    const ref = this.modal.open(ConfirmDialogComponent);
+    ref.result.then((confirmed) => {
+      if (confirmed) {
+        this.adminService.deleteAdminApiKey(apiKey.id).subscribe({
+          next: () => {
+            this.apiKeys.update((list) => list.filter((key) => key.id !== apiKey.id));
+            this.notifications.success('API key revoked.');
+          },
+          error: () => this.notifications.error('Failed to revoke API key.'),
+        });
+      }
+    }).catch(() => {});
+  }
+
   private loadAll(): void {
     this.loading.set(true);
     this.adminService.getConfigurations().subscribe({
@@ -315,6 +338,12 @@ export class AdminComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
+      });
+    }
+    if (this.hasApiKeys()) {
+      this.adminService.getAdminApiKeys().subscribe({
+        next: (data) => this.apiKeys.set(data),
+        error: () => this.notifications.error('Failed to load API keys.'),
       });
     }
   }

@@ -23,8 +23,10 @@ internal sealed class PulseAuthenticationSettings
 
 internal static class AuthSetup
 {
+    public const string CookieOrApiKeyScheme = "CookieOrApiKey";
     public const string AdministratorPolicy = "Administrator";
     public const string CredentialsPolicy = "Credentials";
+    public const string ApiKeyPolicy = "ApiKeys";
 
     public static bool ConfigureAuthentication(this IServiceCollection services, ConfigurationManager configuration)
     {
@@ -54,13 +56,14 @@ internal static class AuthSetup
 
         services.AddAuthorization(options =>
                 {
-                    options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator"));
-                    options.AddPolicy(CredentialsPolicy, policy => policy.RequireAuthenticatedUser().RequireRole("Administrator").RequireRole("Credentials"));
+                    options.AddPolicy(AdministratorPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(AdministratorPolicy));
+                    options.AddPolicy(CredentialsPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(AdministratorPolicy).RequireRole(CredentialsPolicy));
+                    options.AddPolicy(ApiKeyPolicy, policy => policy.RequireAuthenticatedUser().RequireRole(AdministratorPolicy).RequireRole(ApiKeyPolicy));
                 })
                 .AddAuthentication(options =>
                 {
-                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+                    options.DefaultScheme = CookieOrApiKeyScheme;
+                    options.DefaultChallengeScheme = CookieOrApiKeyScheme;
                 })
                 .AddCookie(options =>
                 {
@@ -75,6 +78,7 @@ internal static class AuthSetup
                         options.Cookie.Path = pathBase;
                     }
                 })
+                .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(CookieOrApiKeyScheme, _ => { })
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
                     options.AccessDeniedPath = accessDeniedPath;

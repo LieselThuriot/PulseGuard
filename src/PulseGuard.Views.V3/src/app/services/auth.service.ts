@@ -11,6 +11,7 @@ export class AuthService {
   readonly loaded = this._loaded.asReadonly();
   readonly isAdmin = computed(() => this._userInfo()?.roles?.includes('Administrator') ?? false);
   readonly hasCredentials = computed(() => this._userInfo()?.roles?.includes('Credentials') ?? false);
+  readonly hasApiKeys = computed(() => this._userInfo()?.roles?.includes('ApiKeys') ?? false);
 
   constructor(private readonly http: HttpClient) {
     this.loadUser();

@@ -3,13 +3,21 @@
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h2 class="h5 mb-0"><i class="bi bi-gear-fill"></i> Configuration Management</h2>
       <div class="d-flex align-items-center gap-2">
-        <a [routerLink]="createEditorPath()" [queryParams]="createEditorParams()" class="btn btn-sm btn-success">
-          <i class="bi bi-plus-circle"></i> Create New
-        </a>
+        @if (activeTab() === 6 && hasApiKeys()) {
+          <a [routerLink]="createEditorPath()" [queryParams]="createEditorParams()" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-circle"></i> Create API Key
+          </a>
+        } @else if (activeTab() !== 6) {
+          <a [routerLink]="createEditorPath()" [queryParams]="createEditorParams()" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-circle"></i> Create New
+          </a>
+        }
+        @if (activeTab() !== 6) {
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" id="filter-disabled" [checked]="showDisabledOnly()" (change)="toggleDisabledFilter()" />
           <label class="form-check-label" for="filter-disabled">Show Disabled Only</label>
         </div>
+        }
       </div>
     </div>
     <div class="card-body">
@@ -117,6 +125,22 @@
                 [credentials]="creds"
                 [tabName]="tab"
                 (deleteItem)="deleteCredential($event)"
+              />
+            </ng-template>
+          </li>
+          }
+
+          <!-- API Keys -->
+          @if (hasApiKeys()) {
+          <li [ngbNavItem]="6">
+            <button ngbNavLink>
+              <i class="bi bi-shield-lock-fill"></i><span class="d-none d-sm-inline"> API Keys</span>
+              <span class="badge bg-danger ms-1">{{ apiKeys().length }}</span>
+            </button>
+            <ng-template ngbNavContent>
+              <app-api-key-list
+                [apiKeys]="filteredApiKeys()"
+                (deleteItem)="deleteApiKey($event)"
               />
             </ng-template>
           </li>

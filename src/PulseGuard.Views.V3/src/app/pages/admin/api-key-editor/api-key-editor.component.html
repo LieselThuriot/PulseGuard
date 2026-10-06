@@ -1,0 +1,74 @@
+<div class="container-fluid page-card-container">
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0"><i class="bi bi-shield-key-fill"></i> Create API Key</h2>
+      @if (!createdKey()) {
+        <a [routerLink]="['/admin', 'api-keys']" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+      }
+    </div>
+    <div class="card-body">
+      @if (createdKey(); as key) {
+        <div class="row">
+          <div class="col-12 col-md-8 col-lg-6">
+            <div class="bg-body-tertiary border-start border-4 border-info rounded-2 py-2 px-3 mb-3" role="status">
+              <div>
+                <h3 class="h6 fw-semibold d-flex align-items-center gap-2 mb-1">
+                  <i class="bi bi-info-circle-fill text-info" aria-hidden="true"></i>
+                  API key created
+                </h3>
+                <p class="small text-body-secondary mb-0">Copy and store this key now. For security, it will only be shown once.</p>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="createdApiKey" class="form-label fw-semibold mb-1">API key</label>
+              <div class="input-group">
+                <input id="createdApiKey" class="form-control font-monospace" type="text" [value]="key" readonly aria-label="New API key secret" />
+                <button class="btn btn-primary btn-sm px-3" type="button" (click)="copyKey()"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="done()"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Done</button>
+          </div>
+        </div>
+      } @else {
+        <form (ngSubmit)="create()">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="apiKeyLabel" class="form-label">Label</label>
+              <input type="text" class="form-control" id="apiKeyLabel" [ngModel]="label()" (ngModelChange)="label.set($event)" name="label" maxlength="100" required />
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="apiKeyExpires" [ngModel]="expires()" (ngModelChange)="expires.set($event)" name="expires" />
+                <label class="form-check-label" for="apiKeyExpires">Key expires</label>
+              </div>
+            </div>
+            @if (expires()) {
+              <div class="col-md-4">
+                <label for="validForDays" class="form-label">Valid for (days)</label>
+                <input type="number" class="form-control" id="validForDays" [ngModel]="validForDays()" (ngModelChange)="validForDays.set(+$event)" name="validForDays" min="1" max="365" step="1" required />
+              </div>
+            } @else {
+              <div class="col-md-6">
+                <div class="alert alert-warning mb-0" role="alert">
+                  <h3 class="alert-heading h6 fw-bold d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                    No expiration date
+                  </h3>
+                  <p class="mb-1">This key will remain valid forever unless revoked.</p>
+                  <p class="mb-0 small">Keys without an expiration date are less secure. We recommend setting an expiration date and rotating keys regularly.</p>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary" [disabled]="saving() || !label().trim() || (expires() && (validForDays() < 1 || validForDays() > 365))">
+              @if (saving()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+              Create API Key
+            </button>
+            <a [routerLink]="['/admin', 'api-keys']" class="btn btn-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

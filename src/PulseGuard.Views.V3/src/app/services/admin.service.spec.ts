@@ -313,4 +313,28 @@ describe('AdminService', () => {
       req.flush(null);
     });
   });
+
+  describe('Admin API keys', () => {
+    it('should GET API key metadata', () => {
+      service.getAdminApiKeys().subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/api-keys');
+      expect(req.request.method).toBe('GET');
+      req.flush([]);
+    });
+
+    it('should POST to create an API key', () => {
+      service.createAdminApiKey({ label: 'monitor', validForDays: 30 }).subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/api-keys');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ label: 'monitor', validForDays: 30 });
+      req.flush({ id: 'key-id', key: 'secret' });
+    });
+
+    it('should DELETE an API key by its management ID', () => {
+      service.deleteAdminApiKey('key/id').subscribe();
+      const req = httpTesting.expectOne('api/1.0/admin/api-keys/key%2Fid');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
 });

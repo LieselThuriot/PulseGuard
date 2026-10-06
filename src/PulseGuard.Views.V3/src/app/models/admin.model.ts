@@ -154,3 +154,20 @@ export interface ApiKeyCredentialForm {
   header: string;
   apiKey: string;
 }
+
+export interface AdminApiKeyEntry {
+  id: string;
+  label: string;
+  created: string;
+  validForDays: number | null;
+}
+
+export interface ApiKeyCreationRequest {
+  label: string;
+  validForDays: number | null;
+}
+
+export interface ApiKeyCreatedResponse {
+  id: string;
+  key: string;
+}

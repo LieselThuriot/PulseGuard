@@ -8,6 +8,7 @@ using PulseGuard.Models;
 using PulseGuard.Models.Admin;
 using PulseGuard.Services;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using TableStorage;
 using TableStorage.Linq;
 
@@ -16,6 +17,7 @@ namespace PulseGuard.Routes;
 public static class AdminRoutes
 {
     private const string UserEndpoint = "api/1.0/user";
+    private const int MaxApiKeyValidityDays = 365;
 
     extension(IEndpointRouteBuilder builder)
     {
@@ -45,6 +47,7 @@ public static class AdminRoutes
             appGroup.MapGroup("webhooks").WithTags("Admin", "Webhooks").CreateWebhookMappings();
             appGroup.MapGroup("users").WithTags("Admin", "Users").CreateUserMappings();
             appGroup.MapGroup("credentials").WithTags("Admin", "Credentials").CreateCredentialMappings();
+            appGroup.MapGroup("api-keys").WithTags("Admin", "API Keys").RequireAuthorization(AuthSetup.ApiKeyPolicy).CreateApiKeyMappings();
         }
 
         private void CreateCredentialMappings()
@@ -67,6 +70,68 @@ public static class AdminRoutes
             creds.MapApiKeyAuth();
         }
 
+        private void CreateApiKeyMappings()
+        {
+            builder.MapGet("", static async (PulseContext context, CancellationToken token) =>
+            {
+                var keys = await context.Settings.WherePulseApiKey().ToListAsync(token);
+                return Results.Ok(keys.Select(key => new ApiKeyEntry(
+                    key.Id,
+                    key.Label,
+                    key.Created,
+                    key.ValidFor)));
+            });
+
+            builder.MapPost("", static async (ApiKeyCreationRequest request, PulseContext context, CancellationToken token) =>
+            {
+                if (string.IsNullOrWhiteSpace(request.Label))
+                {
+                    return Results.BadRequest("Label is required.");
+                }
+
+                if (request.Label.Trim().Length > 100)
+                {
+                    return Results.BadRequest("Label must be 100 characters or fewer.");
+                }
+
+                if (request.ValidForDays is <= 0)
+                {
+                    return Results.BadRequest("ValidForDays must be greater than zero, or null for no expiration.");
+                }
+
+                if (request.ValidForDays > MaxApiKeyValidityDays)
+                {
+                    return Results.BadRequest($"ValidForDays must be {MaxApiKeyValidityDays} or fewer.");
+                }
+
+                PulseApiKey apiKey = new()
+                {
+                    Id = Guid.CreateVersion7().ToString("N"),
+                    KeyHash = ApiKeyHelper.GenerateHash(),
+                    Label = request.Label.Trim(),
+                    Created = DateTimeOffset.UtcNow,
+                    ValidFor = request.ValidForDays
+                };
+
+                await context.Settings.AddEntityAsync(apiKey, token);
+                return Results.Ok(new ApiKeyCreatedResponse(apiKey.Id, apiKey.KeyHash));
+            });
+
+            builder.MapDelete("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+            {
+                PulseApiKey? apiKey = await context.Settings.FindPulseApiKeyAsync(id, token);
+
+                if (apiKey is null)
+                {
+                    return Results.NotFound();
+                }
+
+                await context.Settings.DeleteEntityAsync(apiKey, token);
+                return Results.NoContent();
+            });
+
+        }
+
         private void MapOAuth2Auth()
         {
             var oauth2 = builder.MapGroup("oauth2");
@@ -76,7 +141,7 @@ public static class AdminRoutes
 
                 if (credential is not null)
                 {
-                    await context.Credentials.DeleteOAuth2CredentialsAsync(id, token);
+                    await context.Credentials.DeleteEntityAsync(credential, token);
                     service.Purge(credential);
                 }
 
@@ -243,7 +308,7 @@ public static class AdminRoutes
                 if (request.Roles is not null)
                 {
                     IEnumerable<string> myRoles = currentUser.Identities.SelectMany(i => i.FindAll(i.RoleClaimType)).Select(r => r.Value);
-                    if (request.Roles.Except(myRoles).Any())
+                    if (!myRoles.Contains("Owner") && request.Roles.Except(myRoles).Any())
                     {
                         return Results.BadRequest("You're only allowed to give roles you have yourself.");
                     }

@@ -54,6 +54,9 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(Admin.ApiKeyCredentialRequest))]
 [JsonSerializable(typeof(Admin.BasicCredentialRequest))]
 [JsonSerializable(typeof(Admin.OAuth2CredentialRequest))]
+[JsonSerializable(typeof(Admin.ApiKeyEntry))]
+[JsonSerializable(typeof(Admin.ApiKeyCreationRequest))]
+[JsonSerializable(typeof(Admin.ApiKeyCreatedResponse))]
 
 [JsonSerializable(typeof(Entities.Pulse))]
 [JsonSerializable(typeof(Entities.PulseCheckResult))]

@@ -57,6 +57,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'api-key-editor',
+        loadComponent: () =>
+          import('./pages/admin/api-key-editor/api-key-editor.component').then(
+            (m) => m.ApiKeyEditorComponent,
+          ),
+      },
+      {
         path: ':tab',
         loadComponent: () => import('./pages/admin/admin.component').then((m) => m.AdminComponent),
       },
