@@ -12,6 +12,7 @@ namespace PulseGuard.Models;
     WriteIndented = false)]
 [JsonSerializable(typeof(IAsyncEnumerable<PulseOverviewGroup>))]
 [JsonSerializable(typeof(Dictionary<string, PulseStates>))]
+[JsonSerializable(typeof(Dictionary<string, HealthQueryDetail>))]
 [JsonSerializable(typeof(PulseOverviewStateGroup))]
 [JsonSerializable(typeof(PulseDetailGroupItem))]
 [JsonSerializable(typeof(PulseStateGroupItem))]

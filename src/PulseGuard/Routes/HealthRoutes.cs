@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
@@ -98,6 +99,49 @@ public static class HealthRoutes
 
                 HttpStatusCode code = MapToStatusCode(state);
                 return Results.Text(state.Stringify(), MediaTypeNames.Text.Plain, Encoding.Default, (int)code);
+            });
+
+            healthGroup.MapGet("query/details", async Task<Results<BadRequest, Ok<Dictionary<string, HealthQueryDetail>>, Ok<HealthQueryDetail>>> ([FromQuery(Name = "id")] string[] ids, IOptions<PulseOptions> options, PulseContext context, CancellationToken token) =>
+            {
+                if (ids is not { Length: > 0 })
+                {
+                    return TypedResults.BadRequest();
+                }
+
+                var uniqueIdentifiers = await context.Settings.WhereUniqueIdentifier()
+                                                              .ExistsIn(x => x.Id, ids)
+                                                              .SelectFields(x => new { x.Id, x.Name, x.Group })
+                                                              .ToDictionaryAsync(x => x.Id, cancellationToken: token);
+
+                DateTimeOffset offset = GetOffset(options.Value.Interval);
+                var recentPulses = await context.RecentPulses
+                                                .ExistsIn(x => x.Sqid, ids)
+                                                .Where(x => x.LastUpdatedTimestamp > offset)
+                                                .SelectFields(x => new { x.Sqid, x.State, x.LastUpdatedTimestamp, x.LastElapsedMilliseconds })
+                                                .GroupBy(x => x.Sqid)
+                                                .Select(x => x.OrderByDescending(y => y.LastUpdatedTimestamp)
+                                                              .Select(y =>
+                                                              {
+                                                                  (string? group, string name) = uniqueIdentifiers[y.Sqid].GetFullNameTuple();
+                                                                  HealthQueryDetail detail = new(group, name, y.State, y.LastElapsedMilliseconds);
+
+                                                                  return (y.Sqid, Detail: detail);
+                                                              })
+                                                              .First())
+                                                .ToDictionaryAsync(x => x.Sqid,
+                                                                   x => x.Detail,
+                                                                   cancellationToken: token);
+
+                foreach (string id in ids)
+                {
+                    recentPulses.TryAdd(id, HealthQueryDetail.Missing);
+                }
+
+                return recentPulses.Count switch
+                {
+                    1 => TypedResults.Ok(recentPulses.Values.First()),
+                    _ => TypedResults.Ok(recentPulses)
+                };
             });
         }
     }

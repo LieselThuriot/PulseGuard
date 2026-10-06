@@ -21,4 +21,6 @@ public sealed partial class UniqueIdentifier
 
         return result;
     }
+
+    public (string? Group, string Name) GetFullNameTuple() => (Group is "" ? null : Group, Name);
 }
