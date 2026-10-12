@@ -12,9 +12,9 @@ internal static class ServicesSetup
         services.AddMemoryCache();
 
         services.AddSingleton<IdService>();
-        services.AddSingleton<ApiKeyService>();
         services.AddSingleton<SignalService>();
 
+        services.AddScoped<ApiKeyService>();
         services.AddScoped<PulseStore>();
 
         services.AddSingleton<AsyncPulseStoreService>();

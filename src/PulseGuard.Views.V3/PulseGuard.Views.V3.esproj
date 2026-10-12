@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.6311650">
+﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.6887863">
   <PropertyGroup>
     <RestoreEnableGlobalPackageReference>false</RestoreEnableGlobalPackageReference>
     <StartupCommand>npm start</StartupCommand>

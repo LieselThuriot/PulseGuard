@@ -10,13 +10,12 @@ using System.Text.Encodings.Web;
 
 namespace PulseGuard.Infrastructure;
 
-internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, PulseContext context, ApiKeyService apiKeyService)
+internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ApiKeyService apiKeyService)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "CookieOrApiKey";
     private const string HeaderName = "x-api-key";
 
-    private readonly PulseContext _context = context;
     private readonly ApiKeyService _apiKeyService = apiKeyService;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -43,9 +42,9 @@ internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<Authentication
 
     private async Task<AuthenticateResult> Authenticate(string key)
     {
-        PulseApiKey? apiKey = await _context.Settings.FindPulseApiKeyAsync(_apiKeyService.ComputeHash(key), Context.RequestAborted);
+        PulseApiKey? apiKey = await _apiKeyService.FindValidAsync(key, Context.RequestAborted);
 
-        if (apiKey is not null && IsValid(apiKey))
+        if (apiKey is not null)
         {
             ClaimsIdentity identity = new([new Claim(ClaimTypes.Name, "API key")], SchemeName);
             ClaimsPrincipal principal = new(identity);
@@ -54,23 +53,6 @@ internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<Authentication
         }
 
         return AuthenticateResult.Fail("The API key is invalid or expired.");
-    }
-
-    private static bool IsValid(PulseApiKey apiKey)
-    {
-        if (apiKey.ValidFor is not int validFor)
-        {
-            return true;
-        }
-
-        try
-        {
-            return DateTimeOffset.UtcNow < apiKey.Created.AddDays(validFor);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            return false;
-        }
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)

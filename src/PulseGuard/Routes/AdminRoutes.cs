@@ -8,7 +8,6 @@ using PulseGuard.Models;
 using PulseGuard.Models.Admin;
 using PulseGuard.Services;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using TableStorage;
 using TableStorage.Linq;
 
@@ -117,7 +116,7 @@ public static class AdminRoutes
                 return Results.Ok(new ApiKeyCreatedResponse(apiKey.Id, apiKey.KeyHash));
             });
 
-            builder.MapDelete("{id}", static async (string id, PulseContext context, CancellationToken token) =>
+            builder.MapDelete("{id}", static async (string id, PulseContext context, ApiKeyService apiKeyService, CancellationToken token) =>
             {
                 PulseApiKey? apiKey = await context.Settings.FindPulseApiKeyAsync(id, token);
 
@@ -127,6 +126,7 @@ public static class AdminRoutes
                 }
 
                 await context.Settings.DeleteEntityAsync(apiKey, token);
+                apiKeyService.RemoveFromCache(apiKey.KeyHash);
                 return Results.NoContent();
             });
 
