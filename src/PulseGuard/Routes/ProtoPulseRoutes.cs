@@ -13,8 +13,10 @@ public static class ProtoPulseRoutes
     {
         public void MapProtoPulses()
         {
-            builder.MapGroup("/api/1.0/pulses").WithTags("ProtoPulses").CreatePulseMappings();
-            builder.MapGroup("/api/1.0/metrics").WithTags("Metrics").CreateMetricsMappings();
+            var apiV1 = builder.MapGroup("/api/1.0");
+
+            apiV1.MapGroup("pulses").WithTags("ProtoPulses").CreatePulseMappings();
+            apiV1.MapGroup("metrics").WithTags("Metrics").CreateMetricsMappings();
         }
 
         private void CreateMetricsMappings()

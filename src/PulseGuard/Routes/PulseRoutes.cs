@@ -42,6 +42,26 @@ public static class PulseRoutes
                             ).ToListAsync(token);
             });
 
+            group.MapGet("list", (PulseContext context, CancellationToken token) =>
+            {
+                return context.Settings.WhereUniqueIdentifier()
+                              .SelectFields(x => new { x.Id, x.Group, x.Name })
+                              .Select(x =>
+                              {
+                                  string? group = x.Group;
+
+                                  if (string.IsNullOrEmpty(group))
+                                  {
+                                      group = null;
+                                  }
+
+                                  return new PulseReference(x.Id, group, x.Name);
+                              })
+                              .OrderBy(x => x.Group ?? "{") // { follows z in ASCII, so it will be sorted after all non-null groups
+                              .ThenBy(x => x.Name)
+                              .ToListAsync(token);
+            });
+
             group.MapGet("application/{id}", async Task<Results<Ok<PulseDetailGroupItem>, NotFound>> (string id, PulseContext context, CancellationToken token, [FromQuery] string? continuationToken = null, [FromQuery] int pageSize = 10) =>
             {
                 UniqueIdentifier? identifier = await context.Settings.FindUniqueIdentifierAsync(id, token);

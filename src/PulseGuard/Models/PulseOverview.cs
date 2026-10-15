@@ -17,3 +17,4 @@ public sealed record PulseDeployments(string Id, IEnumerable<PulseDeployment> It
 public sealed record PulseDeployment(string Status, DateTimeOffset From, DateTimeOffset? To, string? Author, string? Type, string? CommitId, string? BuildNumber);
 public sealed record PulseHeatmaps(string Id, IEnumerable<PulseHeatmap> Items);
 public sealed record PulseHeatmap(string Day, int Unknown, int Healthy, int Degraded, int Unhealthy, int TimedOut);
+public sealed record PulseReference(string Id, string? Group, string Name);
