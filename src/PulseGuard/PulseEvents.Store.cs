@@ -3,9 +3,6 @@ namespace PulseGuard;
 public static partial class PulseEvents
 {
     // Store events (300-399)
-    [LoggerMessage(EventId = 301, Level = LogLevel.Information, Message = "Empty Sqid found for {Name}, generating new one.")]
-    public static partial void EmptySqidFound(this ILogger logger, string name);
-
     [LoggerMessage(EventId = 302, Level = LogLevel.Information, Message = "Storing pulse report for {Sqid} - {Name}")]
     public static partial void StoringPulseReport(this ILogger logger, string sqid, string name);
 

@@ -7,31 +7,21 @@ using TableStorage.Linq;
 
 namespace PulseGuard.Services;
 
-public sealed class PulseStore(PulseContext context, IdService idService, WebhookService webhookService, IPulseEventService pulseEventService, IOptions<PulseOptions> options, ILogger<PulseStore> logger)
+public sealed class PulseStore(PulseContext context, WebhookService webhookService, IOptions<PulseOptions> options, ILogger<PulseStore> logger)
 {
     private readonly PulseContext _context = context;
-    private readonly IdService _idService = idService;
     private readonly WebhookService _webhookService = webhookService;
-    private readonly IPulseEventService _pulseEventService = pulseEventService;
     private readonly PulseOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
-    public async Task StoreAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
+    public Task StoreAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(report.Options.Sqid))
-        {
-            _logger.EmptySqidFound(report.Options.Name);
-            await GenerateSqidAndUpdate(report.Options, token);
-        }
-
         _logger.StoringPulseReport(report.Options.Sqid, report.Options.Name);
 
-        await Task.WhenAll(
+        return Task.WhenAll(
             StoreBlobsAsync(report, creation, elapsedMilliseconds, token),
             StoreTablesAsync(report, creation, elapsedMilliseconds, token)
         );
-
-        _pulseEventService.Notify(report.Options.Sqid, report.Options.Group, report.Options.Name, report.State, creation, elapsedMilliseconds);
     }
 
     private async Task StoreTablesAsync(PulseReport report, DateTimeOffset creation, long elapsedMilliseconds, CancellationToken token)
@@ -105,7 +95,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
     private async Task TrackFailures(PulseReport report, Pulse pulse, CancellationToken token)
     {
-        FailCounter pulseCounter = await _context.Settings.FindFailCounterAsync(report.Options.Sqid, token) ?? new FailCounter()
+        FailCounter pulseCounter = await _context.State.FindFailCounterAsync(report.Options.Sqid, token) ?? new FailCounter()
         {
             ETag = ETag.All,
             Sqid = report.Options.Sqid,
@@ -114,7 +104,7 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
 
         pulseCounter.Value = report.State is PulseStates.Healthy ? 0 : pulseCounter.Value + 1;
 
-        await _context.Settings.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
+        await _context.State.UpsertEntityAsync(pulseCounter, TableUpdateMode.Replace, token);
 
         //Todo : Calculate based on percentage of last X checks instead of absolute count
         if (_options.AlertThreshold > 0 && pulseCounter.Value == _options.AlertThreshold)
@@ -297,42 +287,5 @@ public sealed class PulseStore(PulseContext context, IdService idService, Webhoo
         {
             _logger.FailedToCleanUpAgentsOuter(outerEx);
         }
-    }
-
-    private async Task GenerateSqidAndUpdate(PulseConfiguration configuration, CancellationToken token)
-    {
-        configuration.Sqid = await GenerateSqid(configuration.Group, configuration.Name, token);
-        await _context.Configurations.UpdateEntityAsync(configuration, token);
-    }
-
-    public async Task<string> GenerateSqid(string group, string name, CancellationToken token)
-    {
-        string id = _idService.GetSqid(group, name);
-
-        bool loop = true;
-        int retries = 0;
-
-        do
-        {
-            try
-            {
-                await _context.Settings.AddEntityAsync(new UniqueIdentifier()
-                {
-                    Id = id,
-                    Group = group,
-                    Name = name
-                }, token);
-
-                loop = false;
-            }
-            catch (RequestFailedException ex) when (retries++ <= 10)
-            {
-                _logger.SqidAlreadyExists(ex, id, retries);
-                id = _idService.GetRandomSqid();
-            }
-        }
-        while (loop);
-
-        return id;
     }
 }

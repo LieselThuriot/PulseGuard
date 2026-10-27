@@ -22,7 +22,7 @@ namespace PulseGuard.Models;
 [JsonSerializable(typeof(WebhookEventBase))]
 [JsonSerializable(typeof(WebhookEvent))]
 [JsonSerializable(typeof(ThresholdWebhookEvent))]
-[JsonSerializable(typeof(PulseEvent))]
+[JsonSerializable(typeof(Services.CheckJob))]
 [JsonSerializable(typeof(PulseEventInfo))]
 [JsonSerializable(typeof(AgentReport))]
 [JsonSerializable(typeof(PulseAgentReport))]

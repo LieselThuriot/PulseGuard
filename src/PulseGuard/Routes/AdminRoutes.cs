@@ -754,7 +754,7 @@ public static class AdminRoutes
                 });
             });
 
-            builder.MapPost("", static async (PulseCreationRequest request, PulseStore store, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
+            builder.MapPost("", static async (PulseCreationRequest request, IdService idService, PulseContext context, ILogger<Program> logger, CancellationToken token) =>
             {
                 if (request.Type is PulseCheckType.Json or PulseCheckType.Contains && string.IsNullOrWhiteSpace(request.ComparisonValue))
                 {
@@ -766,7 +766,7 @@ public static class AdminRoutes
                     return Results.BadRequest("DegrationTimeout must be less than Timeout.");
                 }
 
-                string sqid = await store.GenerateSqid(request.Group, request.Name, token);
+                string sqid = await GenerateSqidAsync(idService, context, logger, request.Group, request.Name, token);
                 PulseConfiguration config = new()
                 {
                     Group = request.Group,
@@ -874,6 +874,32 @@ public static class AdminRoutes
                 logger.DeletedNormalConfiguration(id);
                 return Results.NoContent();
             });
+        }
+    }
+
+    private static async Task<string> GenerateSqidAsync(IdService idService, PulseContext context, ILogger logger, string group, string name, CancellationToken token)
+    {
+        string id = idService.GetSqid(group, name);
+
+        int attempt = 0;
+        while (true)
+        {
+            try
+            {
+                await context.Settings.AddEntityAsync(new UniqueIdentifier()
+                {
+                    Id = id,
+                    Group = group,
+                    Name = name
+                }, token);
+
+                return id;
+            }
+            catch (RequestFailedException ex) when (++attempt <= 11)
+            {
+                logger.SqidAlreadyExists(ex, id, attempt);
+                id = idService.GetRandomSqid();
+            }
         }
     }
 }

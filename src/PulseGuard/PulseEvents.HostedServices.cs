@@ -26,14 +26,4 @@ public static partial class PulseEvents
 
     [LoggerMessage(EventId = 108, Level = LogLevel.Error, Message = "HTTP Error checking pulse")]
     public static partial void HttpErrorCheckingPulse(this ILogger logger, Exception ex);
-
-    // AsyncPulseStoreHostedService events (201)
-    [LoggerMessage(EventId = 201, Level = LogLevel.Error, Message = "Error checking pulses")]
-    public static partial void ErrorCheckingPulses(this ILogger logger, Exception ex);
-
-    [LoggerMessage(EventId = 202, Level = LogLevel.Error, Message = "Error storing pulses for message {id}")]
-    public static partial void ErrorStoringPulses(this ILogger logger, Exception ex, string id);
-
-    [LoggerMessage(EventId = 203, Level = LogLevel.Warning, Message = "Unknown agent report type for message {id}: {type}")]
-    public static partial void UnknownAgentReportType(this ILogger logger, string id, string? type);
 }

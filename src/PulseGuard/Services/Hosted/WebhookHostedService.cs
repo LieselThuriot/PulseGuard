@@ -1,17 +1,18 @@
-﻿using PulseGuard.Entities;
+﻿using Microsoft.Extensions.Options;
+using PulseGuard.Entities;
 using PulseGuard.Models;
 using SecureWebhooks;
 using TableStorage.Linq;
 
 namespace PulseGuard.Services.Hosted;
 
-internal sealed class WebhookHostedService(WebhookService webhookClient, SignalService signalService, IHttpClientFactory factory, PulseContext context, AuthService authService, ILogger<WebhookHostedService> logger) : BackgroundService
+internal sealed class WebhookHostedService(WebhookService webhookClient, IHttpClientFactory factory, PulseContext context, AuthService authService, IOptions<PulseOptions> options, ILogger<WebhookHostedService> logger) : BackgroundService
 {
     private readonly WebhookService _webhookClient = webhookClient;
-    private readonly SignalService _signalService = signalService;
     private readonly IHttpClientFactory _httpClientFactory = factory;
     private readonly PulseContext _context = context;
     private readonly AuthService _authService = authService;
+    private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(options.Value.QueuePollingSeconds);
     private readonly ILogger<WebhookHostedService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,13 +21,8 @@ internal sealed class WebhookHostedService(WebhookService webhookClient, SignalS
         {
             try
             {
-                await _signalService.WaitAsync(stoppingToken);
-
-                // Our search is not optimized on table side anyway, so it's most likely cheaper to just fetch all enabled webhooks and filter in memory
-                ILookup<WebhookType, Entities.Webhook> webhooks = await _context.Webhooks.Where(x => x.Enabled)
-                                                                                         .ToLookupAsync(x => x.Type, cancellationToken: stoppingToken);
-
-                await HandleWebhooks(webhooks, stoppingToken);
+                await Task.Delay(_pollingInterval, stoppingToken);
+                await HandleWebhooks(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -53,13 +49,23 @@ internal sealed class WebhookHostedService(WebhookService webhookClient, SignalS
         }
     }
 
-    private async Task HandleWebhooks(ILookup<WebhookType, Entities.Webhook> webhooks, CancellationToken stoppingToken)
+    private async Task HandleWebhooks(CancellationToken stoppingToken)
     {
         Lazy<HttpClient> client = new(() => _httpClientFactory.CreateClient("Webhooks"));
-        IEnumerable<Entities.Webhook> allHooks = webhooks[WebhookType.All];
+        ILookup<WebhookType, Entities.Webhook>? webhooks = null;
+        IEnumerable<Entities.Webhook> allHooks = [];
 
         await foreach (WebhookEventMessage message in _webhookClient.ReceiveMessagesAsync(stoppingToken))
         {
+            if (webhooks is null)
+            {
+                // Only load the webhooks once there is something to send
+                // Our search is not optimized on table side anyway, so it's most likely cheaper to just fetch all enabled webhooks and filter in memory
+                webhooks = await _context.Webhooks.Where(x => x.Enabled)
+                                                  .ToLookupAsync(x => x.Type, cancellationToken: stoppingToken);
+                allHooks = webhooks[WebhookType.All];
+            }
+
             try
             {
                 if (message.WebhookEvent is WebhookEvent webhookEvent)

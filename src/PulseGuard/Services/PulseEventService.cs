@@ -9,6 +9,8 @@ public interface IPulseListener
 
 public interface IPulseEventService
 {
+    public bool HasListeners { get; }
+
     public void Notify(string id, string group, string name, PulseStates state, DateTimeOffset creation, long elapsedMilliseconds);
 }
 
@@ -21,6 +23,8 @@ public sealed class PulseEventService : IPulseEventService, IPulseRegistrationSe
 {
     private readonly Lock _lock = new();
     private readonly List<IPulseListener> _listeners = [];
+
+    public bool HasListeners => _listeners.Count > 0;
 
     public void Notify(string id, string group, string name, PulseStates state, DateTimeOffset creation, long elapsedMilliseconds)
     {

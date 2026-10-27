@@ -194,6 +194,18 @@ Configuration Example:
 ```
 
 ---
+## Running Multiple Instances
+All instances sharing the same storage account work together as one deployment, so **each environment needs its own storage account**:
+- At each interval, one instance claims the tick (a row in the `State` table) and queues one job per pulse check (and per agent group) on the `checkjobs` queue. That instance also runs the periodic cleanup.
+  - An instance whose clock runs ahead can leave a claim in the future, which pauses scheduling until that time is reached (a warning is logged). To recover, delete the `schedule` row from the `State` table.
+- **Every instance** executes jobs from that queue, up to `SimultaneousPulses` at a time, and stores the results itself.
+- Jobs that fail are not retried and are skipped for that interval. Jobs interrupted by a shutdown are handed to another instance.
+- Webhooks are sent by every instance from the shared `webhooks` queue.
+- Live updates (SSE) poll the `RecentPulses` table while clients are connected, so they can lag a few seconds behind.
+
+Options (`pulse` section): `QueuePollingSeconds`.
+
+---
 ## Headers Format
 Both configuration types serialize headers as: `Name:Value;Another-Header:OtherValue` (no trailing semicolon). They are added with `TryAddWithoutValidation`.
 

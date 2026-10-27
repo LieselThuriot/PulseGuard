@@ -12,13 +12,14 @@ internal static class ServicesSetup
         services.AddMemoryCache();
 
         services.AddSingleton<IdService>();
-        services.AddSingleton<SignalService>();
 
         services.AddScoped<ApiKeyService>();
         services.AddScoped<PulseStore>();
+        services.AddScoped<PulseCheckExecutor>();
 
-        services.AddSingleton<AsyncPulseStoreService>();
         services.AddSingleton<WebhookService>();
+        services.AddSingleton<CheckJobQueue>();
+        services.AddScoped<IntervalClaimService>();
 
         services.AddSingleton(_ => new ArmClient(new DefaultAzureCredential()));
 
@@ -31,7 +32,8 @@ internal static class ServicesSetup
         services.AddSingleton<AuthService>();
 
         services.AddHostedService<Hosted.PulseHostedService>();
+        services.AddHostedService<Hosted.CheckWorkerHostedService>();
         services.AddHostedService<Hosted.WebhookHostedService>();
-        services.AddHostedService<Hosted.AsyncPulseStoreHostedService>();
+        services.AddHostedService<Hosted.PulseEventRefreshHostedService>();
     }
 }
