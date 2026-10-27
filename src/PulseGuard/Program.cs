@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using PulseGuard;
-using PulseGuard.Entities;
-using PulseGuard.Entities.Serializers;
 using PulseGuard.Infrastructure;
 using PulseGuard.Models;
 using PulseGuard.Routes;
@@ -13,9 +11,7 @@ using TableStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-string storeConnectionString = builder.Configuration.GetConnectionString("PulseStore") ?? throw new NullReferenceException("PulseStore");
-builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"))
-                .PostConfigure<PulseOptions>(options => options.Store = storeConnectionString);
+builder.Services.Configure<PulseOptions>(builder.Configuration.GetSection("pulse"));
 
 builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("encryption"))
                 .PostConfigure<EncryptionOptions>(options =>
@@ -29,20 +25,7 @@ builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
-var createIfNotExists = builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled;
-builder.Services.AddPulseContext(storeConnectionString,
-    x =>
-    {
-        x.CreateTableIfNotExists = createIfNotExists;
-        x.EnableFluentCompilationAtRuntime();
-    },
-    x =>
-    {
-        x.CreateContainerIfNotExists = createIfNotExists;
-        x.Serializer = new PulseBlobSerializer();
-        x.EnableCompilationAtRuntime();
-    }
-);
+builder.Services.AddPulseStorage(builder.Configuration, builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled);
 
 bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
 builder.Services.ConfigurePulseTelemetry(builder.Configuration);

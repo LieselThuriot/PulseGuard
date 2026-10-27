@@ -6,7 +6,6 @@ public sealed class PulseOptions
     public int CleaningInterval { get; set => field = Math.Max(1, value); } = 13;
     public int SimultaneousPulses { get; set => field = Math.Max(1, value); } = 20;
     public int AlertThreshold { get; set; } = 5;
-    public string Store { get; set; } = "";
 
     public int QueuePollingSeconds { get; set => field = Math.Max(1, value); } = 10;
 }

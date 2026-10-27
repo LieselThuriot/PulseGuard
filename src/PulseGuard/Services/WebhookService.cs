@@ -1,7 +1,6 @@
 ﻿using Azure;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
-using Microsoft.Extensions.Options;
 using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Runtime.CompilerServices;
@@ -10,9 +9,9 @@ namespace PulseGuard.Services;
 
 public readonly record struct WebhookEventMessage(string Id, string PopReceipt, WebhookEventBase? WebhookEvent);
 
-public sealed class WebhookService(IOptions<PulseOptions> options, ILogger<WebhookService> logger)
+public sealed class WebhookService(QueueServiceClient queueServiceClient, ILogger<WebhookService> logger)
 {
-    private readonly QueueClient _queueClient = new(options.Value.Store, "webhooks");
+    private readonly QueueClient _queueClient = queueServiceClient.GetQueueClient("webhooks");
     private readonly ILogger<WebhookService> _logger = logger;
 
     public async IAsyncEnumerable<WebhookEventMessage> ReceiveMessagesAsync([EnumeratorCancellation] CancellationToken token)

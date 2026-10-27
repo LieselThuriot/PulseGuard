@@ -8,18 +8,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-> Adds a new aggregated health query API and refines the overview and dashboard experience, alongside dependency vulnerability fixes.
+> Adds multi-instance support through shared storage queues, API key access, identity-based storage access, and new health query and listing APIs, alongside overview and dashboard refinements and dependency upgrades.
 
 ### Added
 
+- Added multi-instance support: all instances sharing a storage account cooperate as one deployment. Each interval one instance claims the tick (`State` table) and enqueues one job per check or agent group on the `checkjobs` queue, which every instance executes up to `SimultaneousPulses` at a time.
+- Added a `pulse:QueuePollingSeconds` option controlling how often instances poll the shared queues.
+- Added a "Running Multiple Instances" section to the README.
+- Added API key access: administrators can create, list and revoke API keys (optional expiry, up to 365 days) from a new admin page and the `api/1.0/admin/api-keys` routes, guarded by a new `ApiKeys` role.
+- Added API key authentication through the `x-api-key` header, combined with cookie authentication in a single `CookieOrApiKey` scheme. Keys are stored as SHA-256 hashes and validated keys are cached for one minute.
+- Added identity-based storage access: when a `PulseStore` setting (e.g. environment variable) holds a storage account name, table, blob and queue clients are created with `DefaultAzureCredential`. It takes precedence over the `PulseStore` connection string.
 - Added a health query route that returns an aggregated, simplified health view for a list of check IDs.
+- Added a `health/query/details` route that returns per-check JSON details (group, name, state and last elapsed time) for one or more check IDs.
+- Added a `pulses/list` route returning all configured identifiers, sorted by group and name.
 - Added incident filtering to the overview page so operators can narrow the view to affected checks.
 - Synced the overview heatmap selection to the URL so a specific view can be shared and restored.
 
 ### Changed
 
+- Reworked scheduling around the `checkjobs` queue with new `CheckWorkerHostedService`, `PulseEventRefreshHostedService` and `PulseCheckExecutor`. Webhooks are now sent by every instance from the shared `webhooks` queue.
+- Live updates (SSE) now poll the `RecentPulses` table while clients are connected, so they work across instances but can lag a few seconds behind.
+- Moved storage registration into a dedicated `StorageSetup`. Queue clients are now resolved from a shared `QueueServiceClient` instead of being built from a connection string.
+- Moved sqid generation for new pulses from `PulseStore` into the admin routes.
 - Replaced the pulse detail "Since" metric with a "Slowest" metric on the dashboard.
 - Migrated the Views V3 test runner from Jest to Vitest and Angular's unit-test builder.
+- Enabled NuGet lock files, with locked-mode restore on CI builds.
 
 ### Fixed
 
@@ -28,10 +41,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Dependencies
 
 - Resolved package vulnerabilities by upgrading backend NuGet dependencies and Angular (Views V3) npm packages.
+- Upgraded Angular (Views V3) through several releases. Views V3 now requires Node.js 22.22.3+, 24.15+ or 26+ and npm 12.2+.
+- Upgraded backend packages, including Azure Storage, ASP.NET Core 10.0.14, FastExpressionCompiler 6, OpenTelemetry, Polly, protobuf-net and Scalar.
 - Replaced Jest testing dependencies with Vitest, jsdom, and Vitest coverage tooling in Views V3.
 
 ### Removed
 
+- Removed the in-process async storage pipeline (`AsyncPulseStoreService` and `AsyncPulseStoreHostedService`) and `SignalService`, superseded by the queue-based multi-instance design.
+- Removed the `PulseOptions.Store` option, as storage clients are now registered through dependency injection.
+- Removed unused packages: `Azure.Monitor.Query`, `NUglify`, `WebMarkupMin.Core`, `Microsoft.CodeAnalysis.*` and `protobuf-net.BuildTools`.
 - Removed the Jest configuration, setup file, and Jest-specific test dependencies from Views V3.
 
 ---

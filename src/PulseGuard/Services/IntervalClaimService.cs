@@ -1,7 +1,6 @@
 using Azure;
 using Azure.Data.Tables;
 using PulseGuard.Entities;
-using TableStorage.Linq;
 
 namespace PulseGuard.Services;
 

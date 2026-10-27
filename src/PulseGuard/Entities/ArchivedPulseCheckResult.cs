@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using ProtoBuf;
+﻿using ProtoBuf;
 using TableStorage;
 
 namespace PulseGuard.Entities;

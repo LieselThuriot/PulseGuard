@@ -1,6 +1,5 @@
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
-using Microsoft.Extensions.Options;
 using PulseGuard.Models;
 
 namespace PulseGuard.Services;
@@ -20,9 +19,9 @@ public readonly record struct CheckJobMessage(string MessageId, string PopReceip
 /// <summary>
 /// Shared queue with one message per check, executed by every instance.
 /// </summary>
-public sealed class CheckJobQueue(IOptions<PulseOptions> options)
+public sealed class CheckJobQueue(QueueServiceClient queueServiceClient)
 {
-    private readonly QueueClient _queue = new(options.Value.Store, "checkjobs");
+    private readonly QueueClient _queue = queueServiceClient.GetQueueClient("checkjobs");
 
     public Task InitializeAsync(CancellationToken token) => _queue.CreateIfNotExistsAsync(cancellationToken: token);
 
