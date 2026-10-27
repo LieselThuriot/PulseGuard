@@ -9,5 +9,7 @@
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+		<RestoreLockedMode Condition="'$(CI)' == 'true' or '$(TF_BUILD)' == 'true'">true</RestoreLockedMode>
 	</PropertyGroup>
 </Project>

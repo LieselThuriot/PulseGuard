@@ -15,17 +15,18 @@ public sealed partial class PulseContext
     /// </summary>
     public TableSet<FluentPartitionTableEntity<FailCounter, IntervalClaim>> State { get; set; }
 
-    public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<FluentPartitionTableEntity<OAuth2Credentials, BasicCredentials, ApiKeyCredentials>> Credentials { get; set; }
+
+    public TableSet<PulseConfiguration> Configurations { get; }
     public TableSet<PulseAgentConfiguration> AgentConfigurations { get; }
 
     public TableSet<Pulse> Pulses { get; }
-    public TableSet<Webhook> Webhooks { get; }
 
     /// <summary>
     /// Duplication of last results in the default timeframe
     /// </summary>
     public TableSet<Pulse> RecentPulses { get; }
+    public TableSet<Webhook> Webhooks { get; }
 
     public AppendBlobSet<PulseCheckResult> PulseCheckResults { get; }
     public BlobSet<ArchivedPulseCheckResult> ArchivedPulseCheckResults { get; }
