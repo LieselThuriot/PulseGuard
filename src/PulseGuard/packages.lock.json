@@ -139,11 +139,11 @@
       },
       "Polly": {
         "type": "Direct",
-        "requested": "[8.8.1, )",
-        "resolved": "8.8.1",
-        "contentHash": "YpeoOqj82RfUtzQ3Tcn/zGnL/fdFmev1gEPSexYD3HgQZACo0b1avF8QU6f86KhUP+agXzCwKOKjo/8cqTjXvw==",
+        "requested": "[8.9.0, )",
+        "resolved": "8.9.0",
+        "contentHash": "k/gux3e2R/kmXXVBPmaPi/MWMEsCu6gvWfKwWYRiOtEbDljg91iP8zH5LGPpiTNyoGrmw3hrK8wY1s9rs9nluA==",
         "dependencies": {
-          "Polly.Core": "8.8.1"
+          "Polly.Core": "8.9.0"
         }
       },
       "protobuf-net": {
@@ -169,9 +169,9 @@
       },
       "Scalar.AspNetCore": {
         "type": "Direct",
-        "requested": "[2.18.3, )",
-        "resolved": "2.18.3",
-        "contentHash": "6KXPOkCNnoZTXBl8GVNxq/zpS9UdGnz1a23EWy3CEiwYbZKQ5gi2APZ5mBruXcdXIr+ZXSZYiwX81UagjKFxeg=="
+        "requested": "[2.18.5, )",
+        "resolved": "2.18.5",
+        "contentHash": "m7sb2hqbdUXPBa4MvFy7GZ8SU4YGDYhaFkaiATXCMRhIDMA6kJrRQnBO4Z5PRz175sRfYfSXBlyrxckbhhrQ3A=="
       },
       "SecureWebhooks.SystemTextJson": {
         "type": "Direct",
@@ -185,75 +185,35 @@
         "resolved": "3.2.1",
         "contentHash": "8uqA+i1CYgRz5H/Sd+ucmEh+/r9IwihxH24XuBfvZPsERuWLjnOITeODdcKyFZ40wfeG1xH2H+MS4o7DpVt8og=="
       },
-      "TableStorage": {
-        "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "HpRiUFVdUNKtWMaOuqS/CU7JThlzdwYHvnzE2HjPI281+w0RL4/bz3PQf6WNeqy8OnoSbu5NsCNMBrVUVVH1ZQ==",
-        "dependencies": {
-          "Azure.Data.Tables": "12.11.0",
-          "Microsoft.Bcl.AsyncInterfaces": "8.0.0",
-          "TableStorage.Core": "[6.1.0, 7.0.0)"
-        }
-      },
-      "TableStorage.Blobs": {
-        "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "IZToy1EMQcQUTRfOjUD8qlGq8sBHhl9W7uTTITmJhyRqfc9NpyDOLZfv02j8mWAdaNVCJsJRDjYjUjEPqBXdEg==",
-        "dependencies": {
-          "Azure.Storage.Blobs": "12.13.0",
-          "Microsoft.Bcl.AsyncInterfaces": "8.0.0",
-          "TableStorage.Core": "[6.1.0, 7.0.0)"
-        }
-      },
       "TableStorage.Blobs.RuntimeCompilations": {
         "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "cdRbTvXuHkFSyHeaVQU9XGpchU+Uxbu09kGhZHSwyd3x/zYlV2hWWCQob/MuQ3RLoRaik+6BsuYHXGtUYQ359w==",
+        "requested": "[6.3.0, )",
+        "resolved": "6.3.0",
+        "contentHash": "4UW2ypNf9x/IZ4lG3/9d0c9MtjiODNrW/A5AHDDxWsGpaG6AyI60qNnFSZZ+riHhDiHlD1s7zT6fa6d0o/9VTQ==",
         "dependencies": {
-          "FastExpressionCompiler": "5.4.1",
-          "TableStorage.Blobs": "[6.1.0, 7.0.0)"
-        }
-      },
-      "TableStorage.Core": {
-        "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "2kDrRocpVLthQP7PwqIc/aLcTq+SkFTYES2KmvMfmXJ9AF2FjGT49ln/LQsY/fvM+BQmGbXYfi51JbbCGSKIhg==",
-        "dependencies": {
-          "Microsoft.Bcl.AsyncInterfaces": "8.0.0"
-        }
-      },
-      "TableStorage.Fluent": {
-        "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "bAkNRVz84xHptnOTAWSgGWGzr5D8UO7tL9X1oZxCYbpmMmEChS6zO3XCeuD9MrAWdb3UJSrkHvBtMCjbuJLh/w==",
-        "dependencies": {
-          "TableStorage": "[6.1.0, 7.0.0)"
+          "FastExpressionCompiler": "6.0.0",
+          "TableStorage.Blobs": "[6.3.0, 7.0.0)"
         }
       },
       "TableStorage.Fluent.RuntimeCompilations": {
         "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "s2faH1FTsiRwnaV9xbiRKF/5o40IMSTFrjeqtQ0Mb9jrvnVFW0hodse8T2RjMdNjQR+WetD8Ty/34V6yVnCyZA==",
+        "requested": "[6.3.0, )",
+        "resolved": "6.3.0",
+        "contentHash": "gzf3aObUQHAk41x/+Fitibbxza87cvlW8Qh34Xxuk71QRdpykNhhJIsv5R2qciSnbJVq2SC8CaAVvJjK8fNqkA==",
         "dependencies": {
-          "TableStorage": "[6.1.0, 7.0.0)",
-          "TableStorage.Fluent": "[6.1.0, 7.0.0)",
-          "TableStorage.RuntimeCompilations": "[6.1.0, 7.0.0)"
+          "TableStorage": "[6.3.0, 7.0.0)",
+          "TableStorage.Fluent": "[6.3.0, 7.0.0)",
+          "TableStorage.RuntimeCompilations": "[6.3.0, 7.0.0)"
         }
       },
       "TableStorage.RuntimeCompilations": {
         "type": "Direct",
-        "requested": "[6.1.1, )",
-        "resolved": "6.1.1",
-        "contentHash": "BqCOOnchyOwu3KxrJlzsbK1ddy4y8Rexr74mCd9aYytvqfGrOqJ6U1WIa70OpReQl2BGWYKVgzStQefakG0FBw==",
+        "requested": "[6.3.0, )",
+        "resolved": "6.3.0",
+        "contentHash": "9nfiJftYg1dfOAelU8PfFKcFVwlnTYoEZMDdXK0KUVRnUfmKSgVg190Rr84BGZYdsdCqk9TLbUhryuOo+/oQTw==",
         "dependencies": {
-          "FastExpressionCompiler": "5.4.1",
-          "TableStorage": "[6.1.0, 7.0.0)"
+          "FastExpressionCompiler": "6.0.0",
+          "TableStorage": "[6.3.0, 7.0.0)"
         }
       },
       "Yarp.ReverseProxy": {
@@ -454,8 +414,8 @@
       },
       "Polly.Core": {
         "type": "Transitive",
-        "resolved": "8.8.1",
-        "contentHash": "yyzOT3XJRR7sEOxZH1Xpb6Oi5cDiGVuTOSVfIlcC23wFUdoyCPOujjKfIX5WdIX8l5TkRneOTyyW1Y1zNQKnUA=="
+        "resolved": "8.9.0",
+        "contentHash": "Imm3q+XvH+8fiOdCkp+GggDQuxN3e4VznbRxODjjJxCurmAIfUEO4dKcPx8RCwocTkvP6Udw2DyXtC+45tu3jA=="
       },
       "Polly.Extensions.Http": {
         "type": "Transitive",
@@ -501,6 +461,37 @@
         "type": "Transitive",
         "resolved": "4.5.0",
         "contentHash": "wLBKzFnDCxP12VL9ANydSYhk59fC4cvOr9ypYQLPnAj48NQIhqnjdD2yhP8yEKyBJEjERWS9DisKL7rX5eU25Q=="
+      },
+      "TableStorage": {
+        "type": "Transitive",
+        "resolved": "6.3.0",
+        "contentHash": "s8UNDyGmsioqnWray1J+R+GvTKsvam5cV0FAfeYsm5jba/ucewbsDC+DlITWJv142jBYg36QdWCId4HYVMrqoQ==",
+        "dependencies": {
+          "Azure.Data.Tables": "12.11.0",
+          "TableStorage.Core": "[6.3.0, 7.0.0)"
+        }
+      },
+      "TableStorage.Blobs": {
+        "type": "Transitive",
+        "resolved": "6.3.0",
+        "contentHash": "rb9FZxhQEvOvt8buPfV8FCcinEobAFDIivTw0pbubo4k1G6S/uqHISwdPOxwv3kwtoidndIPXo13PWEZikUufw==",
+        "dependencies": {
+          "Azure.Storage.Blobs": "12.13.0",
+          "TableStorage.Core": "[6.3.0, 7.0.0)"
+        }
+      },
+      "TableStorage.Core": {
+        "type": "Transitive",
+        "resolved": "6.3.0",
+        "contentHash": "bOm2Nl0bMBaR6X3SrkzvyY/dHzik8fvdNCNXepw+jkpnpkRcV5AJG1kgngf4gwa1ZTjvdIFUjtXPJ9pwGc7yNA=="
+      },
+      "TableStorage.Fluent": {
+        "type": "Transitive",
+        "resolved": "6.3.0",
+        "contentHash": "bP/EKA9rt/2F+wRo7DSRhzXAHOKh/3XDJ/cHMrtP/a2fr3EWxa+PEohrsYmaqOoWZVLsoklbhq96crnTBNxjww==",
+        "dependencies": {
+          "TableStorage": "[6.3.0, 7.0.0)"
+        }
       }
     }
   }

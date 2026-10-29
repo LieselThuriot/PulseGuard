@@ -19,19 +19,15 @@
     <PackageVersion Include="Microsoft.OpenApi" Version="2.13.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.20.1" />
-    <PackageVersion Include="Polly" Version="8.8.1" />
+    <PackageVersion Include="Polly" Version="8.9.0" />
     <PackageVersion Include="protobuf-net" Version="3.4.40" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.3" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.5" />
     <PackageVersion Include="SecureWebhooks.SystemTextJson" Version="1.0.1" />
     <PackageVersion Include="Sqids" Version="3.2.1" />
-    <PackageVersion Include="TableStorage" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.Blobs" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.Blobs.RuntimeCompilations" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.Core" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.Fluent" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.Fluent.RuntimeCompilations" Version="6.1.1" />
-    <PackageVersion Include="TableStorage.RuntimeCompilations" Version="6.1.1" />
+    <PackageVersion Include="TableStorage.Blobs.RuntimeCompilations" Version="6.3.0" />
+    <PackageVersion Include="TableStorage.Fluent.RuntimeCompilations" Version="6.3.0" />
+    <PackageVersion Include="TableStorage.RuntimeCompilations" Version="6.3.0" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" PrivateAssets="All" IncludeAssets="Runtime;Build;Native;contentFiles;Analyzers" />
