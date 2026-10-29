@@ -28,6 +28,7 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Le
 builder.Services.AddPulseStorage(builder.Configuration, builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled);
 
 bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
+builder.Services.AddPulseDataProtection(builder.Configuration);
 builder.Services.ConfigurePulseTelemetry(builder.Configuration);
 
 builder.Services.ConfigureHttpJsonOptions(x =>

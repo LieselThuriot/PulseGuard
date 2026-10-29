@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added API key access: administrators can create, list and revoke API keys (optional expiry, up to 365 days) from a new admin page and the `api/1.0/admin/api-keys` routes, guarded by a new `ApiKeys` role.
 - Added API key authentication through the `x-api-key` header, combined with cookie authentication in a single `CookieOrApiKey` scheme. Keys are stored as SHA-256 hashes and validated keys are cached for one minute.
 - Added identity-based storage access: when a `PulseStore` setting (e.g. environment variable) holds a storage account name, table, blob and queue clients are created with `DefaultAzureCredential`. It takes precedence over the `PulseStore` connection string.
+- Added shared ASP.NET Core Data Protection keys: when `DataProtection:BlobUri` and `DataProtection:KeyId` are set, keys are stored in that blob and wrapped with that Key Vault key using `DefaultAzureCredential`, so sign-in cookies survive scale-out, restarts and slot swaps.
 - Added a health query route that returns an aggregated, simplified health view for a list of check IDs.
 - Added a `health/query/details` route that returns per-check JSON details (group, name, state and last elapsed time) for one or more check IDs.
 - Added a `pulses/list` route returning all configured identifiers, sorted by group and name.

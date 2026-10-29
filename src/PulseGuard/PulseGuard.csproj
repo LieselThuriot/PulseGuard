@@ -10,6 +10,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" />
+		<PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" />
+		<PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" />
 		<PackageReference Include="Azure.Identity" />
 		<PackageReference Include="Azure.Monitor.Query.Logs" />
 		<PackageReference Include="Azure.ResourceManager.AppService" />
