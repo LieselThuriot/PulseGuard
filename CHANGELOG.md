@@ -43,6 +43,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Resolved package vulnerabilities by upgrading backend NuGet dependencies and Angular (Views V3) npm packages.
 - Upgraded Angular (Views V3) through several releases. Views V3 now requires Node.js 22.22.3+, 24.15+ or 26+ and npm 12.2+.
 - Upgraded backend packages, including Azure Storage, ASP.NET Core 10.0.14, FastExpressionCompiler 6, OpenTelemetry, Polly, protobuf-net and Scalar.
+- Upgraded TableStorage to 6.3.0 and dropped the direct references to `TableStorage`, `TableStorage.Blobs`, `TableStorage.Core` and `TableStorage.Fluent`, which now come in transitively through their `RuntimeCompilations` packages.
 - Replaced Jest testing dependencies with Vitest, jsdom, and Vitest coverage tooling in Views V3.
 
 ### Removed
