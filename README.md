@@ -1,4 +1,4 @@
-﻿# PulseGuard
+# PulseGuard
 
 Lightweight health and telemetry pulse aggregation.
 
@@ -111,7 +111,7 @@ Purpose: Query a Log Analytics workspace for multiple applications at once.
 Mechanics:
 - Builds a dynamic Kusto query over `AppPerformanceCounters` for all configured `ApplicationName` values.
 - Workspace Id taken from first configuration's `Location`.
-- Uses the app's Azure credential and `LogsQueryClient` (`DefaultAzureCredential` in Development, the system-assigned managed identity otherwise).
+- Uses the app's Azure credential and `LogsQueryClient`.
 - Produces a row per application with CPU, Memory %, IO (same calculations as above) and maps back to the correct configuration by `AppRoleName`.
 Failure Modes:
 - Exception during auth/query (logged as warning).
@@ -139,7 +139,7 @@ Configuration Notes:
 - `SubscriptionId` must contain the Azure subscription ID.
 - `Location` must be the resource group name.
 - `ApplicationName` must be the Web App name.
-- Ensure the executing environment identity has `Reader` role on the Web App resource. PulseGuard uses `DefaultAzureCredential` in Development and its system-assigned managed identity otherwise.
+- Ensure the executing environment identity has `Reader` role on the Web App resource. See "Azure credential" below.
 
 ### 4. DevOpsDeployment
 Purpose: Monitor Azure DevOps environment deployment records.
@@ -231,7 +231,12 @@ Both configuration types serialize headers as: `Name:Value;Another-Header:OtherV
 ---
 ## Security & Networking
 - Optional SSL ignore flag for scenarios with self-signed certs (use sparingly in production).
-- Agent checks authenticate to the telemetry they read (Application Insights, Log Analytics) with headers (API key) or the app's Azure credential (`DefaultAzureCredential` in Development, the system-assigned managed identity otherwise).
+- Agent checks authenticate to the telemetry they read (Application Insights, Log Analytics) with headers (API key) or the app's Azure credential.
+
+### Azure credential
+Storage (when PulseStore holds an account name), Data Protection, the WebAppDeployment agent and the LogAnalyticsWorkspace agent share one credential:
+- On App Service (WEBSITE_INSTANCE_ID set) without AZURE_CLIENT_SECRET: ManagedIdentityCredential, user-assigned when AZURE_CLIENT_ID is set, otherwise system-assigned.
+- Everywhere else: DefaultAzureCredential (environment variables, workload identity, managed identity, developer logins).
 
 ---
 ## Telemetry
@@ -259,7 +264,7 @@ Traces cover incoming requests, outgoing HttpClient calls and Azure SDK operatio
 | `pulseguard.jobs.processed` | `pulseguard.outcome` | Check jobs taken from the queue (`completed`, `expired`, `failed`, `released`) |
 | `pulseguard.webhooks.sent` | `pulseguard.webhook.event`, `pulseguard.outcome` | Webhook deliveries |
 
-Logs include everything written through `ILogger`.
+Logs written through `ILogger` are exported from `Warning` up, set by `Logging:OpenTelemetry:LogLevel` in `appsettings.json`. Other logging providers (e.g. the console) keep using `Logging:LogLevel`. PulseGuard logs several `Information` lines per check, so lowering the export level noticeably increases ingestion volume.
 
 Resource attributes:
 - `service.name`: `pulseguard` by default.
@@ -268,7 +273,7 @@ Resource attributes:
 - `host.*`, `cloud.*` and other App Service attributes: resource detectors.
 - Anything else, such as `service.namespace` or `deployment.environment.name`: the standard `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables. These are applied last, so they override both the defaults above and the detected values (the App Service detector reports the slot name as `deployment.environment.name`).
 
-`/warmup` is an anonymous health endpoint for App Service warmup (`WEBSITE_WARMUP_PATH`, `WEBSITE_SWAP_WARMUP_PING_PATH`). It loads the Data Protection key ring and queries Table storage, returning 503 when either fails.
+`/warmup` is an anonymous health endpoint for App Service warmup (`WEBSITE_WARMUP_PATH`, `WEBSITE_SWAP_WARMUP_PING_PATH`). It loads the Data Protection key ring and queries Table storage, returning 503 when either fails. Use it for warmup only; keep the App Service health check and other monitors on `/health`.
 
 ---
 ## Sample JSON Subset (Json Check)

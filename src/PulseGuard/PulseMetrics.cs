@@ -29,7 +29,7 @@ internal static class PulseMetrics
         "pulseguard.check.alert_thresholds", "{alert}", "Pulse checks that reached the alert threshold.");
 
     private static readonly Counter<long> s_jobsScheduled = s_meter.CreateCounter<long>(
-        "pulseguard.jobs.scheduled", "{job}", "Check jobs queued by the instance that claimed the interval, by kind.");
+        "pulseguard.jobs.scheduled", "{job}", "Check jobs successfully queued by the instance that claimed the interval, by kind.");
 
     private static readonly Counter<long> s_jobsProcessed = s_meter.CreateCounter<long>(
         "pulseguard.jobs.processed", "{job}", "Check jobs taken from the queue, by outcome.");
@@ -56,8 +56,8 @@ internal static class PulseMetrics
 
     public static void RecordAlertThreshold() => s_thresholdsReached.Add(1);
 
-    public static void RecordJobsScheduled(string kind, int count) =>
-        s_jobsScheduled.Add(count, new KeyValuePair<string, object?>("pulseguard.job.kind", kind));
+    public static void RecordJobScheduled(string kind) =>
+        s_jobsScheduled.Add(1, new KeyValuePair<string, object?>("pulseguard.job.kind", kind));
 
     public static void RecordJobProcessed(string outcome) =>
         s_jobsProcessed.Add(1, new KeyValuePair<string, object?>("pulseguard.outcome", outcome));

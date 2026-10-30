@@ -16,7 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added a `pulse:QueuePollingSeconds` option controlling how often instances poll the shared queues.
 - Added a "Running Multiple Instances" section to the README.
 - Added an anonymous `/warmup` health endpoint for App Service warmup that loads the Data Protection key ring and queries Table storage.
-- Added OTLP export: when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, traces, metrics and logs are sent over OTLP; otherwise Azure Monitor is used when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set. Extra resource attributes can be supplied through `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`.
+- Added OTLP export: when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, traces, metrics and logs are sent over OTLP; otherwise Azure Monitor is used when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set. Extra resource attributes can be supplied through `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`. Logs are exported from `Warning` up (`Logging:OpenTelemetry:LogLevel`).
 - Added a `PulseGuard` meter with pulse check duration and state, state changes, alert thresholds, agent check runs, check jobs scheduled and processed, and webhook deliveries.
 - Added API key access: administrators can create, list and revoke API keys (optional expiry, up to 365 days) from a new admin page and the `api/1.0/admin/api-keys` routes, guarded by a new `ApiKeys` role.
 - Added API key authentication through the `x-api-key` header, combined with cookie authentication in a single `CookieOrApiKey` scheme. Keys are stored as SHA-256 hashes and validated keys are cached for one minute.
@@ -38,7 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Migrated the Views V3 test runner from Jest to Vitest and Angular's unit-test builder.
 - Enabled NuGet lock files, with locked-mode restore on CI builds.
 - Replaced the Application Insights SDK with plain OpenTelemetry (ASP.NET Core, HttpClient, Azure SDK, runtime and process instrumentation, App Service and host resource detectors). Health probes are excluded from traces.
-- Azure clients (storage, Data Protection, ARM and Log Analytics) share one credential: `DefaultAzureCredential` in Development and the system-assigned `ManagedIdentityCredential` otherwise.
+- Azure clients (storage, Data Protection, ARM and Log Analytics) share one credential: `ManagedIdentityCredential` on App Service (user-assigned when `AZURE_CLIENT_ID` is set, otherwise system-assigned), `DefaultAzureCredential` elsewhere or when `AZURE_CLIENT_SECRET` is set.
 
 ### Fixed
 

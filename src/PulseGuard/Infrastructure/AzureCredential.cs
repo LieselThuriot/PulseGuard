@@ -5,10 +5,19 @@ namespace PulseGuard.Infrastructure;
 
 internal static class AzureCredential
 {
-    // One instance so all Azure clients share its token cache. Outside development the app runs with a
-    // system-assigned managed identity; skipping the DefaultAzureCredential chain avoids slow failed attempts.
-    public static TokenCredential Create(IHostEnvironment environment) =>
-        environment.IsDevelopment()
-            ? new DefaultAzureCredential()
+    // One instance so all Azure clients share its token cache. On App Service, use the managed identity directly
+    // (user-assigned when AZURE_CLIENT_ID is set, otherwise system-assigned); skipping the DefaultAzureCredential chain
+    // avoids slow failed attempts. Elsewhere, or with a service principal secret, keep the full chain so service
+    // principals, workload identity and developer logins keep working.
+    public static TokenCredential Create(IConfiguration configuration)
+    {
+        if (string.IsNullOrEmpty(configuration["WEBSITE_INSTANCE_ID"]) || !string.IsNullOrEmpty(configuration["AZURE_CLIENT_SECRET"]))
+        {
+            return new DefaultAzureCredential();
+        }
+
+        return configuration["AZURE_CLIENT_ID"] is { Length: > 0 } clientId
+            ? new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(clientId))
             : new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned);
+    }
 }

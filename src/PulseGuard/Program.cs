@@ -28,7 +28,7 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Le
 
 builder.Services.ConfigurePulseTelemetry(builder.Configuration);
 
-TokenCredential azureCredential = AzureCredential.Create(builder.Environment);
+TokenCredential azureCredential = AzureCredential.Create(builder.Configuration);
 builder.Services.AddSingleton(azureCredential);
 
 builder.Services.AddPulseStorage(builder.Configuration, azureCredential, builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled);

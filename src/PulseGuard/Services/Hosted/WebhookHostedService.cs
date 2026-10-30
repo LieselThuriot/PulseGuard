@@ -132,6 +132,11 @@ internal sealed class WebhookHostedService(WebhookService webhookClient, IHttpCl
                 _logger.ErrorSendingWebhookWithStatus(location, (int)response.StatusCode);
             }
         }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancelled by shutdown: not a delivery failure.
+            _logger.ErrorSendingWebhook(ex, location);
+        }
         catch (Exception ex)
         {
             PulseMetrics.RecordWebhook(eventName, "error");

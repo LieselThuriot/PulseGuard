@@ -24,6 +24,7 @@ internal static class TelemetrySetup
         AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
 
         string serviceInstanceId = configuration["WEBSITE_INSTANCE_ID"] is { Length: > 0 } instanceId ? instanceId : Environment.MachineName;
+        PathString pathBase = configuration["PathBase"];
 
         OpenTelemetryBuilder telemetry = services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -37,7 +38,7 @@ internal static class TelemetrySetup
                 // e.g. the App Service detector reporting the slot name as deployment.environment.name.
                 .AddEnvironmentVariableDetector())
             .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation(options => options.Filter = context => !IsHealthProbe(context.Request.Path))
+                .AddAspNetCoreInstrumentation(options => options.Filter = context => !IsHealthProbe(context.Request.Path, pathBase))
                 .AddHttpClientInstrumentation()
                 .AddSource("Azure.*"))
             .WithMetrics(metrics => metrics
@@ -59,10 +60,15 @@ internal static class TelemetrySetup
     }
 
     // Runs before UsePathBase, so the path may still include the path base.
-    private static bool IsHealthProbe(PathString path)
+    private static bool IsHealthProbe(PathString path, PathString pathBase)
     {
+        if (pathBase.HasValue && path.StartsWithSegments(pathBase, StringComparison.OrdinalIgnoreCase, out PathString remaining))
+        {
+            path = remaining;
+        }
+
         string value = path.Value?.TrimEnd('/') ?? string.Empty;
-        return value.EndsWith("/health", StringComparison.OrdinalIgnoreCase)
-            || value.EndsWith("/warmup", StringComparison.OrdinalIgnoreCase);
+        return value.Equals("/health", StringComparison.OrdinalIgnoreCase)
+            || value.Equals(HealthCheckSetup.WarmupPath, StringComparison.OrdinalIgnoreCase);
     }
 }

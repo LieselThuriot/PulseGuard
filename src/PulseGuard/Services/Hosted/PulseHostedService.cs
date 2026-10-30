@@ -74,6 +74,7 @@ public sealed class PulseHostedService(IServiceProvider services, CheckJobQueue 
             try
             {
                 await _jobs.SendAsync(job, timeToLive, ct);
+                PulseMetrics.RecordJobScheduled(job.Kind is CheckJobKind.Pulse ? "pulse" : "agent");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -82,7 +83,5 @@ public sealed class PulseHostedService(IServiceProvider services, CheckJobQueue 
         });
 
         _logger.ScheduledCheckJobs(jobs.Count);
-        PulseMetrics.RecordJobsScheduled("pulse", configurations.Count);
-        PulseMetrics.RecordJobsScheduled("agent", jobs.Count - configurations.Count);
     }
 }
