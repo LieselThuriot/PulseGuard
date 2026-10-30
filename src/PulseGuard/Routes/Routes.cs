@@ -18,11 +18,6 @@ public static class Routes
             app.UseAuthentication();
             app.UseAuthorization();
 
-            if (!(bool.TryParse(app.Configuration["APPLICATIONINSIGHTS_DISABLE_USER_TRACKING"], out bool parsedUserTrack) && parsedUserTrack))
-            {
-                app.UsePulseTelemetry();
-            }
-
             routes.MapGet("access-denied", () => Results.Content("You do not have permission to access this resource.", MediaTypeNames.Text.Plain, Encoding.UTF8, 403))
                   .WithTags("Authorization")
                   .ExcludeFromDescription()
@@ -30,6 +25,10 @@ public static class Routes
 
             routes = routes.MapGroup("").RequireAuthorization();
         }
+
+        // App Service warmup (start, scale-out and slot swap) waits for this before routing traffic,
+        // so cold-start costs are paid here instead of on a user's first request.
+        app.MapHealthChecks(HealthCheckSetup.WarmupPath).AllowAnonymous();
 
         app.Use((context, next) =>
         {

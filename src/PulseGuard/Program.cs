@@ -1,3 +1,4 @@
+using Azure.Core;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using PulseGuard;
@@ -25,11 +26,16 @@ builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
-builder.Services.AddPulseStorage(builder.Configuration, builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled);
+builder.Services.ConfigurePulseTelemetry(builder.Configuration);
+
+TokenCredential azureCredential = AzureCredential.Create(builder.Environment);
+builder.Services.AddSingleton(azureCredential);
+
+builder.Services.AddPulseStorage(builder.Configuration, azureCredential, builder.Environment.IsDevelopment() ? CreateIfNotExistsMode.Once : CreateIfNotExistsMode.Disabled);
 
 bool authorized = builder.Services.ConfigureAuthentication(builder.Configuration);
 builder.Services.AddPulseDataProtection(builder.Configuration);
-builder.Services.ConfigurePulseTelemetry(builder.Configuration);
+builder.Services.AddPulseHealthChecks();
 
 builder.Services.ConfigureHttpJsonOptions(x =>
 {

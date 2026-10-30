@@ -71,6 +71,7 @@ public sealed class PulseCheckExecutor(PulseStore store, AuthService authService
         }
 
         long elapsedMilliseconds = success ? sw.ElapsedMilliseconds : check.Options.Timeout;
+        PulseMetrics.RecordCheck(check.Options.Type, report.State, sw.Elapsed);
         await _store.StoreAsync(report, DateTimeOffset.UtcNow, elapsedMilliseconds, token);
     }
 
@@ -80,10 +81,12 @@ public sealed class PulseCheckExecutor(PulseStore store, AuthService authService
         IAgentCheck check = _agentFactory.Create(type, configs, auth);
 
         IReadOnlyList<AgentReport> reports;
+        var sw = Stopwatch.StartNew();
 
         try
         {
             reports = await check.CheckAsync(token);
+            PulseMetrics.RecordAgent(type, "success", sw.Elapsed);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -91,21 +94,25 @@ public sealed class PulseCheckExecutor(PulseStore store, AuthService authService
         }
         catch (TaskCanceledException ex)
         {
+            PulseMetrics.RecordAgent(type, "timeout", sw.Elapsed);
             _logger.AgentTimeout(ex);
             return;
         }
         catch (SocketException ex)
         {
+            PulseMetrics.RecordAgent(type, "socket_error", sw.Elapsed);
             _logger.SocketErrorCheckingAgent(ex);
             return;
         }
         catch (HttpRequestException ex)
         {
+            PulseMetrics.RecordAgent(type, "http_error", sw.Elapsed);
             _logger.HttpErrorCheckingAgent(ex);
             return;
         }
         catch (Exception ex)
         {
+            PulseMetrics.RecordAgent(type, "error", sw.Elapsed);
             _logger.ErrorCheckingAgent(ex);
             return;
         }

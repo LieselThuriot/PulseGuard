@@ -49,6 +49,7 @@ public sealed class PulseStore(PulseContext context, WebhookService webhookServi
                 var oldPulse = pulse;
 
                 _logger.UpdatingExistingPulseDueToStateChange(report.Options.Sqid, report.Options.Name);
+                PulseMetrics.RecordStateChange(report.State);
                 pulse.LastUpdatedTimestamp = creation;
 
                 await _context.Pulses.UpdateEntityAsync(pulse, ETag.All, TableUpdateMode.Replace, token);
@@ -112,6 +113,7 @@ public sealed class PulseStore(PulseContext context, WebhookService webhookServi
             DateTimeOffset since = DateTimeOffset.UtcNow.AddMinutes(-_options.Interval * pulseCounter.Value);
 
             _logger.PulseReachedAlertThreshold(report.Options.Sqid, pulseCounter.Value, since);
+            PulseMetrics.RecordAlertThreshold();
             await _webhookService.PostAsync(pulse, since, pulseCounter.Value, report.Options, token);
         }
     }

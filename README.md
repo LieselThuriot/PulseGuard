@@ -111,7 +111,7 @@ Purpose: Query a Log Analytics workspace for multiple applications at once.
 Mechanics:
 - Builds a dynamic Kusto query over `AppPerformanceCounters` for all configured `ApplicationName` values.
 - Workspace Id taken from first configuration's `Location`.
-- Uses `DefaultAzureCredential` and `LogsQueryClient` (Managed Identity / VS / Azure CLI chain).
+- Uses the app's Azure credential and `LogsQueryClient` (`DefaultAzureCredential` in Development, the system-assigned managed identity otherwise).
 - Produces a row per application with CPU, Memory %, IO (same calculations as above) and maps back to the correct configuration by `AppRoleName`.
 Failure Modes:
 - Exception during auth/query (logged as warning).
@@ -139,7 +139,7 @@ Configuration Notes:
 - `SubscriptionId` must contain the Azure subscription ID.
 - `Location` must be the resource group name.
 - `ApplicationName` must be the Web App name.
-- Ensure the executing environment identity has `Reader` role on the Web App resource.
+- Ensure the executing environment identity has `Reader` role on the Web App resource. PulseGuard uses `DefaultAzureCredential` in Development and its system-assigned managed identity otherwise.
 
 ### 4. DevOpsDeployment
 Purpose: Monitor Azure DevOps environment deployment records.
@@ -231,7 +231,44 @@ Both configuration types serialize headers as: `Name:Value;Another-Header:OtherV
 ---
 ## Security & Networking
 - Optional SSL ignore flag for scenarios with self-signed certs (use sparingly in production).
-- Auth to external telemetry (AI / Log Analytics) is supplied via headers (API key) or `DefaultAzureCredential`.
+- Agent checks authenticate to the telemetry they read (Application Insights, Log Analytics) with headers (API key) or the app's Azure credential (`DefaultAzureCredential` in Development, the system-assigned managed identity otherwise).
+
+---
+## Telemetry
+PulseGuard uses OpenTelemetry for its own traces, metrics and logs. The exporter is picked at startup:
+
+| Setting | Exporter |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` set | OTLP (e.g. Grafana Cloud), configured with the standard `OTEL_EXPORTER_OTLP_*` variables such as `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_EXPORTER_OTLP_PROTOCOL` |
+| Otherwise, `APPLICATIONINSIGHTS_CONNECTION_STRING` set | Azure Monitor OpenTelemetry exporter (Application Insights) |
+| Neither | No telemetry is exported |
+
+Both exporters receive the same resource attributes and instrumentation. The Application Insights SDK is no longer used, so its settings (`APPLICATIONINSIGHTS_DEPENDENCY_TRACKING`, `APPLICATIONINSIGHTS_DISABLE_USER_TRACKING`) have no effect.
+
+This is separate from the ApplicationInsights and LogAnalyticsWorkspace agent checks, which read telemetry of the *monitored* applications.
+
+Traces cover incoming requests, outgoing HttpClient calls and Azure SDK operations; `/health` and `/warmup` are excluded. Metrics cover ASP.NET Core, HttpClient, .NET runtime and process, plus a `PulseGuard` meter:
+
+| Instrument | Tags | Meaning |
+| --- | --- | --- |
+| `pulseguard.check.duration` (histogram, s) | `pulseguard.check.type`, `pulseguard.check.state` | Every pulse check, with its resulting state |
+| `pulseguard.check.state_changes` | `pulseguard.check.state` | Checks whose state, message or error changed |
+| `pulseguard.check.alert_thresholds` | | Checks that reached the alert threshold |
+| `pulseguard.agent.duration` (histogram, s) | `pulseguard.agent.type`, `pulseguard.outcome` | Agent check runs |
+| `pulseguard.jobs.scheduled` | `pulseguard.job.kind` | Check jobs queued per interval |
+| `pulseguard.jobs.processed` | `pulseguard.outcome` | Check jobs taken from the queue (`completed`, `expired`, `failed`, `released`) |
+| `pulseguard.webhooks.sent` | `pulseguard.webhook.event`, `pulseguard.outcome` | Webhook deliveries |
+
+Logs include everything written through `ILogger`.
+
+Resource attributes:
+- `service.name`: `pulseguard` by default.
+- `service.version`: the assembly version, without the commit hash.
+- `service.instance.id`: `WEBSITE_INSTANCE_ID` on App Service, otherwise the machine name.
+- `host.*`, `cloud.*` and other App Service attributes: resource detectors.
+- Anything else, such as `service.namespace` or `deployment.environment.name`: the standard `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables. These are applied last, so they override both the defaults above and the detected values (the App Service detector reports the slot name as `deployment.environment.name`).
+
+`/warmup` is an anonymous health endpoint for App Service warmup (`WEBSITE_WARMUP_PATH`, `WEBSITE_SWAP_WARMUP_PING_PATH`). It loads the Data Protection key ring and queries Table storage, returning 503 when either fails.
 
 ---
 ## Sample JSON Subset (Json Check)

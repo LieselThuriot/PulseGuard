@@ -1,6 +1,5 @@
 using Azure.Core;
 using Azure.Data.Tables;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using PulseGuard.Entities;
@@ -13,7 +12,7 @@ internal static class StorageSetup
 {
     private const string StoreName = "PulseStore";
 
-    public static void AddPulseStorage(this IServiceCollection services, IConfiguration configuration, CreateIfNotExistsMode createIfNotExists)
+    public static void AddPulseStorage(this IServiceCollection services, IConfiguration configuration, TokenCredential credential, CreateIfNotExistsMode createIfNotExists)
     {
         Action<TableOptions> configureTables = x =>
         {
@@ -31,8 +30,6 @@ internal static class StorageSetup
         string? accountName = configuration[StoreName];
         if (!string.IsNullOrWhiteSpace(accountName))
         {
-            TokenCredential credential = new DefaultAzureCredential();
-
             services.AddSingleton(new TableServiceClient(GetServiceUri(accountName, "table"), credential));
             services.AddSingleton(new BlobServiceClient(GetServiceUri(accountName, "blob"), credential));
             services.AddSingleton(new QueueServiceClient(GetServiceUri(accountName, "queue"), credential));

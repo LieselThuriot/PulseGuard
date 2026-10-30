@@ -1,5 +1,5 @@
 ﻿using Azure;
-using Azure.Identity;
+using Azure.Core;
 using Azure.Monitor.Query.Logs;
 using Azure.Monitor.Query.Logs.Models;
 using PulseGuard.Entities;
@@ -8,16 +8,16 @@ using PulseGuard.Services;
 
 namespace PulseGuard.Agents.Implementations;
 
-public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization, ILogger<AgentCheck> logger) : AgentCheck(client, options, authorization)
+public sealed class LogAnalyticsWorkspaceAgent(HttpClient client, TokenCredential credential, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization, ILogger<AgentCheck> logger) : AgentCheck(client, options, authorization)
 {
+    private readonly TokenCredential _credential = credential;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public override async Task<IReadOnlyList<AgentReport>> CheckAsync(CancellationToken token)
     {
         try
         {
-            DefaultAzureCredential credential = new();
-            LogsQueryClient client = new(credential);
+            LogsQueryClient client = new(_credential);
 
             DateTimeOffset now = DateTimeOffset.UtcNow;
             LogsQueryTimeRange timeRange = new(now.AddMinutes(-10), now);

@@ -82,5 +82,7 @@ public sealed class PulseHostedService(IServiceProvider services, CheckJobQueue 
         });
 
         _logger.ScheduledCheckJobs(jobs.Count);
+        PulseMetrics.RecordJobsScheduled("pulse", configurations.Count);
+        PulseMetrics.RecordJobsScheduled("agent", jobs.Count - configurations.Count);
     }
 }

@@ -75,19 +75,23 @@ public sealed class CheckWorkerHostedService(CheckJobQueue jobs, IServiceProvide
             }
 
             await _jobs.DeleteAsync(message);
+            PulseMetrics.RecordJobProcessed("completed");
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
+            PulseMetrics.RecordJobProcessed("released");
             await ReleaseAsync(message);
         }
         catch (OperationCanceledException ex)
         {
             // Exceeded the interval: the job is stale, so drop it
+            PulseMetrics.RecordJobProcessed("expired");
             _logger.ErrorProcessingCheckJob(ex, message.MessageId);
             await DeleteAsync(message);
         }
         catch (Exception ex)
         {
+            PulseMetrics.RecordJobProcessed("failed");
             _logger.ErrorProcessingCheckJob(ex, message.MessageId);
         }
     }

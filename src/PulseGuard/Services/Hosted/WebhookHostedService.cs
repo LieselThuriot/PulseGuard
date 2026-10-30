@@ -108,6 +108,8 @@ internal sealed class WebhookHostedService(WebhookService webhookClient, IHttpCl
     private async Task Send<T>(HttpClient client, string secret, string location, AuthHeader? authorization, T webhookEvent, CancellationToken cancellationToken)
         where T : WebhookEventBase
     {
+        string eventName = webhookEvent is ThresholdWebhookEvent ? "threshold_breach" : "state_change";
+
         try
         {
             StringContent content = WebhookHelpers.CreateContentWithSecureHeader(secret, webhookEvent, PulseSerializerContext.Default.WebhookEventBase);
@@ -121,15 +123,18 @@ internal sealed class WebhookHostedService(WebhookService webhookClient, IHttpCl
 
             if (response.IsSuccessStatusCode)
             {
+                PulseMetrics.RecordWebhook(eventName, "success");
                 _logger.SentWebhook(location);
             }
             else
             {
+                PulseMetrics.RecordWebhook(eventName, "http_error");
                 _logger.ErrorSendingWebhookWithStatus(location, (int)response.StatusCode);
             }
         }
         catch (Exception ex)
         {
+            PulseMetrics.RecordWebhook(eventName, "error");
             _logger.ErrorSendingWebhook(ex, location);
         }
     }

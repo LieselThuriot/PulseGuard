@@ -1,4 +1,4 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
 using Azure.ResourceManager;
 using PulseGuard.Services;
 using Hosted = PulseGuard.Services.Hosted;
@@ -21,7 +21,7 @@ internal static class ServicesSetup
         services.AddSingleton<CheckJobQueue>();
         services.AddScoped<IntervalClaimService>();
 
-        services.AddSingleton(_ => new ArmClient(new DefaultAzureCredential()));
+        services.AddSingleton(sp => new ArmClient(sp.GetRequiredService<TokenCredential>()));
 
         PulseEventService eventService = new();
         services.AddSingleton<IPulseEventService>(eventService);

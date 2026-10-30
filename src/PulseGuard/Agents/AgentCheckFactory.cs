@@ -1,14 +1,16 @@
-﻿using Azure.ResourceManager;
+﻿using Azure.Core;
+using Azure.ResourceManager;
 using PulseGuard.Agents.Implementations;
 using PulseGuard.Entities;
 using PulseGuard.Services;
 
 namespace PulseGuard.Agents;
 
-public sealed class AgentCheckFactory(HttpClient client, ArmClient armClient, ILogger<AgentCheck> logger)
+public sealed class AgentCheckFactory(HttpClient client, ArmClient armClient, TokenCredential credential, ILogger<AgentCheck> logger)
 {
     private readonly HttpClient _client = client;
     private readonly ArmClient _armClient = armClient;
+    private readonly TokenCredential _credential = credential;
     private readonly ILogger<AgentCheck> _logger = logger;
 
     public IAgentCheck Create(string type, IReadOnlyList<PulseAgentConfiguration> options, AuthHeader? authorization)
@@ -16,7 +18,7 @@ public sealed class AgentCheckFactory(HttpClient client, ArmClient armClient, IL
         return AgentCheckTypeFastString.FromString(type) switch
         {
             AgentCheckType.ApplicationInsights => new ApplicationInsightsAgent(_client, options, authorization, _logger),
-            AgentCheckType.LogAnalyticsWorkspace => new LogAnalyticsWorkspaceAgent(_client, options, authorization, _logger),
+            AgentCheckType.LogAnalyticsWorkspace => new LogAnalyticsWorkspaceAgent(_client, _credential, options, authorization, _logger),
             AgentCheckType.WebAppDeployment => new WebAppDeploymentAgent(_armClient, options, _logger),
             AgentCheckType.DevOpsDeployment => new DevOpsDeploymentAgent(_client, options, authorization, _logger),
             AgentCheckType.DevOpsRelease => new DevOpsReleaseAgent(_client, options, authorization, _logger),
