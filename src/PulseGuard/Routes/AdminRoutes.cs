@@ -81,7 +81,7 @@ public static class AdminRoutes
                     key.ValidFor)));
             });
 
-            builder.MapPost("", static async (ApiKeyCreationRequest request, ApiKeyService apiKeyService, PulseContext context, CancellationToken token) =>
+            builder.MapPost("", static async (ApiKeyCreationRequest request, PulseContext context, CancellationToken token) =>
             {
                 if (string.IsNullOrWhiteSpace(request.Label))
                 {
@@ -103,22 +103,15 @@ public static class AdminRoutes
                     return Results.BadRequest($"ValidForDays must be {MaxApiKeyValidityDays} or fewer.");
                 }
 
-                PulseApiKey apiKey = new()
-                {
-                    Id = Guid.CreateVersion7().ToString("N"),
-                    KeyHash = apiKeyService.GenerateHash(),
-                    Label = request.Label.Trim(),
-                    Created = DateTimeOffset.UtcNow,
-                    ValidFor = request.ValidForDays
-                };
+                (PulseApiKey apiKey, string key) = ApiKeyService.Create(request.Label.Trim(), request.ValidForDays);
 
                 await context.Settings.AddEntityAsync(apiKey, token);
-                return Results.Ok(new ApiKeyCreatedResponse(apiKey.Id, apiKey.KeyHash));
+                return Results.Ok(new ApiKeyCreatedResponse(apiKey.Id, key));
             });
 
             builder.MapDelete("{id}", static async (string id, PulseContext context, ApiKeyService apiKeyService, CancellationToken token) =>
             {
-                PulseApiKey? apiKey = await context.Settings.FindPulseApiKeyAsync(id, token);
+                PulseApiKey? apiKey = await context.Settings.WherePulseApiKey().Where(x => x.Id == id).FirstOrDefaultAsync(token);
 
                 if (apiKey is null)
                 {

@@ -68,6 +68,12 @@ internal sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<Authentication
 
     protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
     {
+        if (Request.Headers.ContainsKey(HeaderName))
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
         return Context.ForbidAsync(CookieAuthenticationDefaults.AuthenticationScheme, properties);
     }
 }

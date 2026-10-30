@@ -11,9 +11,25 @@ public sealed class ApiKeyService(PulseContext context, IMemoryCache cache)
 
     private readonly IMemoryCache _cache = cache;
 
-    public string ComputeHash(string key) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
-    public string Generate() => $"pg_{Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')}";
-    public string GenerateHash() => ComputeHash(Generate());
+    public const string KeyPrefix = "pg_";
+
+    public static string ComputeHash(string key) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
+    public static string Generate() => $"{KeyPrefix}{Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')}";
+
+    public static (PulseApiKey ApiKey, string Key) Create(string label, int? validForDays)
+    {
+        string key = Generate();
+        PulseApiKey apiKey = new()
+        {
+            Id = Guid.CreateVersion7().ToString("N"),
+            KeyHash = ComputeHash(key),
+            Label = label,
+            Created = DateTimeOffset.UtcNow,
+            ValidFor = validForDays
+        };
+
+        return (apiKey, key);
+    }
 
     public async Task<PulseApiKey?> FindValidAsync(string key, CancellationToken token)
     {
