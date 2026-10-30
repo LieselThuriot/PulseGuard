@@ -72,6 +72,7 @@ public sealed class PulseCheckExecutor(PulseStore store, AuthService authService
 
         long elapsedMilliseconds = success ? sw.ElapsedMilliseconds : check.Options.Timeout;
         PulseMetrics.RecordCheck(check.Options.Type, report.State, sw.Elapsed);
+        PulseMetrics.RecordCheckResult(check.Options, report.State, sw.Elapsed);
         await _store.StoreAsync(report, DateTimeOffset.UtcNow, elapsedMilliseconds, token);
     }
 

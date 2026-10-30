@@ -1,4 +1,5 @@
 using PulseGuard.Checks;
+using PulseGuard.Entities;
 using PulseGuard.Models;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
@@ -36,6 +37,19 @@ internal static class PulseMetrics
 
     private static readonly Counter<long> s_webhooksSent = s_meter.CreateCounter<long>(
         "pulseguard.webhooks.sent", "{webhook}", "Webhook deliveries, by event and outcome.");
+
+    // No buckets: only count and sum are exported, which is enough for state and average duration per check.
+    private static readonly Histogram<double> s_checkResults = s_meter.CreateHistogram(
+        "pulseguard.check.result_duration", "s", "Duration of pulse checks, by check group, name and resulting state.",
+        advice: new InstrumentAdvice<double> { HistogramBucketBoundaries = [] });
+
+    public static void RecordCheckResult(PulseConfiguration config, PulseStates state, TimeSpan duration) =>
+        s_checkResults.Record(duration.TotalSeconds, new TagList
+        {
+            { "pulseguard.check.group", config.Group },
+            { "pulseguard.check.name", config.Name },
+            { "pulseguard.check.state", state.Stringify() }
+        });
 
     public static void RecordCheck(PulseCheckType type, PulseStates state, TimeSpan duration) =>
         s_checkDuration.Record(duration.TotalSeconds, new TagList
